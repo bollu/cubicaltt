@@ -124,7 +124,8 @@
             </div>
             
             <div class="content"><div class='highlight'><pre><span class="hljs-keyword">module</span> Resolver(
-   <span class="hljs-title">resolveModule</span>
+     <span class="hljs-type">Resolver</span>
+   , <span class="hljs-title">resolveModule</span>
    , <span class="hljs-title">resolveModules</span>
    , <span class="hljs-type">SymKind(..)</span>
    , <span class="hljs-title">runResolver</span>
@@ -337,7 +338,7 @@ into a list of idents</p>
                  <span class="hljs-title">variables</span> :: [(<span class="hljs-type">Ident</span>,<span class="hljs-type">SymKind</span>)] }</span>
   <span class="hljs-keyword">deriving</span> (<span class="hljs-type">Eq</span>,<span class="hljs-type">Show</span>)
 
-<span class="hljs-class"><span class="hljs-keyword">type</span> <span class="hljs-type">Resolver</span> a = <span class="hljs-type">ReaderT</span> <span class="hljs-type">Env</span> (<span class="hljs-type">ExceptT</span> <span class="hljs-type">String</span> <span class="hljs-type">Identity</span>) a</span>
+<span class="hljs-class"><span class="hljs-keyword">type</span> <span class="hljs-type">Resolver</span> a = <span class="hljs-type">ReaderT</span> <span class="hljs-type">Env</span> (<span class="hljs-type">Except</span> <span class="hljs-type">String</span>) a</span>
 
 <span class="hljs-title">emptyEnv</span> :: <span class="hljs-type">Env</span>
 <span class="hljs-title">emptyEnv</span> = <span class="hljs-type">Env</span> <span class="hljs-string">&quot;&quot;</span> []

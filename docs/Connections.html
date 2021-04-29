@@ -105,7 +105,8 @@
               <div class="sswrap ">
                 <a class="ss" href="#section-1">&#x00a7;</a>
               </div>
-              
+              <p>| Models the lattice of formulas.</p>
+
             </div>
             
             <div class="content"><div class='highlight'><pre><span class="hljs-meta">{-# LANGUAGE TypeSynonymInstances, FlexibleInstances,
@@ -256,31 +257,96 @@
   <span class="hljs-keyword">where</span> f d1 d2 = <span class="hljs-keyword">if</span> d1 == d2 <span class="hljs-keyword">then</span> d1 <span class="hljs-keyword">else</span> error <span class="hljs-string">&quot;meet: incompatible faces&quot;</span>
 
 <span class="hljs-title">meetMaybe</span> :: <span class="hljs-type">Face</span> -&gt; <span class="hljs-type">Face</span> -&gt; <span class="hljs-type">Maybe</span> <span class="hljs-type">Face</span>
-<span class="hljs-title">meetMaybe</span> x y = <span class="hljs-keyword">if</span> compatible x y <span class="hljs-keyword">then</span> <span class="hljs-type">Just</span> $ meet x y <span class="hljs-keyword">else</span> <span class="hljs-type">Nothing</span>
+<span class="hljs-title">meetMaybe</span> x y = <span class="hljs-keyword">if</span> compatible x y <span class="hljs-keyword">then</span> <span class="hljs-type">Just</span> $ meet x y <span class="hljs-keyword">else</span> <span class="hljs-type">Nothing</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-7">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-7">&#x00a7;</a>
+              </div>
+              <p>| Quick check test that meet is commutative</p>
 
-<span class="hljs-title">meetCom</span> :: <span class="hljs-type">Face</span> -&gt; <span class="hljs-type">Face</span> -&gt; <span class="hljs-type">Property</span>
-<span class="hljs-title">meetCom</span> xs ys = compatible xs ys ==&gt; xs `meet` ys == ys `meet` xs
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">meetCom</span> :: <span class="hljs-type">Face</span> -&gt; <span class="hljs-type">Face</span> -&gt; <span class="hljs-type">Property</span>
+<span class="hljs-title">meetCom</span> xs ys = compatible xs ys ==&gt; xs `meet` ys == ys `meet` xs</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-8">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-8">&#x00a7;</a>
+              </div>
+              <p>| Quick check test that meet is associative</p>
 
-<span class="hljs-title">meetAssoc</span> :: <span class="hljs-type">Face</span> -&gt; <span class="hljs-type">Face</span> -&gt; <span class="hljs-type">Face</span> -&gt; <span class="hljs-type">Property</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">meetAssoc</span> :: <span class="hljs-type">Face</span> -&gt; <span class="hljs-type">Face</span> -&gt; <span class="hljs-type">Face</span> -&gt; <span class="hljs-type">Property</span>
 <span class="hljs-title">meetAssoc</span> xs ys zs = compatibles [xs,ys,zs] ==&gt;
                      xs `meet` (ys `meet` zs) == (xs `meet` ys) `meet` zs
 
 <span class="hljs-title">meetId</span> :: <span class="hljs-type">Face</span> -&gt; <span class="hljs-type">Bool</span>
-<span class="hljs-title">meetId</span> xs = xs `meet` xs == xs
+<span class="hljs-title">meetId</span> xs = xs `meet` xs == xs</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-9">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-9">&#x00a7;</a>
+              </div>
+              <p>| all meets of all compatible elements.</p>
 
-<span class="hljs-title">meets</span> :: [<span class="hljs-type">Face</span>] -&gt; [<span class="hljs-type">Face</span>] -&gt; [<span class="hljs-type">Face</span>]
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">meets</span> :: [<span class="hljs-type">Face</span>] -&gt; [<span class="hljs-type">Face</span>] -&gt; [<span class="hljs-type">Face</span>]
 <span class="hljs-title">meets</span> xs ys = nub [ meet x y | x &lt;- xs, y &lt;- ys, compatible x y ]
 
 <span class="hljs-title">meetss</span> :: [[<span class="hljs-type">Face</span>]] -&gt; [<span class="hljs-type">Face</span>]
-<span class="hljs-title">meetss</span> = foldr meets [eps]
+<span class="hljs-title">meetss</span> = foldr meets [eps]</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-10">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-10">&#x00a7;</a>
+              </div>
+              <p>| a &lt;= b iff a /\ b = a. Recall that meet is partial.</p>
 
-<span class="hljs-title">leq</span> :: <span class="hljs-type">Face</span> -&gt; <span class="hljs-type">Face</span> -&gt; <span class="hljs-type">Bool</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">leq</span> :: <span class="hljs-type">Face</span> -&gt; <span class="hljs-type">Face</span> -&gt; <span class="hljs-type">Bool</span>
 <span class="hljs-title">alpha</span> `leq` beta = meetMaybe alpha beta == <span class="hljs-type">Just</span> alpha
 
 <span class="hljs-title">comparable</span> :: <span class="hljs-type">Face</span> -&gt; <span class="hljs-type">Face</span> -&gt; <span class="hljs-type">Bool</span>
-<span class="hljs-title">comparable</span> alpha beta = alpha `leq` beta || beta `leq` alpha
+<span class="hljs-title">comparable</span> alpha beta = alpha `leq` beta || beta `leq` alpha</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-11">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-11">&#x00a7;</a>
+              </div>
+              <p>| TODO: seems sensitive to ordering?</p>
 
-<span class="hljs-title">incomparables</span> :: [<span class="hljs-type">Face</span>] -&gt; <span class="hljs-type">Bool</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">incomparables</span> :: [<span class="hljs-type">Face</span>] -&gt; <span class="hljs-type">Bool</span>
 <span class="hljs-title">incomparables</span> []     = <span class="hljs-type">True</span>
 <span class="hljs-title">incomparables</span> (x:xs) = all (not . (x `comparable`)) xs &amp;&amp; incomparables xs
 
@@ -296,11 +362,11 @@
         </li>
         
         
-        <li id="section-7">
+        <li id="section-12">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-7">&#x00a7;</a>
+                <a class="ss" href="#section-12">&#x00a7;</a>
               </div>
               <p>Compute the witness of A &lt;= B, ie compute C s.t. B = CA
 leqW :: Face -&gt; Face -&gt; Face
@@ -311,13 +377,13 @@ leqW = undefined</p>
         </li>
         
         
-        <li id="section-8">
+        <li id="section-13">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-8">&#x00a7;</a>
+                <a class="ss" href="#section-13">&#x00a7;</a>
               </div>
-              <p>| Formulas</p>
+              <p>| Logical Formulas over this algebra.</p>
 
             </div>
             
@@ -368,10 +434,24 @@ leqW = undefined</p>
   toFormula = <span class="hljs-type">Dir</span>
 
 <span class="hljs-title">negFormula</span> :: <span class="hljs-type">Formula</span> -&gt; <span class="hljs-type">Formula</span>
-<span class="hljs-title">negFormula</span> (<span class="hljs-type">Dir</span> b)        = <span class="hljs-type">Dir</span> (- b)
+<span class="hljs-title">negFormula</span> (<span class="hljs-type">Dir</span> b)        = <span class="hljs-type">Dir</span> (- b) <span class="hljs-comment">-- exploit Num instance of Dir.</span>
 <span class="hljs-title">negFormula</span> (<span class="hljs-type">Atom</span> i)       = <span class="hljs-type">NegAtom</span> i
-<span class="hljs-title">negFormula</span> (<span class="hljs-type">NegAtom</span> i)    = <span class="hljs-type">Atom</span> i
-<span class="hljs-title">negFormula</span> (phi :/\: psi) = orFormula (negFormula phi) (negFormula psi)
+<span class="hljs-title">negFormula</span> (<span class="hljs-type">NegAtom</span> i)    = <span class="hljs-type">Atom</span> i</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-14">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-14">&#x00a7;</a>
+              </div>
+              <p>| use smart constructors orFormula, andFormula for constant folding.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">negFormula</span> (phi :/\: psi) = orFormula (negFormula phi) (negFormula psi)
 <span class="hljs-title">negFormula</span> (phi :\/: psi) = andFormula (negFormula phi) (negFormula psi)
 
 <span class="hljs-title">andFormula</span> :: <span class="hljs-type">Formula</span> -&gt; <span class="hljs-type">Formula</span> -&gt; <span class="hljs-type">Formula</span>
@@ -386,9 +466,22 @@ leqW = undefined</p>
 <span class="hljs-title">orFormula</span> _ (<span class="hljs-type">Dir</span> <span class="hljs-type">One</span>)    = <span class="hljs-type">Dir</span> <span class="hljs-type">One</span>
 <span class="hljs-title">orFormula</span> (<span class="hljs-type">Dir</span> <span class="hljs-type">Zero</span>) phi = phi
 <span class="hljs-title">orFormula</span> phi (<span class="hljs-type">Dir</span> <span class="hljs-type">Zero</span>) = phi
-<span class="hljs-title">orFormula</span> phi psi        = phi :\/: psi
+<span class="hljs-title">orFormula</span> phi psi        = phi :\/: psi</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-15">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-15">&#x00a7;</a>
+              </div>
+              <p>| formula to sets of solutions (?)</p>
 
-<span class="hljs-title">dnf</span> :: <span class="hljs-type">Formula</span> -&gt; <span class="hljs-type">Set</span> (<span class="hljs-type">Set</span> (<span class="hljs-type">Name</span>,<span class="hljs-type">Dir</span>))
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">dnf</span> :: <span class="hljs-type">Formula</span> -&gt; <span class="hljs-type">Set</span> (<span class="hljs-type">Set</span> (<span class="hljs-type">Name</span>,<span class="hljs-type">Dir</span>))
 <span class="hljs-title">dnf</span> (<span class="hljs-type">Dir</span> <span class="hljs-type">One</span>)      = <span class="hljs-type">Set</span>.singleton <span class="hljs-type">Set</span>.empty
 <span class="hljs-title">dnf</span> (<span class="hljs-type">Dir</span> <span class="hljs-type">Zero</span>)     = <span class="hljs-type">Set</span>.empty
 <span class="hljs-title">dnf</span> (<span class="hljs-type">Atom</span> n)       = <span class="hljs-type">Set</span>.singleton (<span class="hljs-type">Set</span>.singleton (n,<span class="hljs-number">1</span>))
@@ -414,11 +507,11 @@ leqW = undefined</p>
         </li>
         
         
-        <li id="section-9">
+        <li id="section-16">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-9">&#x00a7;</a>
+                <a class="ss" href="#section-16">&#x00a7;</a>
               </div>
               <p>evalFormula :: Formula -&gt; Face -&gt; Formula
 evalFormula phi alpha =
@@ -429,11 +522,11 @@ evalFormula phi alpha =
         </li>
         
         
-        <li id="section-10">
+        <li id="section-17">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-10">&#x00a7;</a>
+                <a class="ss" href="#section-17">&#x00a7;</a>
               </div>
               <p>(Dir b) alpha  = Dir b
 evalFormula (Atom i) alpha = case Map.lookup i alpha of
@@ -450,13 +543,14 @@ evalFormula (phi :/: psi) alpha =
         </li>
         
         
-        <li id="section-11">
+        <li id="section-18">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-11">&#x00a7;</a>
+                <a class="ss" href="#section-18">&#x00a7;</a>
               </div>
-              <p>find a better name?
+              <p>TODO: think about what the hell this means.
+find a better name?
 phi b = max {alpha : Face | phi alpha = b}</p>
 
             </div>
@@ -475,11 +569,11 @@ phi b = max {alpha : Face | phi alpha = b}</p>
         </li>
         
         
-        <li id="section-12">
+        <li id="section-19">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-12">&#x00a7;</a>
+                <a class="ss" href="#section-19">&#x00a7;</a>
               </div>
               <p>prop_invFormula :: Formula -&gt; Dir -&gt; Bool
 prop_invFormula phi b =
@@ -490,11 +584,11 @@ prop_invFormula phi b =
         </li>
         
         
-        <li id="section-13">
+        <li id="section-20">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-13">&#x00a7;</a>
+                <a class="ss" href="#section-20">&#x00a7;</a>
               </div>
               <p>testInvFormula :: [Face]
 testInvFormula = invFormula (Atom (Name 0) :/: Atom (Name 1)) 1</p>
@@ -504,11 +598,11 @@ testInvFormula = invFormula (Atom (Name 0) :/: Atom (Name 1)) 1</p>
         </li>
         
         
-        <li id="section-14">
+        <li id="section-21">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-14">&#x00a7;</a>
+                <a class="ss" href="#section-21">&#x00a7;</a>
               </div>
               <p>| Nominal</p>
 
@@ -517,11 +611,11 @@ testInvFormula = invFormula (Atom (Name 0) :/: Atom (Name 1)) 1</p>
         </li>
         
         
-        <li id="section-15">
+        <li id="section-22">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-15">&#x00a7;</a>
+                <a class="ss" href="#section-22">&#x00a7;</a>
               </div>
               <p>gensym :: [Name] -&gt; Name
 gensym xs = head (ys \ xs)
@@ -532,11 +626,11 @@ gensym xs = head (ys \ xs)
         </li>
         
         
-        <li id="section-16">
+        <li id="section-23">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-16">&#x00a7;</a>
+                <a class="ss" href="#section-23">&#x00a7;</a>
               </div>
               <p>gensymNice :: Name -&gt; [Name] -&gt; Name
 gensymNice i@(Name s) xs = head (ys \ xs)
@@ -544,8 +638,20 @@ gensymNice i@(Name s) xs = head (ys \ xs)
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>
-<span class="hljs-title">gensym</span> :: [<span class="hljs-type">Name</span>] -&gt; <span class="hljs-type">Name</span>
+        </li>
+        
+        
+        <li id="section-24">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-24">&#x00a7;</a>
+              </div>
+              <p>| Assumes names are named <code>!x</code>.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">gensym</span> :: [<span class="hljs-type">Name</span>] -&gt; <span class="hljs-type">Name</span>
 <span class="hljs-title">gensym</span> xs = <span class="hljs-type">Name</span> (&#x27;!&#x27; : show max)
   <span class="hljs-keyword">where</span> max = maximum&#x27; [ read x | <span class="hljs-type">Name</span> (&#x27;!&#x27;:x) &lt;- xs ]
         maximum&#x27; [] = <span class="hljs-number">0</span>
@@ -554,10 +660,53 @@ gensymNice i@(Name s) xs = head (ys \ xs)
 <span class="hljs-title">gensyms</span> :: [<span class="hljs-type">Name</span>] -&gt; [<span class="hljs-type">Name</span>]
 <span class="hljs-title">gensyms</span> d = <span class="hljs-keyword">let</span> x = gensym d <span class="hljs-keyword">in</span> x : gensyms (x : d)
 <span class="hljs-class">
-<span class="hljs-keyword">class</span> <span class="hljs-type">Nominal</span> a <span class="hljs-keyword">where</span></span>
-  support :: a -&gt; [<span class="hljs-type">Name</span>]
-  act     :: a -&gt; (<span class="hljs-type">Name</span>,<span class="hljs-type">Formula</span>) -&gt; a
-  swap    :: a -&gt; (<span class="hljs-type">Name</span>,<span class="hljs-type">Name</span>) -&gt; a
+<span class="hljs-keyword">class</span> <span class="hljs-type">Nominal</span> a <span class="hljs-keyword">where</span></span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-25">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-25">&#x00a7;</a>
+              </div>
+              <p>| return all names in play. aka support of the
+partial function [name -&gt; value]</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  support :: a -&gt; [<span class="hljs-type">Name</span>]</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-26">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-26">&#x00a7;</a>
+              </div>
+              <p>| a[Name/Formula]. Substitute Name := Formula into a.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  act     :: a -&gt; (<span class="hljs-type">Name</span>,<span class="hljs-type">Formula</span>) -&gt; a</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-27">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-27">&#x00a7;</a>
+              </div>
+              <p>| swap a (x, y) will swap occurences <code>x &lt;-&gt; y</code>.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  swap    :: a -&gt; (<span class="hljs-type">Name</span>,<span class="hljs-type">Name</span>) -&gt; a
 
 <span class="hljs-title">fresh</span> :: <span class="hljs-type">Nominal</span> a =&gt; a -&gt; <span class="hljs-type">Name</span>
 <span class="hljs-title">fresh</span> = gensym . support</pre></div></div>
@@ -565,11 +714,11 @@ gensymNice i@(Name s) xs = head (ys \ xs)
         </li>
         
         
-        <li id="section-17">
+        <li id="section-28">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-17">&#x00a7;</a>
+                <a class="ss" href="#section-28">&#x00a7;</a>
               </div>
               <p>freshNice :: Nominal a =&gt; Name -&gt; a -&gt; Name
 freshNice i = gensymNice i . support</p>
@@ -672,13 +821,13 @@ freshNice i = gensymNice i . support</p>
         </li>
         
         
-        <li id="section-18">
+        <li id="section-29">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-18">&#x00a7;</a>
+                <a class="ss" href="#section-29">&#x00a7;</a>
               </div>
-              <p>the faces should be incomparable</p>
+              <p>| the faces should be incomparable</p>
 
             </div>
             
@@ -691,9 +840,26 @@ freshNice i = gensymNice i . support</p>
                            | (alpha,u) &lt;- ts ] ++ <span class="hljs-string">&quot; ]&quot;</span>
 
 <span class="hljs-title">showSystem</span> :: <span class="hljs-type">Show</span> a =&gt; <span class="hljs-type">System</span> a -&gt; <span class="hljs-type">String</span>
-<span class="hljs-title">showSystem</span> = showListSystem . toList
+<span class="hljs-title">showSystem</span> = showListSystem . toList</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-30">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-30">&#x00a7;</a>
+              </div>
+              <p>| If face is &lt;= any key, don’t insert.
+| Otherwise, insert face and remove all those faces which are &lt;= this face.
+| ie, can only “inflate” the system by adding larger keys, which then
+| enforce their compatibility condition.
+TODO: what about &gt;= ?</p>
 
-<span class="hljs-title">insertSystem</span> :: <span class="hljs-type">Face</span> -&gt; a -&gt; <span class="hljs-type">System</span> a -&gt; <span class="hljs-type">System</span> a
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">insertSystem</span> :: <span class="hljs-type">Face</span> -&gt; a -&gt; <span class="hljs-type">System</span> a -&gt; <span class="hljs-type">System</span> a
 <span class="hljs-title">insertSystem</span> alpha v ts
   | any (leq alpha) (keys ts) = ts
   | otherwise = <span class="hljs-type">Map</span>.insert alpha v
@@ -706,21 +872,33 @@ freshNice i = gensymNice i . support</p>
 <span class="hljs-title">mkSystem</span> = flip insertsSystem <span class="hljs-type">Map</span>.empty
 
 <span class="hljs-title">unionSystem</span> :: <span class="hljs-type">System</span> a -&gt; <span class="hljs-type">System</span> a -&gt; <span class="hljs-type">System</span> a
-<span class="hljs-title">unionSystem</span> us vs = insertsSystem (assocs us) vs
+<span class="hljs-title">unionSystem</span> us vs = insertsSystem (assocs us) vs</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-31">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-31">&#x00a7;</a>
+              </div>
+              <p>| Monad?! WTF.</p>
 
-
-<span class="hljs-title">joinSystem</span> :: <span class="hljs-type">System</span> (<span class="hljs-type">System</span> a) -&gt; <span class="hljs-type">System</span> a
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">joinSystem</span> :: <span class="hljs-type">System</span> (<span class="hljs-type">System</span> a) -&gt; <span class="hljs-type">System</span> a
 <span class="hljs-title">joinSystem</span> tss = mkSystem $
   [ (alpha `meet` beta,t) | (alpha,ts) &lt;- assocs tss, (beta,t) &lt;- assocs ts ]</pre></div></div>
             
         </li>
         
         
-        <li id="section-19">
+        <li id="section-32">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-19">&#x00a7;</a>
+                <a class="ss" href="#section-32">&#x00a7;</a>
               </div>
               <p>TODO: add some checks</p>
 
@@ -734,11 +912,11 @@ freshNice i = gensymNice i . support</p>
         </li>
         
         
-        <li id="section-20">
+        <li id="section-33">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-20">&#x00a7;</a>
+                <a class="ss" href="#section-33">&#x00a7;</a>
               </div>
               <p>Quickcheck this:
 (i = phi) * beta = (beta - i) * (i = phi beta)</p>
@@ -748,11 +926,11 @@ freshNice i = gensymNice i . support</p>
         </li>
         
         
-        <li id="section-21">
+        <li id="section-34">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-21">&#x00a7;</a>
+                <a class="ss" href="#section-34">&#x00a7;</a>
               </div>
               <p>Now we ensure that the keys are incomparable</p>
 
@@ -779,13 +957,14 @@ freshNice i = gensymNice i . support</p>
         </li>
         
         
-        <li id="section-22">
+        <li id="section-35">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-22">&#x00a7;</a>
+                <a class="ss" href="#section-35">&#x00a7;</a>
               </div>
-              <p>carve a using the same shape as the system b</p>
+              <p>| TODO bollu: is border . border = 0? :)
+| carve a using the same shape as the system b</p>
 
             </div>
             
@@ -822,11 +1001,11 @@ freshNice i = gensymNice i . support</p>
         </li>
         
         
-        <li id="section-23">
+        <li id="section-36">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-23">&#x00a7;</a>
+                <a class="ss" href="#section-36">&#x00a7;</a>
               </div>
               <p>assumes alpha &lt;= shape us</p>
 

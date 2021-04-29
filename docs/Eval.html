@@ -119,7 +119,7 @@
 <span class="hljs-keyword">import</span> <span class="hljs-keyword">qualified</span> Data.Map <span class="hljs-keyword">as</span> Map
 <span class="hljs-keyword">import</span> <span class="hljs-keyword">qualified</span> Data.Set <span class="hljs-keyword">as</span> Set
 
-<span class="hljs-keyword">import</span> Connections
+<span class="hljs-keyword">import</span> <span class="hljs-keyword">qualified</span> Connections <span class="hljs-keyword">as</span> C
 <span class="hljs-keyword">import</span> CTT</pre></div></div>
             
         </li>
@@ -152,9 +152,9 @@
 <span class="hljs-title">look</span> :: <span class="hljs-type">String</span> -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Val</span>
 <span class="hljs-title">look</span> x (<span class="hljs-type">Env</span> (<span class="hljs-type">Upd</span> y rho,v:vs,fs,os)) | x == y = v
                                     | otherwise = look x (<span class="hljs-type">Env</span> (rho,vs,fs,os))
-<span class="hljs-title">look</span> x r@(<span class="hljs-type">Env</span> (<span class="hljs-type">Def</span> _ decls rho,vs,fs,<span class="hljs-type">Nameless</span> os)) = <span class="hljs-keyword">case</span> lookup x decls <span class="hljs-keyword">of</span>
+<span class="hljs-title">look</span> x r@(<span class="hljs-type">Env</span> (<span class="hljs-type">Def</span> _ decls rho,vs,fs,<span class="hljs-type">C</span>.<span class="hljs-type">Nameless</span> os)) = <span class="hljs-keyword">case</span> lookup x decls <span class="hljs-keyword">of</span>
   <span class="hljs-type">Just</span> (_,t) -&gt; eval r t
-  <span class="hljs-type">Nothing</span>    -&gt; look x (<span class="hljs-type">Env</span> (rho,vs,fs,<span class="hljs-type">Nameless</span> os))
+  <span class="hljs-type">Nothing</span>    -&gt; look x (<span class="hljs-type">Env</span> (rho,vs,fs,<span class="hljs-type">C</span>.<span class="hljs-type">Nameless</span> os))
 <span class="hljs-title">look</span> x (<span class="hljs-type">Env</span> (<span class="hljs-type">Sub</span> _ rho,vs,_:fs,os)) = look x (<span class="hljs-type">Env</span> (rho,vs,fs,os))
 <span class="hljs-title">look</span> x (<span class="hljs-type">Env</span> (<span class="hljs-type">Empty</span>,_,_,_)) = error $ <span class="hljs-string">&quot;look: not found &quot;</span> ++ show x
 
@@ -169,7 +169,7 @@
 <span class="hljs-title">lookType</span> x (<span class="hljs-type">Env</span> (<span class="hljs-type">Sub</span> _ rho,vs,_:fs,os)) = lookType x (<span class="hljs-type">Env</span> (rho,vs,fs,os))
 <span class="hljs-title">lookType</span> x (<span class="hljs-type">Env</span> (<span class="hljs-type">Empty</span>,_,_,_))          = error $ <span class="hljs-string">&quot;lookType: not found &quot;</span> ++ show x
 
-<span class="hljs-title">lookName</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Formula</span>
+<span class="hljs-title">lookName</span> :: <span class="hljs-type">C</span>.<span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">Formula</span>
 <span class="hljs-title">lookName</span> i (<span class="hljs-type">Env</span> (<span class="hljs-type">Upd</span> _ rho,v:vs,fs,os)) = lookName i (<span class="hljs-type">Env</span> (rho,vs,fs,os))
 <span class="hljs-title">lookName</span> i (<span class="hljs-type">Env</span> (<span class="hljs-type">Def</span> _ _ rho,vs,fs,os)) = lookName i (<span class="hljs-type">Env</span> (rho,vs,fs,os))
 <span class="hljs-title">lookName</span> i (<span class="hljs-type">Env</span> (<span class="hljs-type">Sub</span> j rho,vs,phi:fs,os)) | i == j    = phi
@@ -203,51 +203,51 @@
             </div>
             
             <div class="content"><div class='highlight'><pre><span class="hljs-class">
-<span class="hljs-keyword">instance</span> <span class="hljs-type">Nominal</span> <span class="hljs-type">Ctxt</span> <span class="hljs-keyword">where</span></span>
+<span class="hljs-keyword">instance</span> <span class="hljs-type">C</span>.<span class="hljs-type">Nominal</span> <span class="hljs-type">Ctxt</span> <span class="hljs-keyword">where</span></span>
   support _ = []
   act e _   = e
   swap e _  = e
 <span class="hljs-class">
-<span class="hljs-keyword">instance</span> <span class="hljs-type">Nominal</span> <span class="hljs-type">Env</span> <span class="hljs-keyword">where</span></span>
-  support (<span class="hljs-type">Env</span> (rho,vs,fs,os)) = support (rho,vs,fs,os)
-  act (<span class="hljs-type">Env</span> (rho,vs,fs,os)) iphi = <span class="hljs-type">Env</span> $ act (rho,vs,fs,os) iphi
-  swap (<span class="hljs-type">Env</span> (rho,vs,fs,os)) ij = <span class="hljs-type">Env</span> $ swap (rho,vs,fs,os) ij
+<span class="hljs-keyword">instance</span> <span class="hljs-type">C</span>.<span class="hljs-type">Nominal</span> <span class="hljs-type">Env</span> <span class="hljs-keyword">where</span></span>
+  support (<span class="hljs-type">Env</span> (rho,vs,fs,os)) = <span class="hljs-type">C</span>.support (rho,vs,fs,os)
+  act (<span class="hljs-type">Env</span> (rho,vs,fs,os)) iphi = <span class="hljs-type">Env</span> $ <span class="hljs-type">C</span>.act (rho,vs,fs,os) iphi
+  swap (<span class="hljs-type">Env</span> (rho,vs,fs,os)) ij = <span class="hljs-type">Env</span> $ <span class="hljs-type">C</span>.swap (rho,vs,fs,os) ij
 <span class="hljs-class">
-<span class="hljs-keyword">instance</span> <span class="hljs-type">Nominal</span> <span class="hljs-type">Val</span> <span class="hljs-keyword">where</span></span>
+<span class="hljs-keyword">instance</span> <span class="hljs-type">C</span>.<span class="hljs-type">Nominal</span> <span class="hljs-type">Val</span> <span class="hljs-keyword">where</span></span>
   support v = <span class="hljs-keyword">case</span> v <span class="hljs-keyword">of</span>
     <span class="hljs-type">VU</span>                      -&gt; []
-    <span class="hljs-type">Ter</span> _ e                 -&gt; support e
-    <span class="hljs-type">VPi</span> u v                 -&gt; support [u,v]
-    <span class="hljs-type">VComp</span> a u ts            -&gt; support (a,u,ts)
-    <span class="hljs-type">VPathP</span> a v0 v1          -&gt; support [a,v0,v1]
-    <span class="hljs-type">VPLam</span> i v               -&gt; i `delete` support v
-    <span class="hljs-type">VSigma</span> u v              -&gt; support (u,v)
-    <span class="hljs-type">VPair</span> u v               -&gt; support (u,v)
-    <span class="hljs-type">VFst</span> u                  -&gt; support u
-    <span class="hljs-type">VSnd</span> u                  -&gt; support u
-    <span class="hljs-type">VCon</span> _ vs               -&gt; support vs
-    <span class="hljs-type">VPCon</span> _ a vs phis       -&gt; support (a,vs,phis)
-    <span class="hljs-type">VHComp</span> a u ts           -&gt; support (a,u,ts)
-    <span class="hljs-type">VVar</span> _ v                -&gt; support v
-    <span class="hljs-type">VOpaque</span> _ v             -&gt; support v
-    <span class="hljs-type">VApp</span> u v                -&gt; support (u,v)
-    <span class="hljs-type">VLam</span> _ u v              -&gt; support (u,v)
-    <span class="hljs-type">VAppFormula</span> u phi       -&gt; support (u,phi)
-    <span class="hljs-type">VSplit</span> u v              -&gt; support (u,v)
-    <span class="hljs-type">VGlue</span> a ts              -&gt; support (a,ts)
-    <span class="hljs-type">VGlueElem</span> a ts          -&gt; support (a,ts)
-    <span class="hljs-type">VUnGlueElem</span> a ts        -&gt; support (a,ts)
-    <span class="hljs-type">VCompU</span> a ts             -&gt; support (a,ts)
-    <span class="hljs-type">VUnGlueElemU</span> a b es     -&gt; support (a,b,es)
-    <span class="hljs-type">VIdPair</span> u us            -&gt; support (u,us)
-    <span class="hljs-type">VId</span> a u v               -&gt; support (a,u,v)
-    <span class="hljs-type">VIdJ</span> a u c d x p        -&gt; support [a,u,c,d,x,p]
+    <span class="hljs-type">Ter</span> _ e                 -&gt; <span class="hljs-type">C</span>.support e
+    <span class="hljs-type">VPi</span> u v                 -&gt; <span class="hljs-type">C</span>.support [u,v]
+    <span class="hljs-type">VComp</span> a u ts            -&gt; <span class="hljs-type">C</span>.support (a,u,ts)
+    <span class="hljs-type">VPathP</span> a v0 v1          -&gt; <span class="hljs-type">C</span>.support [a,v0,v1]
+    <span class="hljs-type">VPLam</span> i v               -&gt; i `delete` <span class="hljs-type">C</span>.support v
+    <span class="hljs-type">VSigma</span> u v              -&gt; <span class="hljs-type">C</span>.support (u,v)
+    <span class="hljs-type">VPair</span> u v               -&gt; <span class="hljs-type">C</span>.support (u,v)
+    <span class="hljs-type">VFst</span> u                  -&gt; <span class="hljs-type">C</span>.support u
+    <span class="hljs-type">VSnd</span> u                  -&gt; <span class="hljs-type">C</span>.support u
+    <span class="hljs-type">VCon</span> _ vs               -&gt; <span class="hljs-type">C</span>.support vs
+    <span class="hljs-type">VPCon</span> _ a vs phis       -&gt; <span class="hljs-type">C</span>.support (a,vs,phis)
+    <span class="hljs-type">VHComp</span> a u ts           -&gt; <span class="hljs-type">C</span>.support (a,u,ts)
+    <span class="hljs-type">VVar</span> _ v                -&gt; <span class="hljs-type">C</span>.support v
+    <span class="hljs-type">VOpaque</span> _ v             -&gt; <span class="hljs-type">C</span>.support v
+    <span class="hljs-type">VApp</span> u v                -&gt; <span class="hljs-type">C</span>.support (u,v)
+    <span class="hljs-type">VLam</span> _ u v              -&gt; <span class="hljs-type">C</span>.support (u,v)
+    <span class="hljs-type">VAppFormula</span> u phi       -&gt; <span class="hljs-type">C</span>.support (u,phi)
+    <span class="hljs-type">VSplit</span> u v              -&gt; <span class="hljs-type">C</span>.support (u,v)
+    <span class="hljs-type">VGlue</span> a ts              -&gt; <span class="hljs-type">C</span>.support (a,ts)
+    <span class="hljs-type">VGlueElem</span> a ts          -&gt; <span class="hljs-type">C</span>.support (a,ts)
+    <span class="hljs-type">VUnGlueElem</span> a ts        -&gt; <span class="hljs-type">C</span>.support (a,ts)
+    <span class="hljs-type">VCompU</span> a ts             -&gt; <span class="hljs-type">C</span>.support (a,ts)
+    <span class="hljs-type">VUnGlueElemU</span> a b es     -&gt; <span class="hljs-type">C</span>.support (a,b,es)
+    <span class="hljs-type">VIdPair</span> u us            -&gt; <span class="hljs-type">C</span>.support (u,us)
+    <span class="hljs-type">VId</span> a u v               -&gt; <span class="hljs-type">C</span>.support (a,u,v)
+    <span class="hljs-type">VIdJ</span> a u c d x p        -&gt; <span class="hljs-type">C</span>.support [a,u,c,d,x,p]
 
-  act u (i, phi) | i `notElem` support u = u
+  act u (i, phi) | i `notElem` <span class="hljs-type">C</span>.support u = u
                  | otherwise =
-    <span class="hljs-keyword">let</span> acti :: <span class="hljs-type">Nominal</span> a =&gt; a -&gt; a
-        acti u = act u (i, phi)
-        sphi = support phi
+    <span class="hljs-keyword">let</span> acti :: <span class="hljs-type">C</span>.<span class="hljs-type">Nominal</span> a =&gt; a -&gt; a
+        acti u = <span class="hljs-type">C</span>.act u (i, phi)
+        sphi = <span class="hljs-type">C</span>.support phi
     <span class="hljs-keyword">in</span> <span class="hljs-keyword">case</span> u <span class="hljs-keyword">of</span>
          <span class="hljs-type">VU</span>           -&gt; <span class="hljs-type">VU</span>
          <span class="hljs-type">Ter</span> t e      -&gt; <span class="hljs-type">Ter</span> t (acti e)
@@ -256,8 +256,8 @@
          <span class="hljs-type">VPathP</span> a u v -&gt; <span class="hljs-type">VPathP</span> (acti a) (acti u) (acti v)
          <span class="hljs-type">VPLam</span> j v | j == i -&gt; u
                    | j `notElem` sphi -&gt; <span class="hljs-type">VPLam</span> j (acti v)
-                   | otherwise -&gt; <span class="hljs-type">VPLam</span> k (acti (v `swap` (j,k)))
-              <span class="hljs-keyword">where</span> k = fresh (v,<span class="hljs-type">Atom</span> i,phi)
+                   | otherwise -&gt; <span class="hljs-type">VPLam</span> k (acti (v `<span class="hljs-type">C</span>.swap` (j,k)))
+              <span class="hljs-keyword">where</span> k = <span class="hljs-type">C</span>.fresh (v,<span class="hljs-type">C</span>.<span class="hljs-type">Atom</span> i,phi)
          <span class="hljs-type">VSigma</span> a f              -&gt; <span class="hljs-type">VSigma</span> (acti a) (acti f)
          <span class="hljs-type">VPair</span> u v               -&gt; <span class="hljs-type">VPair</span> (acti u) (acti v)
          <span class="hljs-type">VFst</span> u                  -&gt; fstVal (acti u)
@@ -295,15 +295,15 @@
             </div>
             
             <div class="content"><div class='highlight'><pre>  swap u ij@(i,j) =
-    <span class="hljs-keyword">let</span> sw :: <span class="hljs-type">Nominal</span> a =&gt; a -&gt; a
-        sw u = swap u ij
+    <span class="hljs-keyword">let</span> sw :: <span class="hljs-type">C</span>.<span class="hljs-type">Nominal</span> a =&gt; a -&gt; a
+        sw u = <span class="hljs-type">C</span>.swap u ij
     <span class="hljs-keyword">in</span> <span class="hljs-keyword">case</span> u <span class="hljs-keyword">of</span>
          <span class="hljs-type">VU</span>                      -&gt; <span class="hljs-type">VU</span>
          <span class="hljs-type">Ter</span> t e                 -&gt; <span class="hljs-type">Ter</span> t (sw e)
          <span class="hljs-type">VPi</span> a f                 -&gt; <span class="hljs-type">VPi</span> (sw a) (sw f)
          <span class="hljs-type">VComp</span> a v ts            -&gt; <span class="hljs-type">VComp</span> (sw a) (sw v) (sw ts)
          <span class="hljs-type">VPathP</span> a u v            -&gt; <span class="hljs-type">VPathP</span> (sw a) (sw u) (sw v)
-         <span class="hljs-type">VPLam</span> k v               -&gt; <span class="hljs-type">VPLam</span> (swapName k ij) (sw v)
+         <span class="hljs-type">VPLam</span> k v               -&gt; <span class="hljs-type">VPLam</span> (<span class="hljs-type">C</span>.swapName k ij) (sw v)
          <span class="hljs-type">VSigma</span> a f              -&gt; <span class="hljs-type">VSigma</span> (sw a) (sw f)
          <span class="hljs-type">VPair</span> u v               -&gt; <span class="hljs-type">VPair</span> (sw u) (sw v)
          <span class="hljs-type">VFst</span> u                  -&gt; <span class="hljs-type">VFst</span> (sw u)
@@ -355,7 +355,7 @@
             
             <div class="content"><div class='highlight'><pre>
 <span class="hljs-title">eval</span> :: <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Ter</span> -&gt; <span class="hljs-type">Val</span>
-<span class="hljs-title">eval</span> rho@(<span class="hljs-type">Env</span> (_,_,_,<span class="hljs-type">Nameless</span> os)) v = <span class="hljs-keyword">case</span> v <span class="hljs-keyword">of</span>
+<span class="hljs-title">eval</span> rho@(<span class="hljs-type">Env</span> (_,_,_,<span class="hljs-type">C</span>.<span class="hljs-type">Nameless</span> os)) v = <span class="hljs-keyword">case</span> v <span class="hljs-keyword">of</span>
   <span class="hljs-type">U</span>                   -&gt; <span class="hljs-type">VU</span>
   <span class="hljs-type">App</span> r s             -&gt; app (eval rho r) (eval rho s)
   <span class="hljs-type">Var</span> i
@@ -377,8 +377,8 @@
   <span class="hljs-type">Undef</span>{}             -&gt; <span class="hljs-type">Ter</span> v rho
   <span class="hljs-type">Hole</span>{}              -&gt; <span class="hljs-type">Ter</span> v rho
   <span class="hljs-type">PathP</span> a e0 e1       -&gt; <span class="hljs-type">VPathP</span> (eval rho a) (eval rho e0) (eval rho e1)
-  <span class="hljs-type">PLam</span> i t            -&gt; <span class="hljs-keyword">let</span> j = fresh rho
-                         <span class="hljs-keyword">in</span> <span class="hljs-type">VPLam</span> j (eval (sub (i,<span class="hljs-type">Atom</span> j) rho) t)
+  <span class="hljs-type">PLam</span> i t            -&gt; <span class="hljs-keyword">let</span> j = <span class="hljs-type">C</span>.fresh rho
+                         <span class="hljs-keyword">in</span> <span class="hljs-type">VPLam</span> j (eval (sub (i,<span class="hljs-type">C</span>.<span class="hljs-type">Atom</span> j) rho) t)
   <span class="hljs-type">AppFormula</span> e phi    -&gt; eval rho e @@ evalFormula rho phi
   <span class="hljs-type">Comp</span> a t0 ts        -&gt;
     compLine (eval rho a) (eval rho t0) (evalSystem rho ts)
@@ -398,21 +398,21 @@
 <span class="hljs-title">evals</span> :: <span class="hljs-type">Env</span> -&gt; [(<span class="hljs-type">Ident</span>,<span class="hljs-type">Ter</span>)] -&gt; [(<span class="hljs-type">Ident</span>,<span class="hljs-type">Val</span>)]
 <span class="hljs-title">evals</span> env bts = [ (b,eval env t) | (b,t) &lt;- bts ]
 
-<span class="hljs-title">evalFormula</span> :: <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Formula</span> -&gt; <span class="hljs-type">Formula</span>
+<span class="hljs-title">evalFormula</span> :: <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">Formula</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">Formula</span>
 <span class="hljs-title">evalFormula</span> rho phi = <span class="hljs-keyword">case</span> phi <span class="hljs-keyword">of</span>
-  <span class="hljs-type">Atom</span> i         -&gt; lookName i rho
-  <span class="hljs-type">NegAtom</span> i      -&gt; negFormula (lookName i rho)
-  phi1 :/\: phi2 -&gt; evalFormula rho phi1 `andFormula` evalFormula rho phi2
-  phi1 :\/: phi2 -&gt; evalFormula rho phi1 `orFormula` evalFormula rho phi2
+  <span class="hljs-type">C</span>.<span class="hljs-type">Atom</span> i         -&gt; lookName i rho
+  <span class="hljs-type">C</span>.<span class="hljs-type">NegAtom</span> i      -&gt; <span class="hljs-type">C</span>.negFormula (lookName i rho)
+  phi1 <span class="hljs-type">C</span>.:/\: phi2 -&gt; evalFormula rho phi1 `<span class="hljs-type">C</span>.andFormula` evalFormula rho phi2
+  phi1 <span class="hljs-type">C</span>.:\/: phi2 -&gt; evalFormula rho phi1 `<span class="hljs-type">C</span>.orFormula` evalFormula rho phi2
   _              -&gt; phi
 
-<span class="hljs-title">evalSystem</span> :: <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Ter</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span>
+<span class="hljs-title">evalSystem</span> :: <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Ter</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span>
 <span class="hljs-title">evalSystem</span> rho ts =
-  <span class="hljs-keyword">let</span> out = concat [ <span class="hljs-keyword">let</span> betas = meetss [ invFormula (lookName i rho) d
+  <span class="hljs-keyword">let</span> out = concat [ <span class="hljs-keyword">let</span> betas = <span class="hljs-type">C</span>.meetss [ <span class="hljs-type">C</span>.invFormula (lookName i rho) d
                                         | (i,d) &lt;- assocs alpha ]
-                     <span class="hljs-keyword">in</span> [ (beta,eval (rho `face` beta) talpha) | beta &lt;- betas ]
+                     <span class="hljs-keyword">in</span> [ (beta,eval (rho `<span class="hljs-type">C</span>.face` beta) talpha) | beta &lt;- betas ]
                    | (alpha,talpha) &lt;- assocs ts ]
-  <span class="hljs-keyword">in</span> mkSystem out
+  <span class="hljs-keyword">in</span> <span class="hljs-type">C</span>.mkSystem out
 
 <span class="hljs-title">app</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
 <span class="hljs-title">app</span> u v = <span class="hljs-keyword">case</span> (u,v) <span class="hljs-keyword">of</span>
@@ -424,10 +424,10 @@
     <span class="hljs-type">Just</span> (<span class="hljs-type">PBranch</span> _ xs is t) -&gt; eval (subs (zip is phis) (upds (zip xs us) e)) t
     _ -&gt; error $ <span class="hljs-string">&quot;app: missing case in split for &quot;</span> ++ c
   (<span class="hljs-type">Ter</span> (<span class="hljs-type">Split</span> _ _ ty hbr) e,<span class="hljs-type">VHComp</span> a w ws) -&gt; <span class="hljs-keyword">case</span> eval e ty <span class="hljs-keyword">of</span>
-    <span class="hljs-type">VPi</span> _ f -&gt; <span class="hljs-keyword">let</span> j   = fresh (e,v)
+    <span class="hljs-type">VPi</span> _ f -&gt; <span class="hljs-keyword">let</span> j   = <span class="hljs-type">C</span>.fresh (e,v)
                    wsj = <span class="hljs-type">Map</span>.map (@@ j) ws
                    w&#x27;  = app u w
-                   ws&#x27; = mapWithKey (\alpha -&gt; app (u `face` alpha)) wsj</pre></div></div>
+                   ws&#x27; = mapWithKey (\alpha -&gt; app (u `<span class="hljs-type">C</span>.face` alpha)) wsj</pre></div></div>
             
         </li>
         
@@ -446,13 +446,13 @@
     _ -&gt; error $ <span class="hljs-string">&quot;app: Split annotation not a Pi type &quot;</span> ++ show u
   (<span class="hljs-type">Ter</span> <span class="hljs-type">Split</span>{} _,_) | isNeutral v         -&gt; <span class="hljs-type">VSplit</span> u v
   (<span class="hljs-type">VComp</span> (<span class="hljs-type">VPLam</span> i (<span class="hljs-type">VPi</span> a f)) li0 ts,vi1) -&gt;
-    <span class="hljs-keyword">let</span> j       = fresh (u,vi1)
-        (aj,fj) = (a,f) `swap` (i,j)
+    <span class="hljs-keyword">let</span> j       = <span class="hljs-type">C</span>.fresh (u,vi1)
+        (aj,fj) = (a,f) `<span class="hljs-type">C</span>.swap` (i,j)
         tsj     = <span class="hljs-type">Map</span>.map (@@ j) ts
         v       = transFillNeg j aj vi1
         vi0     = transNeg j aj vi1
     <span class="hljs-keyword">in</span> comp j (app fj v) (app li0 vi0)
-              (intersectionWith app tsj (border v tsj))
+              (intersectionWith app tsj (<span class="hljs-type">C</span>.border v tsj))
   _ | isNeutral u       -&gt; <span class="hljs-type">VApp</span> u v
   _                     -&gt; error $ <span class="hljs-string">&quot;app \n  &quot;</span> ++ show u ++ <span class="hljs-string">&quot;\n  &quot;</span> ++ show v
 
@@ -502,7 +502,7 @@
     <span class="hljs-type">VPathP</span> a _ _ -&gt; a @@ phi
     ty         -&gt; error $ <span class="hljs-string">&quot;inferType: expected PathP type for &quot;</span> ++ show v
                   ++ <span class="hljs-string">&quot;, got &quot;</span> ++ show ty
-  <span class="hljs-type">VComp</span> a _ _ -&gt; a @@ <span class="hljs-type">One</span></pre></div></div>
+  <span class="hljs-type">VComp</span> a _ _ -&gt; a @@ <span class="hljs-type">C</span>.<span class="hljs-type">One</span></pre></div></div>
             
         </li>
         
@@ -521,13 +521,13 @@
   <span class="hljs-type">VIdJ</span> _ _ c _ x p -&gt; app (app c x) p
   _ -&gt; error $ <span class="hljs-string">&quot;inferType: not neutral &quot;</span> ++ show v
 
-(@@) :: <span class="hljs-type">ToFormula</span> a =&gt; <span class="hljs-type">Val</span> -&gt; a -&gt; <span class="hljs-type">Val</span>
-(<span class="hljs-type">VPLam</span> i u) @@ phi         = u `act` (i,toFormula phi)
-<span class="hljs-title">v</span>@(<span class="hljs-type">Ter</span> <span class="hljs-type">Hole</span>{} _) @@ phi    = <span class="hljs-type">VAppFormula</span> v (toFormula phi)
-<span class="hljs-title">v</span> @@ phi | isNeutral v     = <span class="hljs-keyword">case</span> (inferType v,toFormula phi) <span class="hljs-keyword">of</span>
-  (<span class="hljs-type">VPathP</span> _ a0 _,<span class="hljs-type">Dir</span> <span class="hljs-number">0</span>) -&gt; a0
-  (<span class="hljs-type">VPathP</span> _ _ a1,<span class="hljs-type">Dir</span> <span class="hljs-number">1</span>) -&gt; a1
-  _                    -&gt; <span class="hljs-type">VAppFormula</span> v (toFormula phi)
+(@@) :: <span class="hljs-type">C</span>.<span class="hljs-type">ToFormula</span> a =&gt; <span class="hljs-type">Val</span> -&gt; a -&gt; <span class="hljs-type">Val</span>
+(<span class="hljs-type">VPLam</span> i u) @@ phi         = u `<span class="hljs-type">C</span>.act` (i,<span class="hljs-type">C</span>.toFormula phi)
+<span class="hljs-title">v</span>@(<span class="hljs-type">Ter</span> <span class="hljs-type">Hole</span>{} _) @@ phi    = <span class="hljs-type">VAppFormula</span> v (<span class="hljs-type">C</span>.toFormula phi)
+<span class="hljs-title">v</span> @@ phi | isNeutral v     = <span class="hljs-keyword">case</span> (inferType v,<span class="hljs-type">C</span>.toFormula phi) <span class="hljs-keyword">of</span>
+  (<span class="hljs-type">VPathP</span> _ a0 _,<span class="hljs-type">C</span>.<span class="hljs-type">Dir</span> <span class="hljs-number">0</span>) -&gt; a0
+  (<span class="hljs-type">VPathP</span> _ _ a1,<span class="hljs-type">C</span>.<span class="hljs-type">Dir</span> <span class="hljs-number">1</span>) -&gt; a1
+  _                    -&gt; <span class="hljs-type">VAppFormula</span> v (<span class="hljs-type">C</span>.toFormula phi)
 <span class="hljs-title">v</span> @@ phi                   = error $ <span class="hljs-string">&quot;(@@): &quot;</span> ++ show v ++ <span class="hljs-string">&quot; should be neutral.&quot;</span></pre></div></div>
             
         </li>
@@ -539,13 +539,13 @@
               <div class="sswrap ">
                 <a class="ss" href="#section-12">&#x00a7;</a>
               </div>
-              <p>Applying a <em>fresh</em> name.</p>
+              <p>Applying a <em>C.fresh</em> name.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>(@@@) :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span>
-(<span class="hljs-type">VPLam</span> i u) @@@ j = u `swap` (i,j)
-<span class="hljs-title">v</span> @@@ j           = <span class="hljs-type">VAppFormula</span> v (toFormula j)</pre></div></div>
+            <div class="content"><div class='highlight'><pre>(@@@) :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span>
+(<span class="hljs-type">VPLam</span> i u) @@@ j = u `<span class="hljs-type">C</span>.swap` (i,j)
+<span class="hljs-title">v</span> @@@ j           = <span class="hljs-type">VAppFormula</span> v (<span class="hljs-type">C</span>.toFormula j)</pre></div></div>
             
         </li>
         
@@ -574,21 +574,21 @@
             </div>
             
             <div class="content"><div class='highlight'><pre>
-<span class="hljs-title">comp</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
-<span class="hljs-title">comp</span> i a u ts | eps `member` ts = (ts ! eps) `face` (i ~&gt; <span class="hljs-number">1</span>)
+<span class="hljs-title">comp</span> :: <span class="hljs-type">C</span>.<span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">comp</span> i a u ts | <span class="hljs-type">C</span>.eps `member` ts = (ts ! <span class="hljs-type">C</span>.eps) `<span class="hljs-type">C</span>.face` (i <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">1</span>)
 <span class="hljs-title">comp</span> i a u ts = <span class="hljs-keyword">case</span> a <span class="hljs-keyword">of</span>
-  <span class="hljs-type">VPathP</span> p v0 v1 -&gt; <span class="hljs-keyword">let</span> j = fresh (<span class="hljs-type">Atom</span> i,a,u,ts)
+  <span class="hljs-type">VPathP</span> p v0 v1 -&gt; <span class="hljs-keyword">let</span> j = <span class="hljs-type">C</span>.fresh (<span class="hljs-type">C</span>.<span class="hljs-type">Atom</span> i,a,u,ts)
                     <span class="hljs-keyword">in</span> <span class="hljs-type">VPLam</span> j $ comp i (p @@ j) (u @@ j) $
-                         insertsSystem [(j ~&gt; <span class="hljs-number">0</span>,v0),(j ~&gt; <span class="hljs-number">1</span>,v1)] (<span class="hljs-type">Map</span>.map (@@ j) ts)
+                         <span class="hljs-type">C</span>.insertsSystem [(j <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">0</span>,v0),(j <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">1</span>,v1)] (<span class="hljs-type">Map</span>.map (@@ j) ts)
   <span class="hljs-type">VId</span> b v0 v1 -&gt; <span class="hljs-keyword">case</span> u <span class="hljs-keyword">of</span>
     <span class="hljs-type">VIdPair</span> r _ | all isIdPair (elems ts) -&gt;
-      <span class="hljs-keyword">let</span> j = fresh (<span class="hljs-type">Atom</span> i,a,u,ts)
+      <span class="hljs-keyword">let</span> j = <span class="hljs-type">C</span>.fresh (<span class="hljs-type">C</span>.<span class="hljs-type">Atom</span> i,a,u,ts)
           <span class="hljs-type">VIdPair</span> z _ @@@ phi = z @@ phi
           sys (<span class="hljs-type">VIdPair</span> _ ws)  = ws
           w = <span class="hljs-type">VPLam</span> j $ comp i b (r @@ j) $
-                          insertsSystem [(j ~&gt; <span class="hljs-number">0</span>,v0),(j ~&gt; <span class="hljs-number">1</span>,v1)]
+                          <span class="hljs-type">C</span>.insertsSystem [(j <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">0</span>,v0),(j <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">1</span>,v1)]
                             (<span class="hljs-type">Map</span>.map (@@@ j) ts)
-      <span class="hljs-keyword">in</span> <span class="hljs-type">VIdPair</span> w (joinSystem (<span class="hljs-type">Map</span>.map sys (ts `face` (i ~&gt; <span class="hljs-number">1</span>))))
+      <span class="hljs-keyword">in</span> <span class="hljs-type">VIdPair</span> w (<span class="hljs-type">C</span>.joinSystem (<span class="hljs-type">Map</span>.map sys (ts `<span class="hljs-type">C</span>.face` (i <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">1</span>))))
     _ -&gt; <span class="hljs-type">VComp</span> (<span class="hljs-type">VPLam</span> i a) u (<span class="hljs-type">Map</span>.map (<span class="hljs-type">VPLam</span> i) ts)
   <span class="hljs-type">VSigma</span> a f -&gt; <span class="hljs-type">VPair</span> ui1 comp_u2
     <span class="hljs-keyword">where</span> (t1s, t2s) = (<span class="hljs-type">Map</span>.map fstVal ts, <span class="hljs-type">Map</span>.map sndVal ts)
@@ -602,25 +602,25 @@
   <span class="hljs-type">VGlue</span> b equivs | not (isNeutralGlue i equivs u ts) -&gt; compGlue i b equivs u ts
   <span class="hljs-type">Ter</span> (<span class="hljs-type">Sum</span> _ _ nass) env -&gt; <span class="hljs-keyword">case</span> u <span class="hljs-keyword">of</span>
     <span class="hljs-type">VCon</span> n us | all isCon (elems ts) -&gt; <span class="hljs-keyword">case</span> lookupLabel n nass <span class="hljs-keyword">of</span>
-      <span class="hljs-type">Just</span> <span class="hljs-keyword">as</span> -&gt; <span class="hljs-keyword">let</span> tsus = transposeSystemAndList (<span class="hljs-type">Map</span>.map unCon ts) us
+      <span class="hljs-type">Just</span> <span class="hljs-keyword">as</span> -&gt; <span class="hljs-keyword">let</span> tsus = <span class="hljs-type">C</span>.transposeSystemAndList (<span class="hljs-type">Map</span>.map unCon ts) us
                  <span class="hljs-keyword">in</span> <span class="hljs-type">VCon</span> n $ comps i <span class="hljs-keyword">as</span> env tsus
       <span class="hljs-type">Nothing</span> -&gt; error $ <span class="hljs-string">&quot;comp: missing constructor in labelled sum &quot;</span> ++ n
     _ -&gt; <span class="hljs-type">VComp</span> (<span class="hljs-type">VPLam</span> i a) u (<span class="hljs-type">Map</span>.map (<span class="hljs-type">VPLam</span> i) ts)
   <span class="hljs-type">Ter</span> (<span class="hljs-type">HSum</span> _ _ nass) env -&gt; compHIT i a u ts
   _ -&gt; <span class="hljs-type">VComp</span> (<span class="hljs-type">VPLam</span> i a) u (<span class="hljs-type">Map</span>.map (<span class="hljs-type">VPLam</span> i) ts)
 
-<span class="hljs-title">compNeg</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
-<span class="hljs-title">compNeg</span> i a u ts = comp i (a `sym` i) u (ts `sym` i)
+<span class="hljs-title">compNeg</span> :: <span class="hljs-type">C</span>.<span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">compNeg</span> i a u ts = comp i (a `<span class="hljs-type">C</span>.sym` i) u (ts `<span class="hljs-type">C</span>.sym` i)
 
-<span class="hljs-title">compLine</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">compLine</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
 <span class="hljs-title">compLine</span> a u ts = comp i (a @@ i) u (<span class="hljs-type">Map</span>.map (@@ i) ts)
-  <span class="hljs-keyword">where</span> i = fresh (a,u,ts)
+  <span class="hljs-keyword">where</span> i = <span class="hljs-type">C</span>.fresh (a,u,ts)
 
-<span class="hljs-title">compConstLine</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">compConstLine</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
 <span class="hljs-title">compConstLine</span> a u ts = comp i a u (<span class="hljs-type">Map</span>.map (@@ i) ts)
-  <span class="hljs-keyword">where</span> i = fresh (a,u,ts)
+  <span class="hljs-keyword">where</span> i = <span class="hljs-type">C</span>.fresh (a,u,ts)
 
-<span class="hljs-title">comps</span> :: <span class="hljs-type">Name</span> -&gt; [(<span class="hljs-type">Ident</span>,<span class="hljs-type">Ter</span>)] -&gt; <span class="hljs-type">Env</span> -&gt; [(<span class="hljs-type">System</span> <span class="hljs-type">Val</span>,<span class="hljs-type">Val</span>)] -&gt; [<span class="hljs-type">Val</span>]
+<span class="hljs-title">comps</span> :: <span class="hljs-type">C</span>.<span class="hljs-type">Name</span> -&gt; [(<span class="hljs-type">Ident</span>,<span class="hljs-type">Ter</span>)] -&gt; <span class="hljs-type">Env</span> -&gt; [(<span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span>,<span class="hljs-type">Val</span>)] -&gt; [<span class="hljs-type">Val</span>]
 <span class="hljs-title">comps</span> i []         _ []         = []
 <span class="hljs-title">comps</span> i ((x,a):<span class="hljs-keyword">as</span>) e ((ts,u):tsus) =
   <span class="hljs-keyword">let</span> v   = fill i (eval e a) u ts
@@ -629,17 +629,17 @@
   <span class="hljs-keyword">in</span> vi1 : vs
 <span class="hljs-title">comps</span> _ _ _ _ = error <span class="hljs-string">&quot;comps: different lengths of types and values&quot;</span>
 
-<span class="hljs-title">fill</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">fill</span> :: <span class="hljs-type">C</span>.<span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
 <span class="hljs-title">fill</span> i a u ts =
-  comp j (a `conj` (i,j)) u (insertSystem (i ~&gt; <span class="hljs-number">0</span>) u (ts `conj` (i,j)))
-  <span class="hljs-keyword">where</span> j = fresh (<span class="hljs-type">Atom</span> i,a,u,ts)
+  comp j (a `<span class="hljs-type">C</span>.conj` (i,j)) u (<span class="hljs-type">C</span>.insertSystem (i <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">0</span>) u (ts `<span class="hljs-type">C</span>.conj` (i,j)))
+  <span class="hljs-keyword">where</span> j = <span class="hljs-type">C</span>.fresh (<span class="hljs-type">C</span>.<span class="hljs-type">Atom</span> i,a,u,ts)
 
-<span class="hljs-title">fillNeg</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
-<span class="hljs-title">fillNeg</span> i a u ts = (fill i (a `sym` i) u (ts `sym` i)) `sym` i
+<span class="hljs-title">fillNeg</span> :: <span class="hljs-type">C</span>.<span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">fillNeg</span> i a u ts = (fill i (a `<span class="hljs-type">C</span>.sym` i) u (ts `<span class="hljs-type">C</span>.sym` i)) `<span class="hljs-type">C</span>.sym` i
 
-<span class="hljs-title">fillLine</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">fillLine</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
 <span class="hljs-title">fillLine</span> a u ts = <span class="hljs-type">VPLam</span> i $ fill i (a @@ i) u (<span class="hljs-type">Map</span>.map (@@ i) ts)
-  <span class="hljs-keyword">where</span> i = fresh (a,u,ts)</pre></div></div>
+  <span class="hljs-keyword">where</span> i = <span class="hljs-type">C</span>.fresh (a,u,ts)</pre></div></div>
             
         </li>
         
@@ -650,7 +650,7 @@
               <div class="sswrap ">
                 <a class="ss" href="#section-15">&#x00a7;</a>
               </div>
-              <p>fills :: Name -&gt; [(Ident,Ter)] -&gt; Env -&gt; [(System Val,Val)] -&gt; [Val]
+              <p>fills :: C.Name -&gt; [(Ident,Ter)] -&gt; Env -&gt; [(C.System Val,Val)] -&gt; [Val]
 fills i []         _ []         = []
 fills i ((x,a):as) e ((ts,u):tsus) =
   let v  = fill i (eval e a) ts u
@@ -687,19 +687,19 @@ fills _ _ _ _ = error “fills: different lengths of types and values”</p>
             </div>
             
             <div class="content"><div class='highlight'><pre>
-<span class="hljs-title">trans</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">trans</span> :: <span class="hljs-type">C</span>.<span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
 <span class="hljs-title">trans</span> i v0 v1 = comp i v0 v1 empty
 
-<span class="hljs-title">transNeg</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
-<span class="hljs-title">transNeg</span> i a u = trans i (a `sym` i) u
+<span class="hljs-title">transNeg</span> :: <span class="hljs-type">C</span>.<span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">transNeg</span> i a u = trans i (a `<span class="hljs-type">C</span>.sym` i) u
 
 <span class="hljs-title">transLine</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
 <span class="hljs-title">transLine</span> u v = trans i (u @@ i) v
-  <span class="hljs-keyword">where</span> i = fresh (u,v)
+  <span class="hljs-keyword">where</span> i = <span class="hljs-type">C</span>.fresh (u,v)
 
 <span class="hljs-title">transNegLine</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
 <span class="hljs-title">transNegLine</span> u v = transNeg i (u @@ i) v
-  <span class="hljs-keyword">where</span> i = fresh (u,v)</pre></div></div>
+  <span class="hljs-keyword">where</span> i = <span class="hljs-type">C</span>.fresh (u,v)</pre></div></div>
             
         </li>
         
@@ -714,7 +714,7 @@ fills _ _ _ _ = error “fills: different lengths of types and values”</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-title">transps</span> :: <span class="hljs-type">Name</span> -&gt; [(<span class="hljs-type">Ident</span>,<span class="hljs-type">Ter</span>)] -&gt; <span class="hljs-type">Env</span> -&gt; [<span class="hljs-type">Val</span>] -&gt; [<span class="hljs-type">Val</span>]
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">transps</span> :: <span class="hljs-type">C</span>.<span class="hljs-type">Name</span> -&gt; [(<span class="hljs-type">Ident</span>,<span class="hljs-type">Ter</span>)] -&gt; <span class="hljs-type">Env</span> -&gt; [<span class="hljs-type">Val</span>] -&gt; [<span class="hljs-type">Val</span>]
 <span class="hljs-title">transps</span> i []         _ []     = []
 <span class="hljs-title">transps</span> i ((x,a):<span class="hljs-keyword">as</span>) e (u:us) =
   <span class="hljs-keyword">let</span> v   = transFill i (eval e a) u
@@ -723,11 +723,11 @@ fills _ _ _ _ = error “fills: different lengths of types and values”</p>
   <span class="hljs-keyword">in</span> vi1 : vs
 <span class="hljs-title">transps</span> _ _ _ _ = error <span class="hljs-string">&quot;transps: different lengths of types and values&quot;</span>
 
-<span class="hljs-title">transFill</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">transFill</span> :: <span class="hljs-type">C</span>.<span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
 <span class="hljs-title">transFill</span> i a u = fill i a u empty
 
-<span class="hljs-title">transFillNeg</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
-<span class="hljs-title">transFillNeg</span> i a u = (transFill i (a `sym` i) u) `sym` i</pre></div></div>
+<span class="hljs-title">transFillNeg</span> :: <span class="hljs-type">C</span>.<span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">transFillNeg</span> i a u = (transFill i (a `<span class="hljs-type">C</span>.sym` i) u) `<span class="hljs-type">C</span>.sym` i</pre></div></div>
             
         </li>
         
@@ -743,15 +743,15 @@ trans i a u(i=0) to u(i=1)</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-title">squeeze</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
-<span class="hljs-title">squeeze</span> i a u = comp j (a `disj` (i,j)) u $ mkSystem [ (i ~&gt; <span class="hljs-number">1</span>, ui1) ]
-  <span class="hljs-keyword">where</span> j   = fresh (<span class="hljs-type">Atom</span> i,a,u)
-        ui1 = u `face` (i ~&gt; <span class="hljs-number">1</span>)
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">squeeze</span> :: <span class="hljs-type">C</span>.<span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">squeeze</span> i a u = comp j (a `<span class="hljs-type">C</span>.disj` (i,j)) u $ <span class="hljs-type">C</span>.mkSystem [ (i <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">1</span>, ui1) ]
+  <span class="hljs-keyword">where</span> j   = <span class="hljs-type">C</span>.fresh (<span class="hljs-type">C</span>.<span class="hljs-type">Atom</span> i,a,u)
+        ui1 = u `<span class="hljs-type">C</span>.face` (i <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">1</span>)
 
-<span class="hljs-title">squeezes</span> :: <span class="hljs-type">Name</span> -&gt; [(<span class="hljs-type">Ident</span>,<span class="hljs-type">Ter</span>)] -&gt; <span class="hljs-type">Env</span> -&gt; [<span class="hljs-type">Val</span>] -&gt; [<span class="hljs-type">Val</span>]
-<span class="hljs-title">squeezes</span> i xas e us = comps j xas (e `disj` (i,j)) us&#x27;
-  <span class="hljs-keyword">where</span> j   = fresh (us,e,<span class="hljs-type">Atom</span> i)
-        us&#x27; = [ (mkSystem [(i ~&gt; <span class="hljs-number">1</span>, u `face` (i ~&gt; <span class="hljs-number">1</span>))],u) | u &lt;- us ]</pre></div></div>
+<span class="hljs-title">squeezes</span> :: <span class="hljs-type">C</span>.<span class="hljs-type">Name</span> -&gt; [(<span class="hljs-type">Ident</span>,<span class="hljs-type">Ter</span>)] -&gt; <span class="hljs-type">Env</span> -&gt; [<span class="hljs-type">Val</span>] -&gt; [<span class="hljs-type">Val</span>]
+<span class="hljs-title">squeezes</span> i xas e us = comps j xas (e `<span class="hljs-type">C</span>.disj` (i,j)) us&#x27;
+  <span class="hljs-keyword">where</span> j   = <span class="hljs-type">C</span>.fresh (us,e,<span class="hljs-type">C</span>.<span class="hljs-type">Atom</span> i)
+        us&#x27; = [ (<span class="hljs-type">C</span>.mkSystem [(i <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">1</span>, u `<span class="hljs-type">C</span>.face` (i <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">1</span>))],u) | u &lt;- us ]</pre></div></div>
             
         </li>
         
@@ -783,10 +783,10 @@ trans i a u(i=0) to u(i=1)</p>
 <span class="hljs-title">idJ</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
 <span class="hljs-title">idJ</span> a v c d x p = <span class="hljs-keyword">case</span> p <span class="hljs-keyword">of</span>
   <span class="hljs-type">VIdPair</span> w ws -&gt; comp i (app (app c (w @@ i)) w&#x27;) d
-                    (border d (shape ws))
-    <span class="hljs-keyword">where</span> w&#x27; = <span class="hljs-type">VIdPair</span> (<span class="hljs-type">VPLam</span> j $ w @@ (<span class="hljs-type">Atom</span> i :/\: <span class="hljs-type">Atom</span> j))
-                  (insertSystem (i ~&gt; <span class="hljs-number">0</span>) v ws)
-          i:j:_ = freshs [a,v,c,d,x,p]
+                    (<span class="hljs-type">C</span>.border d (<span class="hljs-type">C</span>.shape ws))
+    <span class="hljs-keyword">where</span> w&#x27; = <span class="hljs-type">VIdPair</span> (<span class="hljs-type">VPLam</span> j $ w @@ (<span class="hljs-type">C</span>.<span class="hljs-type">Atom</span> i <span class="hljs-type">C</span>.:/\: <span class="hljs-type">C</span>.<span class="hljs-type">Atom</span> j))
+                  (<span class="hljs-type">C</span>.insertSystem (i <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">0</span>) v ws)
+          i:j:_ = <span class="hljs-type">C</span>.freshs [a,v,c,d,x,p]
   _ -&gt; <span class="hljs-type">VIdJ</span> a v c d x p
 
 <span class="hljs-title">isIdPair</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Bool</span>
@@ -820,23 +820,23 @@ trans i a u(i=0) to u(i=1)</p>
             </div>
             
             <div class="content"><div class='highlight'><pre>
-<span class="hljs-title">pcon</span> :: <span class="hljs-type">LIdent</span> -&gt; <span class="hljs-type">Val</span> -&gt; [<span class="hljs-type">Val</span>] -&gt; [<span class="hljs-type">Formula</span>] -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">pcon</span> :: <span class="hljs-type">LIdent</span> -&gt; <span class="hljs-type">Val</span> -&gt; [<span class="hljs-type">Val</span>] -&gt; [<span class="hljs-type">C</span>.<span class="hljs-type">Formula</span>] -&gt; <span class="hljs-type">Val</span>
 <span class="hljs-title">pcon</span> c a@(<span class="hljs-type">Ter</span> (<span class="hljs-type">HSum</span> _ _ lbls) rho) us phis = <span class="hljs-keyword">case</span> lookupPLabel c lbls <span class="hljs-keyword">of</span>
-  <span class="hljs-type">Just</span> (tele,is,ts) | eps `member` vs -&gt; vs ! eps
+  <span class="hljs-type">Just</span> (tele,is,ts) | <span class="hljs-type">C</span>.eps `member` vs -&gt; vs ! <span class="hljs-type">C</span>.eps
                     | otherwise       -&gt; <span class="hljs-type">VPCon</span> c a us phis
     <span class="hljs-keyword">where</span> rho&#x27; = subs (zip is phis) (updsTele tele us rho)
           vs   = evalSystem rho&#x27; ts
   <span class="hljs-type">Nothing</span>           -&gt; error <span class="hljs-string">&quot;pcon&quot;</span>
 <span class="hljs-title">pcon</span> c a us phi     = <span class="hljs-type">VPCon</span> c a us phi
 
-<span class="hljs-title">compHIT</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">compHIT</span> :: <span class="hljs-type">C</span>.<span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
 <span class="hljs-title">compHIT</span> i a u us
   | isNeutral u || isNeutralSystem us =
       <span class="hljs-type">VComp</span> (<span class="hljs-type">VPLam</span> i a) u (<span class="hljs-type">Map</span>.map (<span class="hljs-type">VPLam</span> i) us)
   | otherwise =
-      hComp (a `face` (i ~&gt; <span class="hljs-number">1</span>)) (transpHIT i a u) $
+      hComp (a `<span class="hljs-type">C</span>.face` (i <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">1</span>)) (transpHIT i a u) $
         mapWithKey (\alpha uAlpha -&gt;
-                     <span class="hljs-type">VPLam</span> i $ squeezeHIT i (a `face` alpha) uAlpha) us</pre></div></div>
+                     <span class="hljs-type">VPLam</span> i $ squeezeHIT i (a `<span class="hljs-type">C</span>.face` alpha) uAlpha) us</pre></div></div>
             
         </li>
         
@@ -851,22 +851,22 @@ trans i a u(i=0) to u(i=1)</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-title">transpHIT</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">transpHIT</span> :: <span class="hljs-type">C</span>.<span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
 <span class="hljs-title">transpHIT</span> i a@(<span class="hljs-type">Ter</span> (<span class="hljs-type">HSum</span> _ _ nass) env) u =
- <span class="hljs-keyword">let</span> j = fresh (a,u)
-     aij = swap a (i,j)
+ <span class="hljs-keyword">let</span> j = <span class="hljs-type">C</span>.fresh (a,u)
+     aij = <span class="hljs-type">C</span>.swap a (i,j)
  <span class="hljs-keyword">in</span>
  <span class="hljs-keyword">case</span> u <span class="hljs-keyword">of</span>
   <span class="hljs-type">VCon</span> n us -&gt; <span class="hljs-keyword">case</span> lookupLabel n nass <span class="hljs-keyword">of</span>
     <span class="hljs-type">Just</span> <span class="hljs-keyword">as</span> -&gt; <span class="hljs-type">VCon</span> n (transps i <span class="hljs-keyword">as</span> env us)
     <span class="hljs-type">Nothing</span> -&gt; error $ <span class="hljs-string">&quot;transpHIT: missing constructor in labelled sum &quot;</span> ++ n
   <span class="hljs-type">VPCon</span> c _ ws0 phis -&gt; <span class="hljs-keyword">case</span> lookupLabel c nass <span class="hljs-keyword">of</span>
-    <span class="hljs-type">Just</span> <span class="hljs-keyword">as</span> -&gt; pcon c (a `face` (i ~&gt; <span class="hljs-number">1</span>)) (transps i <span class="hljs-keyword">as</span> env ws0) phis
+    <span class="hljs-type">Just</span> <span class="hljs-keyword">as</span> -&gt; pcon c (a `<span class="hljs-type">C</span>.face` (i <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">1</span>)) (transps i <span class="hljs-keyword">as</span> env ws0) phis
     <span class="hljs-type">Nothing</span> -&gt; error $ <span class="hljs-string">&quot;transpHIT: missing path constructor &quot;</span> ++ c
   <span class="hljs-type">VHComp</span> _ v vs -&gt;
-    hComp (a `face` (i ~&gt; <span class="hljs-number">1</span>)) (transpHIT i a v) $
+    hComp (a `<span class="hljs-type">C</span>.face` (i <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">1</span>)) (transpHIT i a v) $
       mapWithKey (\alpha vAlpha -&gt;
-                   <span class="hljs-type">VPLam</span> j $ transpHIT j (aij `face` alpha) (vAlpha @@ j)) vs
+                   <span class="hljs-type">VPLam</span> j $ transpHIT j (aij `<span class="hljs-type">C</span>.face` alpha) (vAlpha @@ j)) vs
   _ -&gt; error $ <span class="hljs-string">&quot;transpHIT: neutral &quot;</span> ++ show u</pre></div></div>
             
         </li>
@@ -883,29 +883,29 @@ transHIT i a u(i=0) to u(i=1) in a(1)</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-title">squeezeHIT</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">squeezeHIT</span> :: <span class="hljs-type">C</span>.<span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
 <span class="hljs-title">squeezeHIT</span> i a@(<span class="hljs-type">Ter</span> (<span class="hljs-type">HSum</span> _ _ nass) env) u =
- <span class="hljs-keyword">let</span> j = fresh (a,u)
+ <span class="hljs-keyword">let</span> j = <span class="hljs-type">C</span>.fresh (a,u)
  <span class="hljs-keyword">in</span>
  <span class="hljs-keyword">case</span> u <span class="hljs-keyword">of</span>
   <span class="hljs-type">VCon</span> n us -&gt; <span class="hljs-keyword">case</span> lookupLabel n nass <span class="hljs-keyword">of</span>
     <span class="hljs-type">Just</span> <span class="hljs-keyword">as</span> -&gt; <span class="hljs-type">VCon</span> n (squeezes i <span class="hljs-keyword">as</span> env us)
     <span class="hljs-type">Nothing</span> -&gt; error $ <span class="hljs-string">&quot;squeezeHIT: missing constructor in labelled sum &quot;</span> ++ n
   <span class="hljs-type">VPCon</span> c _ ws0 phis -&gt; <span class="hljs-keyword">case</span> lookupLabel c nass <span class="hljs-keyword">of</span>
-    <span class="hljs-type">Just</span> <span class="hljs-keyword">as</span> -&gt; pcon c (a `face` (i ~&gt; <span class="hljs-number">1</span>)) (squeezes i <span class="hljs-keyword">as</span> env ws0) phis
+    <span class="hljs-type">Just</span> <span class="hljs-keyword">as</span> -&gt; pcon c (a `<span class="hljs-type">C</span>.face` (i <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">1</span>)) (squeezes i <span class="hljs-keyword">as</span> env ws0) phis
     <span class="hljs-type">Nothing</span> -&gt; error $ <span class="hljs-string">&quot;squeezeHIT: missing path constructor &quot;</span> ++ c
-  <span class="hljs-type">VHComp</span> _ v vs -&gt; hComp (a `face` (i ~&gt; <span class="hljs-number">1</span>)) (squeezeHIT i a v) $
+  <span class="hljs-type">VHComp</span> _ v vs -&gt; hComp (a `<span class="hljs-type">C</span>.face` (i <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">1</span>)) (squeezeHIT i a v) $
       mapWithKey
         (\alpha vAlpha -&gt; <span class="hljs-keyword">case</span> <span class="hljs-type">Map</span>.lookup i alpha <span class="hljs-keyword">of</span>
-          <span class="hljs-type">Nothing</span>   -&gt; <span class="hljs-type">VPLam</span> j $ squeezeHIT i (a `face` alpha) (vAlpha @@ j)
-          <span class="hljs-type">Just</span> <span class="hljs-type">Zero</span> -&gt; <span class="hljs-type">VPLam</span> j $ transpHIT i
-                         (a `face` (<span class="hljs-type">Map</span>.delete i alpha)) (vAlpha @@ j)
-          <span class="hljs-type">Just</span> <span class="hljs-type">One</span>  -&gt; vAlpha)
+          <span class="hljs-type">Nothing</span>   -&gt; <span class="hljs-type">VPLam</span> j $ squeezeHIT i (a `<span class="hljs-type">C</span>.face` alpha) (vAlpha @@ j)
+          <span class="hljs-type">Just</span> <span class="hljs-type">C</span>.<span class="hljs-type">Zero</span> -&gt; <span class="hljs-type">VPLam</span> j $ transpHIT i
+                         (a `<span class="hljs-type">C</span>.face` (<span class="hljs-type">Map</span>.delete i alpha)) (vAlpha @@ j)
+          <span class="hljs-type">Just</span> <span class="hljs-type">C</span>.<span class="hljs-type">One</span>  -&gt; vAlpha)
         vs
   _ -&gt; error $ <span class="hljs-string">&quot;squeezeHIT: neutral &quot;</span> ++ show u
 
-<span class="hljs-title">hComp</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
-<span class="hljs-title">hComp</span> a u us | eps `member` us = (us ! eps) @@ <span class="hljs-type">One</span>
+<span class="hljs-title">hComp</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">hComp</span> a u us | <span class="hljs-type">C</span>.eps `member` us = (us ! <span class="hljs-type">C</span>.eps) @@ <span class="hljs-type">C</span>.<span class="hljs-type">One</span>
              | otherwise       = <span class="hljs-type">VHComp</span> a u us</pre></div></div>
             
         </li>
@@ -973,32 +973,32 @@ with isContr c = (z : c) * ((z’ : C) -&gt; Id c z z’)</p>
 <span class="hljs-title">equivContr</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
 <span class="hljs-title">equivContr</span> =  sndVal . sndVal
 
-<span class="hljs-title">glue</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
-<span class="hljs-title">glue</span> b ts | eps `member` ts = equivDom (ts ! eps)
+<span class="hljs-title">glue</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">glue</span> b ts | <span class="hljs-type">C</span>.eps `member` ts = equivDom (ts ! <span class="hljs-type">C</span>.eps)
           | otherwise       = <span class="hljs-type">VGlue</span> b ts
 
-<span class="hljs-title">glueElem</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
-<span class="hljs-title">glueElem</span> v us | eps `member` us = us ! eps
+<span class="hljs-title">glueElem</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">glueElem</span> v us | <span class="hljs-type">C</span>.eps `member` us = us ! <span class="hljs-type">C</span>.eps
 <span class="hljs-title">glueElem</span> v us = <span class="hljs-type">VGlueElem</span> v us
 
-<span class="hljs-title">unglueElem</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
-<span class="hljs-title">unglueElem</span> w isos | eps `member` isos = app (equivFun (isos ! eps)) w
+<span class="hljs-title">unglueElem</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">unglueElem</span> w isos | <span class="hljs-type">C</span>.eps `member` isos = app (equivFun (isos ! <span class="hljs-type">C</span>.eps)) w
                   | otherwise         = <span class="hljs-keyword">case</span> w <span class="hljs-keyword">of</span>
                                           <span class="hljs-type">VGlueElem</span> v us -&gt; v
                                           _ -&gt; <span class="hljs-type">VUnGlueElem</span> w isos
 
-<span class="hljs-title">unGlue</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
-<span class="hljs-title">unGlue</span> w b equivs | eps `member` equivs = app (equivFun (equivs ! eps)) w
+<span class="hljs-title">unGlue</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">unGlue</span> w b equivs | <span class="hljs-type">C</span>.eps `member` equivs = app (equivFun (equivs ! <span class="hljs-type">C</span>.eps)) w
                   | otherwise           = <span class="hljs-keyword">case</span> w <span class="hljs-keyword">of</span>
                                             <span class="hljs-type">VGlueElem</span> v us -&gt; v
                                             _ -&gt; error (<span class="hljs-string">&quot;unglue: neutral&quot;</span> ++ show w)
 
-<span class="hljs-title">isNeutralGlue</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Bool</span>
-<span class="hljs-title">isNeutralGlue</span> i equivs u0 ts = (eps `notMember` equivsi0 &amp;&amp; isNeutral u0) ||
+<span class="hljs-title">isNeutralGlue</span> :: <span class="hljs-type">C</span>.<span class="hljs-type">Name</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Bool</span>
+<span class="hljs-title">isNeutralGlue</span> i equivs u0 ts = (<span class="hljs-type">C</span>.eps `notMember` equivsi0 &amp;&amp; isNeutral u0) ||
   any (\(alpha,talpha) -&gt;
-           eps `notMember` (equivs `face` alpha) &amp;&amp; isNeutral talpha)
+           <span class="hljs-type">C</span>.eps `notMember` (equivs `<span class="hljs-type">C</span>.face` alpha) &amp;&amp; isNeutral talpha)
     (assocs ts)
-  <span class="hljs-keyword">where</span> equivsi0 = equivs `face` (i ~&gt; <span class="hljs-number">0</span>)</pre></div></div>
+  <span class="hljs-keyword">where</span> equivsi0 = equivs `<span class="hljs-type">C</span>.face` (i <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">0</span>)</pre></div></div>
             
         </li>
         
@@ -1013,12 +1013,12 @@ with isContr c = (z : c) * ((z’ : C) -&gt; Id c z z’)</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-title">isNeutralU</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Bool</span>
-<span class="hljs-title">isNeutralU</span> i eqs u0 ts = (eps `notMember` eqsi0 &amp;&amp; isNeutral u0) ||
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">isNeutralU</span> :: <span class="hljs-type">C</span>.<span class="hljs-type">Name</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Bool</span>
+<span class="hljs-title">isNeutralU</span> i eqs u0 ts = (<span class="hljs-type">C</span>.eps `notMember` eqsi0 &amp;&amp; isNeutral u0) ||
   any (\(alpha,talpha) -&gt;
-           eps `notMember` (eqs `face` alpha) &amp;&amp; isNeutral talpha)
+           <span class="hljs-type">C</span>.eps `notMember` (eqs `<span class="hljs-type">C</span>.face` alpha) &amp;&amp; isNeutral talpha)
     (assocs ts)
-  <span class="hljs-keyword">where</span> eqsi0 = eqs `face` (i ~&gt; <span class="hljs-number">0</span>)</pre></div></div>
+  <span class="hljs-keyword">where</span> eqsi0 = eqs `<span class="hljs-type">C</span>.face` (i <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">0</span>)</pre></div></div>
             
         </li>
         
@@ -1033,11 +1033,11 @@ with isContr c = (z : c) * ((z’ : C) -&gt; Id c z z’)</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-title">extend</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">extend</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
 <span class="hljs-title">extend</span> b q ts = comp i b (fstVal q) ts&#x27;
-  <span class="hljs-keyword">where</span> i = fresh (b,q,ts)
+  <span class="hljs-keyword">where</span> i = <span class="hljs-type">C</span>.fresh (b,q,ts)
         ts&#x27; = mapWithKey
-                (\alpha tAlpha -&gt; app ((sndVal q) `face` alpha) tAlpha @@ i) ts</pre></div></div>
+                (\alpha tAlpha -&gt; app ((sndVal q) `<span class="hljs-type">C</span>.face` alpha) tAlpha @@ i) ts</pre></div></div>
             
         </li>
         
@@ -1058,26 +1058,26 @@ ti1’  corresponds to usi1’</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-title">compGlue</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">compGlue</span> :: <span class="hljs-type">C</span>.<span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
 <span class="hljs-title">compGlue</span> i a equivs wi0 ws = glueElem vi1 usi1
-  <span class="hljs-keyword">where</span> ai1 = a `face` (i ~&gt; <span class="hljs-number">1</span>)
+  <span class="hljs-keyword">where</span> ai1 = a `<span class="hljs-type">C</span>.face` (i <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">1</span>)
         vs  = mapWithKey
                 (\alpha wAlpha -&gt;
-                  unGlue wAlpha (a `face` alpha) (equivs `face` alpha)) ws
+                  unGlue wAlpha (a `<span class="hljs-type">C</span>.face` alpha) (equivs `<span class="hljs-type">C</span>.face` alpha)) ws
 
-        vsi1 = vs `face` (i ~&gt; <span class="hljs-number">1</span>) <span class="hljs-comment">-- same as: border vi1 vs</span>
-        vi0  = unGlue wi0 (a `face` (i ~&gt; <span class="hljs-number">0</span>)) (equivs `face` (i ~&gt; <span class="hljs-number">0</span>)) <span class="hljs-comment">-- in a(i0)</span>
+        vsi1 = vs `<span class="hljs-type">C</span>.face` (i <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">1</span>) <span class="hljs-comment">-- same as: C.border vi1 vs</span>
+        vi0  = unGlue wi0 (a `<span class="hljs-type">C</span>.face` (i <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">0</span>)) (equivs `<span class="hljs-type">C</span>.face` (i <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">0</span>)) <span class="hljs-comment">-- in a(i0)</span>
 
         vi1&#x27;  = comp i a vi0 vs           <span class="hljs-comment">-- in a(i1)</span>
 
-        equivsI1 = equivs `face` (i ~&gt; <span class="hljs-number">1</span>)
+        equivsI1 = equivs `<span class="hljs-type">C</span>.face` (i <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">1</span>)
         equivs&#x27;  = filterWithKey (\alpha _ -&gt; i `notMember` alpha) equivs
 
         us&#x27;    = mapWithKey (\gamma equivG -&gt;
-                   fill i (equivDom equivG) (wi0 `face` gamma) (ws `face` gamma))
+                   fill i (equivDom equivG) (wi0 `<span class="hljs-type">C</span>.face` gamma) (ws `<span class="hljs-type">C</span>.face` gamma))
                  equivs&#x27;
         usi1&#x27;  = mapWithKey (\gamma equivG -&gt;
-                   comp i (equivDom equivG) (wi0 `face` gamma) (ws `face` gamma))
+                   comp i (equivDom equivG) (wi0 `<span class="hljs-type">C</span>.face` gamma) (ws `<span class="hljs-type">C</span>.face` gamma))
                  equivs&#x27;</pre></div></div>
             
         </li>
@@ -1094,29 +1094,29 @@ ti1’  corresponds to usi1’</p>
             </div>
             
             <div class="content"><div class='highlight'><pre>        ls&#x27;    = mapWithKey (\gamma equivG -&gt;
-                   pathComp i (a `face` gamma) (vi0 `face` gamma)
-                     (equivFun equivG `app` (us&#x27; ! gamma)) (vs `face` gamma))
+                   pathComp i (a `<span class="hljs-type">C</span>.face` gamma) (vi0 `<span class="hljs-type">C</span>.face` gamma)
+                     (equivFun equivG `app` (us&#x27; ! gamma)) (vs `<span class="hljs-type">C</span>.face` gamma))
                  equivs&#x27;
 
         fibersys = intersectionWith <span class="hljs-type">VPair</span> usi1&#x27; ls&#x27; <span class="hljs-comment">-- on equivs&#x27;</span>
 
-        wsi1 = ws `face` (i ~&gt; <span class="hljs-number">1</span>)
+        wsi1 = ws `<span class="hljs-type">C</span>.face` (i <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">1</span>)
         fibersys&#x27; = mapWithKey
           (\gamma equivG -&gt;
             <span class="hljs-keyword">let</span> fibsgamma = intersectionWith (\ x y -&gt; <span class="hljs-type">VPair</span> x (constPath y))
-                              (wsi1 `face` gamma) (vsi1 `face` gamma)
-            <span class="hljs-keyword">in</span> extend (mkFiberType (ai1 `face` gamma) (vi1&#x27; `face` gamma) equivG)
-                 (app (equivContr equivG) (vi1&#x27; `face` gamma))
-                 (fibsgamma `unionSystem` (fibersys `face` gamma))) equivsI1
+                              (wsi1 `<span class="hljs-type">C</span>.face` gamma) (vsi1 `<span class="hljs-type">C</span>.face` gamma)
+            <span class="hljs-keyword">in</span> extend (mkFiberType (ai1 `<span class="hljs-type">C</span>.face` gamma) (vi1&#x27; `<span class="hljs-type">C</span>.face` gamma) equivG)
+                 (app (equivContr equivG) (vi1&#x27; `<span class="hljs-type">C</span>.face` gamma))
+                 (fibsgamma `<span class="hljs-type">C</span>.unionSystem` (fibersys `<span class="hljs-type">C</span>.face` gamma))) equivsI1
 
         vi1 = compConstLine ai1 vi1&#x27;
-                (<span class="hljs-type">Map</span>.map sndVal fibersys&#x27; `unionSystem` <span class="hljs-type">Map</span>.map constPath vsi1)
+                (<span class="hljs-type">Map</span>.map sndVal fibersys&#x27; `<span class="hljs-type">C</span>.unionSystem` <span class="hljs-type">Map</span>.map constPath vsi1)
 
         usi1 = <span class="hljs-type">Map</span>.map fstVal fibersys&#x27;
 
 <span class="hljs-title">mkFiberType</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
 <span class="hljs-title">mkFiberType</span> a x equiv = eval rho $
-  <span class="hljs-type">Sigma</span> $ <span class="hljs-type">Lam</span> <span class="hljs-string">&quot;y&quot;</span> tt (<span class="hljs-type">PathP</span> (<span class="hljs-type">PLam</span> (<span class="hljs-type">Name</span> <span class="hljs-string">&quot;_&quot;</span>) ta) tx (<span class="hljs-type">App</span> tf ty))
+  <span class="hljs-type">Sigma</span> $ <span class="hljs-type">Lam</span> <span class="hljs-string">&quot;y&quot;</span> tt (<span class="hljs-type">PathP</span> (<span class="hljs-type">PLam</span> (<span class="hljs-type">C</span>.<span class="hljs-type">Name</span> <span class="hljs-string">&quot;_&quot;</span>) ta) tx (<span class="hljs-type">App</span> tf ty))
   <span class="hljs-keyword">where</span> [ta,tx,ty,tf,tt] = map <span class="hljs-type">Var</span> [<span class="hljs-string">&quot;a&quot;</span>,<span class="hljs-string">&quot;x&quot;</span>,<span class="hljs-string">&quot;y&quot;</span>,<span class="hljs-string">&quot;f&quot;</span>,<span class="hljs-string">&quot;t&quot;</span>]
         rho = upds [(<span class="hljs-string">&quot;a&quot;</span>,a),(<span class="hljs-string">&quot;x&quot;</span>,x),(<span class="hljs-string">&quot;f&quot;</span>,equivFun equiv)
                    ,(<span class="hljs-string">&quot;t&quot;</span>,equivDom equiv)] emptyEnv</pre></div></div>
@@ -1135,10 +1135,10 @@ The output is an L-path in A(i1) between comp i u0 us and u’(i1)</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-title">pathComp</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">pathComp</span> :: <span class="hljs-type">C</span>.<span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
 <span class="hljs-title">pathComp</span> i a u0 u&#x27; us = <span class="hljs-type">VPLam</span> j $ comp i a u0 us&#x27;
-  <span class="hljs-keyword">where</span> j   = fresh (<span class="hljs-type">Atom</span> i,a,us,u0,u&#x27;)
-        us&#x27; = insertsSystem [(j ~&gt; <span class="hljs-number">1</span>, u&#x27;)] us</pre></div></div>
+  <span class="hljs-keyword">where</span> j   = <span class="hljs-type">C</span>.fresh (<span class="hljs-type">C</span>.<span class="hljs-type">Atom</span> i,a,us,u0,u&#x27;)
+        us&#x27; = <span class="hljs-type">C</span>.insertsSystem [(j <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">1</span>, u&#x27;)] us</pre></div></div>
             
         </li>
         
@@ -1182,36 +1182,36 @@ The output is an L-path in A(i1) between comp i u0 us and u’(i1)</p>
             <div class="content"><div class='highlight'><pre><span class="hljs-title">eqFun</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
 <span class="hljs-title">eqFun</span> = transNegLine
 
-<span class="hljs-title">unGlueU</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
-<span class="hljs-title">unGlueU</span> w b es | eps `<span class="hljs-type">Map</span>.member` es = eqFun (es ! eps) w
+<span class="hljs-title">unGlueU</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">unGlueU</span> w b es | <span class="hljs-type">C</span>.eps `<span class="hljs-type">Map</span>.member` es = eqFun (es ! <span class="hljs-type">C</span>.eps) w
                | otherwise           = <span class="hljs-keyword">case</span> w <span class="hljs-keyword">of</span>
                                         <span class="hljs-type">VGlueElem</span> v us   -&gt; v
                                         _ -&gt; <span class="hljs-type">VUnGlueElemU</span> w b es
 
-<span class="hljs-title">compUniv</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
-<span class="hljs-title">compUniv</span> b es | eps `<span class="hljs-type">Map</span>.member` es = (es ! eps) @@ <span class="hljs-type">One</span>
+<span class="hljs-title">compUniv</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">compUniv</span> b es | <span class="hljs-type">C</span>.eps `<span class="hljs-type">Map</span>.member` es = (es ! <span class="hljs-type">C</span>.eps) @@ <span class="hljs-type">C</span>.<span class="hljs-type">One</span>
               | otherwise           = <span class="hljs-type">VCompU</span> b es
 
-<span class="hljs-title">compU</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">compU</span> :: <span class="hljs-type">C</span>.<span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
 <span class="hljs-title">compU</span> i a eqs wi0 ws = glueElem vi1 usi1
-  <span class="hljs-keyword">where</span> ai1 = a `face` (i ~&gt; <span class="hljs-number">1</span>)
+  <span class="hljs-keyword">where</span> ai1 = a `<span class="hljs-type">C</span>.face` (i <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">1</span>)
         vs  = mapWithKey
                 (\alpha wAlpha -&gt;
-                  unGlueU wAlpha (a `face` alpha) (eqs `face` alpha)) ws
+                  unGlueU wAlpha (a `<span class="hljs-type">C</span>.face` alpha) (eqs `<span class="hljs-type">C</span>.face` alpha)) ws
 
-        vsi1 = vs `face` (i ~&gt; <span class="hljs-number">1</span>) <span class="hljs-comment">-- same as: border vi1 vs</span>
-        vi0  = unGlueU wi0 (a `face` (i ~&gt; <span class="hljs-number">0</span>)) (eqs `face` (i ~&gt; <span class="hljs-number">0</span>)) <span class="hljs-comment">-- in a(i0)</span>
+        vsi1 = vs `<span class="hljs-type">C</span>.face` (i <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">1</span>) <span class="hljs-comment">-- same as: C.border vi1 vs</span>
+        vi0  = unGlueU wi0 (a `<span class="hljs-type">C</span>.face` (i <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">0</span>)) (eqs `<span class="hljs-type">C</span>.face` (i <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">0</span>)) <span class="hljs-comment">-- in a(i0)</span>
 
         vi1&#x27;  = comp i a vi0 vs           <span class="hljs-comment">-- in a(i1)</span>
 
-        eqsI1 = eqs `face` (i ~&gt; <span class="hljs-number">1</span>)
+        eqsI1 = eqs `<span class="hljs-type">C</span>.face` (i <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">1</span>)
         eqs&#x27;  = filterWithKey (\alpha _ -&gt; i `notMember` alpha) eqs
 
         us&#x27;    = mapWithKey (\gamma eqG -&gt;
-                   fill i (eqG @@ <span class="hljs-type">One</span>) (wi0 `face` gamma) (ws `face` gamma))
+                   fill i (eqG @@ <span class="hljs-type">C</span>.<span class="hljs-type">One</span>) (wi0 `<span class="hljs-type">C</span>.face` gamma) (ws `<span class="hljs-type">C</span>.face` gamma))
                  eqs&#x27;
         usi1&#x27;  = mapWithKey (\gamma eqG -&gt;
-                   comp i (eqG @@ <span class="hljs-type">One</span>) (wi0 `face` gamma) (ws `face` gamma))
+                   comp i (eqG @@ <span class="hljs-type">C</span>.<span class="hljs-type">One</span>) (wi0 `<span class="hljs-type">C</span>.face` gamma) (ws `<span class="hljs-type">C</span>.face` gamma))
                  eqs&#x27;</pre></div></div>
             
         </li>
@@ -1228,48 +1228,48 @@ The output is an L-path in A(i1) between comp i u0 us and u’(i1)</p>
             </div>
             
             <div class="content"><div class='highlight'><pre>        ls&#x27;    = mapWithKey (\gamma eqG -&gt;
-                   pathComp i (a `face` gamma) (vi0 `face` gamma)
-                     (eqFun eqG (us&#x27; ! gamma)) (vs `face` gamma))
+                   pathComp i (a `<span class="hljs-type">C</span>.face` gamma) (vi0 `<span class="hljs-type">C</span>.face` gamma)
+                     (eqFun eqG (us&#x27; ! gamma)) (vs `<span class="hljs-type">C</span>.face` gamma))
                  eqs&#x27;
 
         fibersys = intersectionWith (\ x y -&gt; (x,y)) usi1&#x27; ls&#x27; <span class="hljs-comment">-- on eqs&#x27;</span>
 
-        wsi1 = ws `face` (i ~&gt; <span class="hljs-number">1</span>)
+        wsi1 = ws `<span class="hljs-type">C</span>.face` (i <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">1</span>)
         fibersys&#x27; = mapWithKey
           (\gamma eqG -&gt;
             <span class="hljs-keyword">let</span> fibsgamma = intersectionWith (\ x y -&gt; (x,constPath y))
-                              (wsi1 `face` gamma) (vsi1 `face` gamma)
-            <span class="hljs-keyword">in</span> lemEq eqG (vi1&#x27; `face` gamma)
-                     (fibsgamma `unionSystem` (fibersys `face` gamma))) eqsI1
+                              (wsi1 `<span class="hljs-type">C</span>.face` gamma) (vsi1 `<span class="hljs-type">C</span>.face` gamma)
+            <span class="hljs-keyword">in</span> lemEq eqG (vi1&#x27; `<span class="hljs-type">C</span>.face` gamma)
+                     (fibsgamma `<span class="hljs-type">C</span>.unionSystem` (fibersys `<span class="hljs-type">C</span>.face` gamma))) eqsI1
 
         vi1 = compConstLine ai1 vi1&#x27;
-                (<span class="hljs-type">Map</span>.map snd fibersys&#x27; `unionSystem` <span class="hljs-type">Map</span>.map constPath vsi1)
+                (<span class="hljs-type">Map</span>.map snd fibersys&#x27; `<span class="hljs-type">C</span>.unionSystem` <span class="hljs-type">Map</span>.map constPath vsi1)
 
         usi1 = <span class="hljs-type">Map</span>.map fst fibersys&#x27;
 
-<span class="hljs-title">lemEq</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> (<span class="hljs-type">Val</span>,<span class="hljs-type">Val</span>) -&gt; (<span class="hljs-type">Val</span>,<span class="hljs-type">Val</span>)
+<span class="hljs-title">lemEq</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> (<span class="hljs-type">Val</span>,<span class="hljs-type">Val</span>) -&gt; (<span class="hljs-type">Val</span>,<span class="hljs-type">Val</span>)
 <span class="hljs-title">lemEq</span> eq b aps = (a,<span class="hljs-type">VPLam</span> i (compNeg j (eq @@ j) p1 thetas&#x27;))
  <span class="hljs-keyword">where</span>
-   i:j:_ = freshs (eq,b,aps)
-   ta = eq @@ <span class="hljs-type">One</span>
+   i:j:_ = <span class="hljs-type">C</span>.freshs (eq,b,aps)
+   ta = eq @@ <span class="hljs-type">C</span>.<span class="hljs-type">One</span>
    p1s = mapWithKey (\alpha (aa,pa) -&gt;
-              <span class="hljs-keyword">let</span> eqaj = (eq `face` alpha) @@ j
-                  ba = b `face` alpha
+              <span class="hljs-keyword">let</span> eqaj = (eq `<span class="hljs-type">C</span>.face` alpha) @@ j
+                  ba = b `<span class="hljs-type">C</span>.face` alpha
               <span class="hljs-keyword">in</span> comp j eqaj (pa @@ i)
-                   (mkSystem [ (i~&gt;<span class="hljs-number">0</span>,transFill j eqaj ba)
-                             , (i~&gt;<span class="hljs-number">1</span>,transFillNeg j eqaj aa)])) aps
+                   (<span class="hljs-type">C</span>.mkSystem [ (i <span class="hljs-type">C</span>.~&gt;<span class="hljs-number">0</span>,transFill j eqaj ba)
+                             , (i <span class="hljs-type">C</span>.~&gt;<span class="hljs-number">1</span>,transFillNeg j eqaj aa)])) aps
    thetas = mapWithKey (\alpha (aa,pa) -&gt;
-              <span class="hljs-keyword">let</span> eqaj = (eq `face` alpha) @@ j
-                  ba = b `face` alpha
+              <span class="hljs-keyword">let</span> eqaj = (eq `<span class="hljs-type">C</span>.face` alpha) @@ j
+                  ba = b `<span class="hljs-type">C</span>.face` alpha
               <span class="hljs-keyword">in</span> fill j eqaj (pa @@ i)
-                   (mkSystem [ (i~&gt;<span class="hljs-number">0</span>,transFill j eqaj ba)
-                             , (i~&gt;<span class="hljs-number">1</span>,transFillNeg j eqaj aa)])) aps
+                   (<span class="hljs-type">C</span>.mkSystem [ (i <span class="hljs-type">C</span>.~&gt;<span class="hljs-number">0</span>,transFill j eqaj ba)
+                             , (i <span class="hljs-type">C</span>.~&gt;<span class="hljs-number">1</span>,transFillNeg j eqaj aa)])) aps
 
    a  = comp i ta (trans i (eq @@ i) b) p1s
    p1 = fill i ta (trans i (eq @@ i) b) p1s
 
-   thetas&#x27; = insertsSystem [ (i ~&gt; <span class="hljs-number">0</span>,transFill j (eq @@ j) b)
-                           , (i ~&gt; <span class="hljs-number">1</span>,transFillNeg j (eq @@ j) a)] thetas</pre></div></div>
+   thetas&#x27; = <span class="hljs-type">C</span>.insertsSystem [ (i <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">0</span>,transFill j (eq @@ j) b)
+                           , (i <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">1</span>,transFillNeg j (eq @@ j) a)] thetas</pre></div></div>
             
         </li>
         
@@ -1284,13 +1284,13 @@ The output is an L-path in A(i1) between comp i u0 us and u’(i1)</p>
 This version triggers the following error when checking the normal form of corrUniv:
 Parsed “examples/nunivalence2.ctt” successfully!
 Resolver failed: Cannot resolve name !3 at position (7,30062) in module nunivalence2
-compU :: Name -&gt; Val -&gt; System Val -&gt; Val -&gt; System Val -&gt; Val
+compU :: Name -&gt; Val -&gt; C.System Val -&gt; Val -&gt; C.System Val -&gt; Val
 compU i b es wi0 ws = glueElem vi1’’ usi1’’
-  where bi1 = b <code>face</code> (i ~&gt; 1)
+  where bi1 = b <code>C.face</code> (i C.<del>&gt; 1)
         vs   = mapWithKey (\alpha wAlpha -&gt;
-                 unGlueU wAlpha (b <code>face</code> alpha) (es <code>face</code> alpha)) ws
-        vsi1 = vs <code>face</code> (i ~&gt; 1) – same as: border vi1 vs
-        vi0  = unGlueU wi0 (b <code>face</code> (i ~&gt; 0)) (es <code>face</code> (i ~&gt; 0)) – in b(i0)</p>
+                 unGlueU wAlpha (b <code>C.face</code> alpha) (es <code>C.face</code> alpha)) ws
+        vsi1 = vs <code>C.face</code> (i C.</del>&gt; 1) – same as: C.border vi1 vs
+        vi0  = unGlueU wi0 (b <code>C.face</code> (i C.<del>&gt; 0)) (es <code>C.face</code> (i C.</del>&gt; 0)) – in b(i0)</p>
 
             </div>
             
@@ -1304,7 +1304,7 @@ compU i b es wi0 ws = glueElem vi1’’ usi1’’
                 <a class="ss" href="#section-40">&#x00a7;</a>
               </div>
               <pre><code>    v    = fill i b vi0 vs           <span class="hljs-comment">-- in b</span>
-    vi1  = comp i b vi0 vs           <span class="hljs-comment">-- is v `face` (i ~&gt; 1) in b(i1)</span>
+    vi1  = comp i b vi0 vs           <span class="hljs-comment">-- is v `C.face` (i C.~&gt; 1) in b(i1)</span>
 </code></pre>
 
             </div>
@@ -1318,7 +1318,7 @@ compU i b es wi0 ws = glueElem vi1’’ usi1’’
               <div class="sswrap ">
                 <a class="ss" href="#section-41">&#x00a7;</a>
               </div>
-              <pre><code>    esI1 = es `face` (i ~&gt; <span class="hljs-number">1</span>)
+              <pre><code>    esI1 = es `<span class="hljs-type">C</span>.face` (i <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">1</span>)
     es&#x27;  = filterWithKey (\alpha _ -&gt; i `<span class="hljs-type">Map</span>.notMember` alpha) es
     es&#x27;&#x27; = filterWithKey (\alpha _ -&gt; alpha `<span class="hljs-type">Map</span>.notMember` es) esI1
 </code></pre>
@@ -1335,10 +1335,10 @@ compU i b es wi0 ws = glueElem vi1’’ usi1’’
                 <a class="ss" href="#section-42">&#x00a7;</a>
               </div>
               <pre><code>    us&#x27;    = mapWithKey (\gamma eGamma -&gt;
-               fill i (eGamma @@ <span class="hljs-type">One</span>) (wi0 `face` gamma) (ws `face` gamma))
+               fill i (eGamma @@ <span class="hljs-type">C</span>.<span class="hljs-type">One</span>) (wi0 `<span class="hljs-type">C</span>.face` gamma) (ws `<span class="hljs-type">C</span>.face` gamma))
              es&#x27;
     usi1&#x27;  = mapWithKey (\gamma eGamma -&gt;
-               comp i (eGamma @@ <span class="hljs-type">One</span>) (wi0 `face` gamma) (ws `face` gamma))
+               comp i (eGamma @@ <span class="hljs-type">C</span>.<span class="hljs-type">One</span>) (wi0 `<span class="hljs-type">C</span>.face` gamma) (ws `<span class="hljs-type">C</span>.face` gamma))
              es&#x27;
 </code></pre>
 
@@ -1354,8 +1354,8 @@ compU i b es wi0 ws = glueElem vi1’’ usi1’’
                 <a class="ss" href="#section-43">&#x00a7;</a>
               </div>
               <pre><code>    ls&#x27;    = mapWithKey (\gamma eGamma -&gt;
-                 pathComp i (b `face` gamma) (v `face` gamma)
-                   (transNegLine eGamma (us&#x27; ! gamma)) (vs `face` gamma))
+                 pathComp i (b `<span class="hljs-type">C</span>.face` gamma) (v `<span class="hljs-type">C</span>.face` gamma)
+                   (transNegLine eGamma (us&#x27; ! gamma)) (vs `<span class="hljs-type">C</span>.face` gamma))
                es&#x27;
 </code></pre>
 
@@ -1371,7 +1371,7 @@ compU i b es wi0 ws = glueElem vi1’’ usi1’’
                 <a class="ss" href="#section-44">&#x00a7;</a>
               </div>
               <pre><code>    vi1&#x27; = compLine (constPath bi1) vi1
-             (ls&#x27; `unionSystem` <span class="hljs-type">Map</span>.map constPath vsi1)
+             (ls&#x27; `<span class="hljs-type">C</span>.unionSystem` <span class="hljs-type">Map</span>.map constPath vsi1)
 </code></pre>
 
             </div>
@@ -1385,7 +1385,7 @@ compU i b es wi0 ws = glueElem vi1’’ usi1’’
               <div class="sswrap ">
                 <a class="ss" href="#section-45">&#x00a7;</a>
               </div>
-              <pre><code>    wsi1 = ws `face` (i ~&gt; <span class="hljs-number">1</span>)
+              <pre><code>    wsi1 = ws `<span class="hljs-type">C</span>.face` (i <span class="hljs-type">C</span>.~&gt; <span class="hljs-number">1</span>)
 </code></pre>
 
             </div>
@@ -1402,9 +1402,9 @@ compU i b es wi0 ws = glueElem vi1’’ usi1’’
               <pre><code>    <span class="hljs-comment">-- for gamma in es&#x27;&#x27;, (i1) gamma is in es, so wsi1 gamma</span>
     <span class="hljs-comment">-- is in the domain of isoGamma</span>
     uls&#x27;&#x27; = mapWithKey (\gamma eGamma -&gt;
-              isoToEquivU (bi1 `face` gamma) eGamma
-                ((usi1&#x27; `face` gamma) `unionSystem` (wsi1 `face` gamma))
-                (vi1&#x27; `face` gamma))
+              isoToEquivU (bi1 `<span class="hljs-type">C</span>.face` gamma) eGamma
+                ((usi1&#x27; `<span class="hljs-type">C</span>.face` gamma) `<span class="hljs-type">C</span>.unionSystem` (wsi1 `<span class="hljs-type">C</span>.face` gamma))
+                (vi1&#x27; `<span class="hljs-type">C</span>.face` gamma))
               es&#x27;&#x27;
 </code></pre>
 
@@ -1419,7 +1419,7 @@ compU i b es wi0 ws = glueElem vi1’’ usi1’’
               <div class="sswrap ">
                 <a class="ss" href="#section-47">&#x00a7;</a>
               </div>
-              <pre><code>    vsi1&#x27; = <span class="hljs-type">Map</span>.map constPath $ border vi1&#x27; es&#x27; `unionSystem` vsi1
+              <pre><code>    vsi1&#x27; = <span class="hljs-type">Map</span>.map constPath $ <span class="hljs-type">C</span>.border vi1&#x27; es&#x27; `<span class="hljs-type">C</span>.unionSystem` vsi1
 </code></pre>
 
             </div>
@@ -1434,7 +1434,7 @@ compU i b es wi0 ws = glueElem vi1’’ usi1’’
                 <a class="ss" href="#section-48">&#x00a7;</a>
               </div>
               <pre><code>    vi1&#x27;&#x27; = compLine (constPath bi1) vi1&#x27;
-              (<span class="hljs-type">Map</span>.map snd uls&#x27;&#x27; `unionSystem` vsi1&#x27;)
+              (<span class="hljs-type">Map</span>.map snd uls&#x27;&#x27; `<span class="hljs-type">C</span>.unionSystem` vsi1&#x27;)
 </code></pre>
 
             </div>
@@ -1466,19 +1466,19 @@ compU i b es wi0 ws = glueElem vi1’’ usi1’’
                 <a class="ss" href="#section-50">&#x00a7;</a>
               </div>
               <p>IsoToEquiv, takes a line eq in U, a system us and a value v, s.t. f us =
-border v. Outputs (u,p) s.t. border u = us and a path p between v
+C.border v. Outputs (u,p) s.t. C.border u = us and a path p between v
 and f u, where f is transNegLine eq
-isoToEquivU :: Val -&gt; Val -&gt; System Val -&gt; Val -&gt; (Val, Val)
+isoToEquivU :: Val -&gt; Val -&gt; C.System Val -&gt; Val -&gt; (Val, Val)
 isoToEquivU b eq us v = (u, VPLam i theta)
-  where i:j:_   = freshs (b,eq,us,v)
+  where i:j:_   = C.freshs (b,eq,us,v)
         ej      = eq @@ j
-        a       = eq @@ One
+        a       = eq @@ C.One
         ws      = mapWithKey (\alpha uAlpha -&gt;
-                                   transFillNeg j (ej <code>face</code> alpha) uAlpha) us
+                                   transFillNeg j (ej <code>C.face</code> alpha) uAlpha) us
         u       = comp j ej v ws
         w       = fill j ej v ws
-        xs      = insertSystem (i ~&gt; 0) w $
-                  insertSystem (i ~&gt; 1) (transFillNeg j ej u) $ ws
+        xs      = C.insertSystem (i C.<del>&gt; 0) w $
+                  C.insertSystem (i C.</del>&gt; 1) (transFillNeg j ej u) $ ws
         theta   = compNeg j ej u xs</p>
 
             </div>
@@ -1495,34 +1495,34 @@ isoToEquivU b eq us v = (u, VPLam i theta)
               <p>Old version:
 isoToEquivU :: Val -&gt; Val -&gt; System Val -&gt; Val -&gt; (Val, Val)
 isoToEquivU b eq us v = (u, VPLam i theta’’)
-  where i:j:_   = freshs (b,eq,us,v)
-        a       = eq @@ One
+  where i:j:_   = C.freshs (b,eq,us,v)
+        a       = eq @@ C.One
         g       = transLine
         f       = transNegLine
         s e y   = VPLam j $ compNeg i (e @@ i) (trans i (e @@ i) y)
-                    (mkSystem [(j ~&gt; 0, transFill j (e @@ j) y)
-                              ,(j ~&gt; 1, transFillNeg j (e @@ j)
+                    (C.mkSystem [(j C.<del>&gt; 0, transFill j (e @@ j) y)
+                              ,(j C.</del>&gt; 1, transFillNeg j (e @@ j)
                                           (trans j (e @@ j) y))])
         t e x   = VPLam j $ comp i (e @@ i) (transNeg i (e @@ i) x)
-                    (mkSystem [(j ~&gt; 0, transFill j (e @@ j)
+                    (C.mkSystem [(j C.<del>&gt; 0, transFill j (e @@ j)
                                           (transNeg j (e @@ j) x))
-                              ,(j ~&gt; 1, transFillNeg j (e @@ j) x)])
+                              ,(j C.</del>&gt; 1, transFillNeg j (e @@ j) x)])
         gv      = g eq v
         us’     = mapWithKey (\alpha uAlpha -&gt;
-                                   t (eq <code>face</code> alpha) uAlpha @@ i) us
+                                   t (eq <code>C.face</code> alpha) uAlpha @@ i) us
         theta   = fill i a gv us’
-        u       = comp i a gv us’  – Same as “theta <code>face</code> (i ~&gt; 1)”
-        ws      = insertSystem (i ~&gt; 0) gv $
-                  insertSystem (i ~&gt; 1) (t eq u @@ j) $
+        u       = comp i a gv us’  – Same as “theta <code>C.face</code> (i C.<del>&gt; 1)”
+        ws      = C.insertSystem (i C.</del>&gt; 0) gv $
+                  C.insertSystem (i C.<del>&gt; 1) (t eq u @@ j) $
                   mapWithKey
                     (\alpha uAlpha -&gt;
-                      t (eq <code>face</code> alpha) uAlpha @@ (Atom i :/: Atom j)) us
+                      t (eq <code>C.face</code> alpha) uAlpha @@ (C.Atom i :/: C.Atom j)) us
         theta’  = compNeg j a theta ws
-        xs      = insertSystem (i ~&gt; 0) (s eq v @@ j) $
-                  insertSystem (i ~&gt; 1) (s eq (f eq u) @@ j) $
+        xs      = C.insertSystem (i C.</del>&gt; 0) (s eq v @@ j) $
+                  C.insertSystem (i C.~&gt; 1) (s eq (f eq u) @@ j) $
                   mapWithKey
                     (\alpha uAlpha -&gt;
-                       s (eq <code>face</code> alpha) (f (eq <code>face</code> alpha) uAlpha) @@ j) us
+                       s (eq <code>C.face</code> alpha) (f (eq <code>C.face</code> alpha) uAlpha) @@ j) us
         theta’’ = comp j b (f eq theta’) xs</p>
 
             </div>
@@ -1557,10 +1557,10 @@ isoToEquivU b eq us v = (u, VPLam i theta’’)
 <span class="hljs-keyword">class</span> <span class="hljs-type">Convertible</span> a <span class="hljs-keyword">where</span></span>
   conv :: [<span class="hljs-type">String</span>] -&gt; a -&gt; a -&gt; <span class="hljs-type">Bool</span>
 
-<span class="hljs-title">isCompSystem</span> :: (<span class="hljs-type">Nominal</span> a, <span class="hljs-type">Convertible</span> a) =&gt; [<span class="hljs-type">String</span>] -&gt; <span class="hljs-type">System</span> a -&gt; <span class="hljs-type">Bool</span>
+<span class="hljs-title">isCompSystem</span> :: (<span class="hljs-type">C</span>.<span class="hljs-type">Nominal</span> a, <span class="hljs-type">Convertible</span> a) =&gt; [<span class="hljs-type">String</span>] -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> a -&gt; <span class="hljs-type">Bool</span>
 <span class="hljs-title">isCompSystem</span> ns ts = and [ conv ns (getFace alpha beta) (getFace beta alpha)
-                         | (alpha,beta) &lt;- allCompatible (keys ts) ]
-    <span class="hljs-keyword">where</span> getFace a b = face (ts ! a) (b `minus` a)
+                         | (alpha,beta) &lt;- <span class="hljs-type">C</span>.allCompatible (keys ts) ]
+    <span class="hljs-keyword">where</span> getFace a b = <span class="hljs-type">C</span>.face (ts ! a) (b `<span class="hljs-type">C</span>.minus` a)
 <span class="hljs-class">
 <span class="hljs-keyword">instance</span> <span class="hljs-type">Convertible</span> <span class="hljs-type">Env</span> <span class="hljs-keyword">where</span></span>
   conv ns (<span class="hljs-type">Env</span> (rho1,vs1,fs1,os1)) (<span class="hljs-type">Env</span> (rho2,vs2,fs2,os2)) =
@@ -1569,7 +1569,7 @@ isoToEquivU b eq us v = (u, VPLam i theta’’)
 <span class="hljs-keyword">instance</span> <span class="hljs-type">Convertible</span> <span class="hljs-type">Val</span> <span class="hljs-keyword">where</span></span>
   conv ns u v | u == v    = <span class="hljs-type">True</span>
               | otherwise =
-    <span class="hljs-keyword">let</span> j = fresh (u,v)
+    <span class="hljs-keyword">let</span> j = <span class="hljs-type">C</span>.fresh (u,v)
     <span class="hljs-keyword">in</span> <span class="hljs-keyword">case</span> (u,v) <span class="hljs-keyword">of</span>
       (<span class="hljs-type">Ter</span> (<span class="hljs-type">Lam</span> x a u) e,<span class="hljs-type">Ter</span> (<span class="hljs-type">Lam</span> x&#x27; a&#x27; u&#x27;) e&#x27;) -&gt;
         <span class="hljs-keyword">let</span> v@(<span class="hljs-type">VVar</span> n _) = mkVarNice ns x (eval e a)
@@ -1619,17 +1619,17 @@ isoToEquivU b eq us v = (u, VPLam i theta’’)
       (<span class="hljs-type">VOpaque</span> x _, <span class="hljs-type">VOpaque</span> x&#x27; _) -&gt; x == x&#x27;
       (<span class="hljs-type">VVar</span> x _, <span class="hljs-type">VVar</span> x&#x27; _)       -&gt; x == x&#x27;
       (<span class="hljs-type">VPathP</span> a b c,<span class="hljs-type">VPathP</span> a&#x27; b&#x27; c&#x27;) -&gt; conv ns a a&#x27; &amp;&amp; conv ns b b&#x27; &amp;&amp; conv ns c c&#x27;
-      (<span class="hljs-type">VPLam</span> i a,<span class="hljs-type">VPLam</span> i&#x27; a&#x27;)    -&gt; conv ns (a `swap` (i,j)) (a&#x27; `swap` (i&#x27;,j))
-      (<span class="hljs-type">VPLam</span> i a,p&#x27;)             -&gt; conv ns (a `swap` (i,j)) (p&#x27; @@ j)
-      (p,<span class="hljs-type">VPLam</span> i&#x27; a&#x27;)            -&gt; conv ns (p @@ j) (a&#x27; `swap` (i&#x27;,j))
+      (<span class="hljs-type">VPLam</span> i a,<span class="hljs-type">VPLam</span> i&#x27; a&#x27;)    -&gt; conv ns (a `<span class="hljs-type">C</span>.swap` (i,j)) (a&#x27; `<span class="hljs-type">C</span>.swap` (i&#x27;,j))
+      (<span class="hljs-type">VPLam</span> i a,p&#x27;)             -&gt; conv ns (a `<span class="hljs-type">C</span>.swap` (i,j)) (p&#x27; @@ j)
+      (p,<span class="hljs-type">VPLam</span> i&#x27; a&#x27;)            -&gt; conv ns (p @@ j) (a&#x27; `<span class="hljs-type">C</span>.swap` (i&#x27;,j))
       (<span class="hljs-type">VAppFormula</span> u x,<span class="hljs-type">VAppFormula</span> u&#x27; x&#x27;) -&gt; conv ns (u,x) (u&#x27;,x&#x27;)
       (<span class="hljs-type">VComp</span> a u ts,<span class="hljs-type">VComp</span> a&#x27; u&#x27; ts&#x27;)      -&gt; conv ns (a,u,ts) (a&#x27;,u&#x27;,ts&#x27;)
       (<span class="hljs-type">VHComp</span> a u ts,<span class="hljs-type">VHComp</span> a&#x27; u&#x27; ts&#x27;)    -&gt; conv ns (a,u,ts) (a&#x27;,u&#x27;,ts&#x27;)
       (<span class="hljs-type">VGlue</span> v equivs,<span class="hljs-type">VGlue</span> v&#x27; equivs&#x27;)   -&gt; conv ns (v,equivs) (v&#x27;,equivs&#x27;)
-      (<span class="hljs-type">VGlueElem</span> (<span class="hljs-type">VUnGlueElem</span> b equivs) ts,g) -&gt; conv ns (border b equivs,b) (ts,g)
-      (g,<span class="hljs-type">VGlueElem</span> (<span class="hljs-type">VUnGlueElem</span> b equivs) ts) -&gt; conv ns (border b equivs,b) (ts,g)
-      (<span class="hljs-type">VGlueElem</span> (<span class="hljs-type">VUnGlueElemU</span> b _ equivs) ts,g) -&gt; conv ns (border b equivs,b) (ts,g)
-      (g,<span class="hljs-type">VGlueElem</span> (<span class="hljs-type">VUnGlueElemU</span> b _ equivs) ts) -&gt; conv ns (border b equivs,b) (ts,g)
+      (<span class="hljs-type">VGlueElem</span> (<span class="hljs-type">VUnGlueElem</span> b equivs) ts,g) -&gt; conv ns (<span class="hljs-type">C</span>.border b equivs,b) (ts,g)
+      (g,<span class="hljs-type">VGlueElem</span> (<span class="hljs-type">VUnGlueElem</span> b equivs) ts) -&gt; conv ns (<span class="hljs-type">C</span>.border b equivs,b) (ts,g)
+      (<span class="hljs-type">VGlueElem</span> (<span class="hljs-type">VUnGlueElemU</span> b _ equivs) ts,g) -&gt; conv ns (<span class="hljs-type">C</span>.border b equivs,b) (ts,g)
+      (g,<span class="hljs-type">VGlueElem</span> (<span class="hljs-type">VUnGlueElemU</span> b _ equivs) ts) -&gt; conv ns (<span class="hljs-type">C</span>.border b equivs,b) (ts,g)
       (<span class="hljs-type">VGlueElem</span> u us,<span class="hljs-type">VGlueElem</span> u&#x27; us&#x27;)   -&gt; conv ns (u,us) (u&#x27;,us&#x27;)
       (<span class="hljs-type">VUnGlueElemU</span> u _ _,<span class="hljs-type">VUnGlueElemU</span> u&#x27; _ _) -&gt; conv ns u u&#x27;
       (<span class="hljs-type">VUnGlueElem</span> u _,<span class="hljs-type">VUnGlueElem</span> u&#x27; _) -&gt; conv ns u u&#x27;
@@ -1661,14 +1661,14 @@ isoToEquivU b eq us v = (u, VPLam i theta’’)
   conv ns us us&#x27; = length us == length us&#x27; &amp;&amp;
                   and [conv ns u u&#x27; | (u,u&#x27;) &lt;- zip us us&#x27;]
 <span class="hljs-class">
-<span class="hljs-keyword">instance</span> <span class="hljs-type">Convertible</span> a =&gt; <span class="hljs-type">Convertible</span> (<span class="hljs-type">System</span> <span class="hljs-title">a</span>) <span class="hljs-keyword">where</span></span>
+<span class="hljs-keyword">instance</span> <span class="hljs-type">Convertible</span> a =&gt; <span class="hljs-type">Convertible</span> (<span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-title">a</span>) <span class="hljs-keyword">where</span></span>
   conv ns ts ts&#x27; = keys ts == keys ts&#x27; &amp;&amp;
                    and (elems (intersectionWith (conv ns) ts ts&#x27;))
 <span class="hljs-class">
-<span class="hljs-keyword">instance</span> <span class="hljs-type">Convertible</span> <span class="hljs-type">Formula</span> <span class="hljs-keyword">where</span></span>
-  conv _ phi psi = dnf phi == dnf psi
+<span class="hljs-keyword">instance</span> <span class="hljs-type">Convertible</span> <span class="hljs-type">C</span>.<span class="hljs-type">Formula</span> <span class="hljs-keyword">where</span></span>
+  conv _ phi psi = <span class="hljs-type">C</span>.dnf phi == <span class="hljs-type">C</span>.dnf psi
 <span class="hljs-class">
-<span class="hljs-keyword">instance</span> <span class="hljs-type">Convertible</span> (<span class="hljs-type">Nameless</span> <span class="hljs-title">a</span>) <span class="hljs-keyword">where</span></span>
+<span class="hljs-keyword">instance</span> <span class="hljs-type">Convertible</span> (<span class="hljs-type">C</span>.<span class="hljs-type">Nameless</span> <span class="hljs-title">a</span>) <span class="hljs-keyword">where</span></span>
   conv _ _ _ = <span class="hljs-type">True</span></pre></div></div>
             
         </li>
@@ -1738,14 +1738,14 @@ isoToEquivU b eq us v = (u, VPLam i theta’’)
                                 (normal ns d) (normal ns x) (normal ns p)
     _                   -&gt; v
 <span class="hljs-class">
-<span class="hljs-keyword">instance</span> <span class="hljs-type">Normal</span> (<span class="hljs-type">Nameless</span> <span class="hljs-title">a</span>) <span class="hljs-keyword">where</span></span>
+<span class="hljs-keyword">instance</span> <span class="hljs-type">Normal</span> (<span class="hljs-type">C</span>.<span class="hljs-type">Nameless</span> <span class="hljs-title">a</span>) <span class="hljs-keyword">where</span></span>
   normal _ = id
 <span class="hljs-class">
 <span class="hljs-keyword">instance</span> <span class="hljs-type">Normal</span> <span class="hljs-type">Ctxt</span> <span class="hljs-keyword">where</span></span>
   normal _ = id
 <span class="hljs-class">
-<span class="hljs-keyword">instance</span> <span class="hljs-type">Normal</span> <span class="hljs-type">Formula</span> <span class="hljs-keyword">where</span></span>
-  normal _ = fromDNF . dnf
+<span class="hljs-keyword">instance</span> <span class="hljs-type">Normal</span> <span class="hljs-type">C</span>.<span class="hljs-type">Formula</span> <span class="hljs-keyword">where</span></span>
+  normal _ = <span class="hljs-type">C</span>.fromDNF . <span class="hljs-type">C</span>.dnf
 <span class="hljs-class">
 <span class="hljs-keyword">instance</span> <span class="hljs-type">Normal</span> a =&gt; <span class="hljs-type">Normal</span> (<span class="hljs-type">Map</span> <span class="hljs-title">k</span> <span class="hljs-title">a</span>) <span class="hljs-keyword">where</span></span>
   normal ns = <span class="hljs-type">Map</span>.map (normal ns)

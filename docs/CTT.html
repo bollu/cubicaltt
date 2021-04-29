@@ -121,7 +121,7 @@
 <span class="hljs-keyword">import</span> <span class="hljs-keyword">qualified</span> Data.Set <span class="hljs-keyword">as</span> Set
 <span class="hljs-keyword">import</span> Prelude <span class="hljs-keyword">hiding</span> ((&lt;&gt;))
 
-<span class="hljs-keyword">import</span> Connections</pre></div></div>
+<span class="hljs-keyword">import</span> <span class="hljs-keyword">qualified</span> Connections <span class="hljs-keyword">as</span> C</pre></div></div>
             
         </li>
         
@@ -145,17 +145,10 @@
               <div class="sswrap ">
                 <a class="ss" href="#section-3">&#x00a7;</a>
               </div>
-              <p>| Terms</p>
+              <p>| Terms, with type |Ter|.
+| General conventions: O for object, P for path.</p>
 
             </div>
-            
-            <div class="content"><div class='highlight'><pre>
-<span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">Loc</span> = <span class="hljs-type">Loc</span> { <span class="hljs-title">locFile</span> :: <span class="hljs-type">String</span>
-               , <span class="hljs-title">locPos</span>  :: (<span class="hljs-type">Int</span>,<span class="hljs-type">Int</span>) }</span>
-  <span class="hljs-keyword">deriving</span> <span class="hljs-type">Eq</span>
-
-<span class="hljs-class"><span class="hljs-keyword">type</span> <span class="hljs-type">Ident</span>  = <span class="hljs-type">String</span></span>
-<span class="hljs-class"><span class="hljs-keyword">type</span> <span class="hljs-type">LIdent</span> = <span class="hljs-type">String</span></span></pre></div></div>
             
         </li>
         
@@ -166,15 +159,15 @@
               <div class="sswrap ">
                 <a class="ss" href="#section-4">&#x00a7;</a>
               </div>
-              <p>Telescope (x1 : A1) .. (xn : An)</p>
+              <p>| File locations</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-class"><span class="hljs-keyword">type</span> <span class="hljs-type">Tele</span>   = [(<span class="hljs-type">Ident</span>,<span class="hljs-type">Ter</span>)]</span>
+            <div class="content"><div class='highlight'><pre><span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">Loc</span> = <span class="hljs-type">Loc</span> { <span class="hljs-title">locFile</span> :: <span class="hljs-type">String</span>
+               , <span class="hljs-title">locPos</span>  :: (<span class="hljs-type">Int</span>,<span class="hljs-type">Int</span>) }</span>
+  <span class="hljs-keyword">deriving</span> <span class="hljs-type">Eq</span>
 
-<span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">Label</span> = <span class="hljs-type">OLabel</span> <span class="hljs-type">LIdent</span> <span class="hljs-type">Tele</span> <span class="hljs-comment">-- Object label</span></span>
-           | <span class="hljs-type">PLabel</span> <span class="hljs-type">LIdent</span> <span class="hljs-type">Tele</span> [<span class="hljs-type">Name</span>] (<span class="hljs-type">System</span> <span class="hljs-type">Ter</span>) <span class="hljs-comment">-- Path label</span>
-  <span class="hljs-keyword">deriving</span> (<span class="hljs-type">Eq</span>,<span class="hljs-type">Show</span>)</pre></div></div>
+<span class="hljs-class"><span class="hljs-keyword">type</span> <span class="hljs-type">Ident</span>  = <span class="hljs-type">String</span></span></pre></div></div>
             
         </li>
         
@@ -185,14 +178,11 @@
               <div class="sswrap ">
                 <a class="ss" href="#section-5">&#x00a7;</a>
               </div>
-              <p>OBranch of the form: c x1 .. xn -&gt; e
-PBranch of the form: c x1 .. xn i1 .. im -&gt; e</p>
+              <p>| TODO: Identifier of Telescopes. Are of two types, Object and path based.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">Branch</span> = <span class="hljs-type">OBranch</span> <span class="hljs-type">LIdent</span> [<span class="hljs-type">Ident</span>] <span class="hljs-type">Ter</span></span>
-            | <span class="hljs-type">PBranch</span> <span class="hljs-type">LIdent</span> [<span class="hljs-type">Ident</span>] [<span class="hljs-type">Name</span>] <span class="hljs-type">Ter</span>
-  <span class="hljs-keyword">deriving</span> (<span class="hljs-type">Eq</span>,<span class="hljs-type">Show</span>)</pre></div></div>
+            <div class="content"><div class='highlight'><pre><span class="hljs-class"><span class="hljs-keyword">type</span> <span class="hljs-type">LIdent</span> = <span class="hljs-type">String</span></span></pre></div></div>
             
         </li>
         
@@ -202,6 +192,64 @@ PBranch of the form: c x1 .. xn i1 .. im -&gt; e</p>
               
               <div class="sswrap ">
                 <a class="ss" href="#section-6">&#x00a7;</a>
+              </div>
+              <p>Telescope (x1 : A1) .. (xn : An)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-class"><span class="hljs-keyword">type</span> <span class="hljs-type">Tele</span>   = [(<span class="hljs-type">Ident</span>,<span class="hljs-type">Ter</span>)]</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-7">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-7">&#x00a7;</a>
+              </div>
+              <p>| from Exp.cf:
+|   C.System.     C.System ::= “[“ [Side] “]” ;|
+|   Side.   Side ::= [Face] “-&gt;” Exp ;
+|   separator Side “,” ;
+|   Face.     Face ::= “(“ AIdent “=” Dir “)” ;
+|   separator Face “” ;
+| C.System comes from Connections.hs. 
+| C.System Ter is a map from Face to Term, 
+     where the faces are incomparable.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">Label</span> = <span class="hljs-type">OLabel</span> <span class="hljs-type">LIdent</span> <span class="hljs-type">Tele</span> <span class="hljs-comment">-- Object label</span></span>
+           | <span class="hljs-type">PLabel</span> <span class="hljs-type">LIdent</span> <span class="hljs-type">Tele</span> [<span class="hljs-type">C</span>.<span class="hljs-type">Name</span>] (<span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Ter</span>) <span class="hljs-comment">-- Path label</span>
+  <span class="hljs-keyword">deriving</span> (<span class="hljs-type">Eq</span>,<span class="hljs-type">Show</span>)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-8">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-8">&#x00a7;</a>
+              </div>
+              <p>| OBranch of the form: c x1 .. xn -&gt; e
+| PBranch of the form: c x1 .. xn i1 .. im -&gt; e</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">Branch</span> = <span class="hljs-type">OBranch</span> <span class="hljs-type">LIdent</span> [<span class="hljs-type">Ident</span>] <span class="hljs-type">Ter</span></span>
+            | <span class="hljs-type">PBranch</span> <span class="hljs-type">LIdent</span> [<span class="hljs-type">Ident</span>] [<span class="hljs-type">C</span>.<span class="hljs-type">Name</span>] <span class="hljs-type">Ter</span>
+  <span class="hljs-keyword">deriving</span> (<span class="hljs-type">Eq</span>,<span class="hljs-type">Show</span>)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-9">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-9">&#x00a7;</a>
               </div>
               <p>Declarations: x : A = e
 A group of mutual declarations is identified by its location. It is used to
@@ -220,9 +268,22 @@ speed up the Eq instance for Ctxt.</p>
 <span class="hljs-title">declIdents</span> decls = [ x | (x,_) &lt;- decls ]
 
 <span class="hljs-title">declTers</span> :: [<span class="hljs-type">Decl</span>] -&gt; [<span class="hljs-type">Ter</span>]
-<span class="hljs-title">declTers</span> decls = [ d | (_,(_,d)) &lt;- decls ]
+<span class="hljs-title">declTers</span> decls = [ d | (_,(_,d)) &lt;- decls ]</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-10">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-10">&#x00a7;</a>
+              </div>
+              <p>| convert a sequence of declarations into a sequence of (ident: type)</p>
 
-<span class="hljs-title">declTele</span> :: [<span class="hljs-type">Decl</span>] -&gt; <span class="hljs-type">Tele</span>
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">declTele</span> :: [<span class="hljs-type">Decl</span>] -&gt; <span class="hljs-type">Tele</span>
 <span class="hljs-title">declTele</span> decls = [ (x,t) | (x,(t,_)) &lt;- decls ]
 
 <span class="hljs-title">declDefs</span> :: [<span class="hljs-type">Decl</span>] -&gt; [(<span class="hljs-type">Ident</span>,<span class="hljs-type">Ter</span>)]
@@ -241,7 +302,7 @@ speed up the Eq instance for Ctxt.</p>
 <span class="hljs-title">lookupLabel</span> :: <span class="hljs-type">LIdent</span> -&gt; [<span class="hljs-type">Label</span>] -&gt; <span class="hljs-type">Maybe</span> <span class="hljs-type">Tele</span>
 <span class="hljs-title">lookupLabel</span> x xs = lookup x (labelTeles xs)
 
-<span class="hljs-title">lookupPLabel</span> :: <span class="hljs-type">LIdent</span> -&gt; [<span class="hljs-type">Label</span>] -&gt; <span class="hljs-type">Maybe</span> (<span class="hljs-type">Tele</span>,[<span class="hljs-type">Name</span>],<span class="hljs-type">System</span> <span class="hljs-type">Ter</span>)
+<span class="hljs-title">lookupPLabel</span> :: <span class="hljs-type">LIdent</span> -&gt; [<span class="hljs-type">Label</span>] -&gt; <span class="hljs-type">Maybe</span> (<span class="hljs-type">Tele</span>,[<span class="hljs-type">C</span>.<span class="hljs-type">Name</span>],<span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Ter</span>)
 <span class="hljs-title">lookupPLabel</span> x xs = listToMaybe [ (ts,is,es) | <span class="hljs-type">PLabel</span> y ts is es &lt;- xs, x == y ]
 
 <span class="hljs-title">branchName</span> :: <span class="hljs-type">Branch</span> -&gt; <span class="hljs-type">LIdent</span>
@@ -259,65 +320,66 @@ speed up the Eq instance for Ctxt.</p>
         </li>
         
         
-        <li id="section-7">
+        <li id="section-11">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-7">&#x00a7;</a>
+                <a class="ss" href="#section-11">&#x00a7;</a>
               </div>
-              <p>Terms</p>
+              <p>TODO: Term v/s Value?
+Terms</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">Ter</span> = <span class="hljs-type">Pi</span> <span class="hljs-type">Ter</span></span>
-         | <span class="hljs-type">App</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span>
-         | <span class="hljs-type">Lam</span> <span class="hljs-type">Ident</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span>
-         | <span class="hljs-type">Where</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Decls</span>
-         | <span class="hljs-type">Var</span> <span class="hljs-type">Ident</span>
-         | <span class="hljs-type">U</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre><span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">Ter</span> = <span class="hljs-type">Pi</span> <span class="hljs-type">Ter</span> <span class="hljs-comment">-- <span class="hljs-doctag">TODO:</span> ?</span></span>
+         | <span class="hljs-type">App</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span> <span class="hljs-comment">-- f x</span>
+         | <span class="hljs-type">Lam</span> <span class="hljs-type">Ident</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span> <span class="hljs-comment">-- \x: T. e</span>
+         | <span class="hljs-type">Where</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Decls</span> <span class="hljs-comment">-- <span class="hljs-doctag">TODO:</span> ?</span>
+         | <span class="hljs-type">Var</span> <span class="hljs-type">Ident</span> <span class="hljs-comment">-- x</span>
+         | <span class="hljs-type">U</span> <span class="hljs-comment">-- Unit</span></pre></div></div>
             
         </li>
         
         
-        <li id="section-8">
+        <li id="section-12">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-8">&#x00a7;</a>
+                <a class="ss" href="#section-12">&#x00a7;</a>
               </div>
               <p>Sigma types:</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">Sigma</span> <span class="hljs-type">Ter</span>
-         | <span class="hljs-type">Pair</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span>
-         | <span class="hljs-type">Fst</span> <span class="hljs-type">Ter</span>
-         | <span class="hljs-type">Snd</span> <span class="hljs-type">Ter</span></pre></div></div>
+            <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">Sigma</span> <span class="hljs-type">Ter</span> <span class="hljs-comment">-- <span class="hljs-doctag">TODO:</span> ?</span>
+         | <span class="hljs-type">Pair</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span> <span class="hljs-comment">-- (a, b)</span>
+         | <span class="hljs-type">Fst</span> <span class="hljs-type">Ter</span> <span class="hljs-comment">-- fst t</span>
+         | <span class="hljs-type">Snd</span> <span class="hljs-type">Ter</span> <span class="hljs-comment">-- snd t</span></pre></div></div>
             
         </li>
         
         
-        <li id="section-9">
+        <li id="section-13">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-9">&#x00a7;</a>
+                <a class="ss" href="#section-13">&#x00a7;</a>
               </div>
               <p>constructor c Ms</p>
 
             </div>
             
             <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">Con</span> <span class="hljs-type">LIdent</span> [<span class="hljs-type">Ter</span>]
-         | <span class="hljs-type">PCon</span> <span class="hljs-type">LIdent</span> <span class="hljs-type">Ter</span> [<span class="hljs-type">Ter</span>] [<span class="hljs-type">Formula</span>] <span class="hljs-comment">-- c A ts phis (A is the data type)</span></pre></div></div>
+         | <span class="hljs-type">PCon</span> <span class="hljs-type">LIdent</span> <span class="hljs-type">Ter</span> [<span class="hljs-type">Ter</span>] [<span class="hljs-type">C</span>.<span class="hljs-type">Formula</span>] <span class="hljs-comment">-- c A ts phis (A is the data type)</span></pre></div></div>
             
         </li>
         
         
-        <li id="section-10">
+        <li id="section-14">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-10">&#x00a7;</a>
+                <a class="ss" href="#section-14">&#x00a7;</a>
               </div>
               <p>branches c1 xs1  -&gt; M1,…, cn xsn -&gt; Mn</p>
 
@@ -328,11 +390,11 @@ speed up the Eq instance for Ctxt.</p>
         </li>
         
         
-        <li id="section-11">
+        <li id="section-15">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-11">&#x00a7;</a>
+                <a class="ss" href="#section-15">&#x00a7;</a>
               </div>
               <p>labelled sum c1 A1s,…, cn Ans (assumes terms are constructors)</p>
 
@@ -344,11 +406,11 @@ speed up the Eq instance for Ctxt.</p>
         </li>
         
         
-        <li id="section-12">
+        <li id="section-16">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-12">&#x00a7;</a>
+                <a class="ss" href="#section-16">&#x00a7;</a>
               </div>
               <p>undefined and holes</p>
 
@@ -360,80 +422,80 @@ speed up the Eq instance for Ctxt.</p>
         </li>
         
         
-        <li id="section-13">
+        <li id="section-17">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-13">&#x00a7;</a>
+                <a class="ss" href="#section-17">&#x00a7;</a>
               </div>
               <p>Path types</p>
 
             </div>
             
             <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">PathP</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span>
-         | <span class="hljs-type">PLam</span> <span class="hljs-type">Name</span> <span class="hljs-type">Ter</span>
-         | <span class="hljs-type">AppFormula</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Formula</span></pre></div></div>
+         | <span class="hljs-type">PLam</span> <span class="hljs-type">C</span>.<span class="hljs-type">Name</span> <span class="hljs-type">Ter</span>
+         | <span class="hljs-type">AppFormula</span> <span class="hljs-type">Ter</span> <span class="hljs-type">C</span>.<span class="hljs-type">Formula</span></pre></div></div>
             
         </li>
         
         
-        <li id="section-14">
+        <li id="section-18">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-14">&#x00a7;</a>
+                <a class="ss" href="#section-18">&#x00a7;</a>
               </div>
               <p>Kan composition and filling</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">Comp</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span> (<span class="hljs-type">System</span> <span class="hljs-type">Ter</span>)
-         | <span class="hljs-type">Fill</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span> (<span class="hljs-type">System</span> <span class="hljs-type">Ter</span>)
-         | <span class="hljs-type">HComp</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span> (<span class="hljs-type">System</span> <span class="hljs-type">Ter</span>)</pre></div></div>
+            <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">Comp</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span> (<span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Ter</span>)
+         | <span class="hljs-type">Fill</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span> (<span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Ter</span>)
+         | <span class="hljs-type">HComp</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span> (<span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Ter</span>)</pre></div></div>
             
         </li>
         
         
-        <li id="section-15">
+        <li id="section-19">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-15">&#x00a7;</a>
+                <a class="ss" href="#section-19">&#x00a7;</a>
               </div>
               <p>Glue</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">Glue</span> <span class="hljs-type">Ter</span> (<span class="hljs-type">System</span> <span class="hljs-type">Ter</span>)
-         | <span class="hljs-type">GlueElem</span> <span class="hljs-type">Ter</span> (<span class="hljs-type">System</span> <span class="hljs-type">Ter</span>)
-         | <span class="hljs-type">UnGlueElem</span> <span class="hljs-type">Ter</span> (<span class="hljs-type">System</span> <span class="hljs-type">Ter</span>)</pre></div></div>
+            <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">Glue</span> <span class="hljs-type">Ter</span> (<span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Ter</span>)
+         | <span class="hljs-type">GlueElem</span> <span class="hljs-type">Ter</span> (<span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Ter</span>)
+         | <span class="hljs-type">UnGlueElem</span> <span class="hljs-type">Ter</span> (<span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Ter</span>)</pre></div></div>
             
         </li>
         
         
-        <li id="section-16">
+        <li id="section-20">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-16">&#x00a7;</a>
+                <a class="ss" href="#section-20">&#x00a7;</a>
               </div>
               <p>Id</p>
 
             </div>
             
             <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">Id</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span>
-         | <span class="hljs-type">IdPair</span> <span class="hljs-type">Ter</span> (<span class="hljs-type">System</span> <span class="hljs-type">Ter</span>)
+         | <span class="hljs-type">IdPair</span> <span class="hljs-type">Ter</span> (<span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Ter</span>)
          | <span class="hljs-type">IdJ</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span>
   <span class="hljs-keyword">deriving</span> <span class="hljs-type">Eq</span></pre></div></div>
             
         </li>
         
         
-        <li id="section-17">
+        <li id="section-21">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-17">&#x00a7;</a>
+                <a class="ss" href="#section-21">&#x00a7;</a>
               </div>
               <p>For an expression t, returns (u,ts) where u is no application and t = u ts</p>
 
@@ -456,11 +518,11 @@ speed up the Eq instance for Ctxt.</p>
         </li>
         
         
-        <li id="section-18">
+        <li id="section-22">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-18">&#x00a7;</a>
+                <a class="ss" href="#section-22">&#x00a7;</a>
               </div>
               <hr>
 
@@ -469,11 +531,11 @@ speed up the Eq instance for Ctxt.</p>
         </li>
         
         
-        <li id="section-19">
+        <li id="section-23">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-19">&#x00a7;</a>
+                <a class="ss" href="#section-23">&#x00a7;</a>
               </div>
               <p>| Values</p>
 
@@ -486,71 +548,7 @@ speed up the Eq instance for Ctxt.</p>
          | <span class="hljs-type">VSigma</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span>
          | <span class="hljs-type">VPair</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span>
          | <span class="hljs-type">VCon</span> <span class="hljs-type">LIdent</span> [<span class="hljs-type">Val</span>]
-         | <span class="hljs-type">VPCon</span> <span class="hljs-type">LIdent</span> <span class="hljs-type">Val</span> [<span class="hljs-type">Val</span>] [<span class="hljs-type">Formula</span>]</pre></div></div>
-            
-        </li>
-        
-        
-        <li id="section-20">
-            <div class="annotation">
-              
-              <div class="sswrap ">
-                <a class="ss" href="#section-20">&#x00a7;</a>
-              </div>
-              <p>Path values</p>
-
-            </div>
-            
-            <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">VPathP</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span>
-         | <span class="hljs-type">VPLam</span> <span class="hljs-type">Name</span> <span class="hljs-type">Val</span>
-         | <span class="hljs-type">VComp</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span> (<span class="hljs-type">System</span> <span class="hljs-type">Val</span>)</pre></div></div>
-            
-        </li>
-        
-        
-        <li id="section-21">
-            <div class="annotation">
-              
-              <div class="sswrap ">
-                <a class="ss" href="#section-21">&#x00a7;</a>
-              </div>
-              <p>Glue values</p>
-
-            </div>
-            
-            <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">VGlue</span> <span class="hljs-type">Val</span> (<span class="hljs-type">System</span> <span class="hljs-type">Val</span>)
-         | <span class="hljs-type">VGlueElem</span> <span class="hljs-type">Val</span> (<span class="hljs-type">System</span> <span class="hljs-type">Val</span>)
-         | <span class="hljs-type">VUnGlueElem</span> <span class="hljs-type">Val</span> (<span class="hljs-type">System</span> <span class="hljs-type">Val</span>)</pre></div></div>
-            
-        </li>
-        
-        
-        <li id="section-22">
-            <div class="annotation">
-              
-              <div class="sswrap ">
-                <a class="ss" href="#section-22">&#x00a7;</a>
-              </div>
-              <p>Composition in the universe</p>
-
-            </div>
-            
-            <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">VCompU</span> <span class="hljs-type">Val</span> (<span class="hljs-type">System</span> <span class="hljs-type">Val</span>)</pre></div></div>
-            
-        </li>
-        
-        
-        <li id="section-23">
-            <div class="annotation">
-              
-              <div class="sswrap ">
-                <a class="ss" href="#section-23">&#x00a7;</a>
-              </div>
-              <p>Composition for HITs; the type is constant</p>
-
-            </div>
-            
-            <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">VHComp</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span> (<span class="hljs-type">System</span> <span class="hljs-type">Val</span>)</pre></div></div>
+         | <span class="hljs-type">VPCon</span> <span class="hljs-type">LIdent</span> <span class="hljs-type">Val</span> [<span class="hljs-type">Val</span>] [<span class="hljs-type">C</span>.<span class="hljs-type">Formula</span>]</pre></div></div>
             
         </li>
         
@@ -561,12 +559,13 @@ speed up the Eq instance for Ctxt.</p>
               <div class="sswrap ">
                 <a class="ss" href="#section-24">&#x00a7;</a>
               </div>
-              <p>Id</p>
+              <p>Path values</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">VId</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span>
-         | <span class="hljs-type">VIdPair</span> <span class="hljs-type">Val</span> (<span class="hljs-type">System</span> <span class="hljs-type">Val</span>)</pre></div></div>
+            <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">VPathP</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span>
+         | <span class="hljs-type">VPLam</span> <span class="hljs-type">C</span>.<span class="hljs-type">Name</span> <span class="hljs-type">Val</span>
+         | <span class="hljs-type">VComp</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span> (<span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span>)</pre></div></div>
             
         </li>
         
@@ -577,7 +576,71 @@ speed up the Eq instance for Ctxt.</p>
               <div class="sswrap ">
                 <a class="ss" href="#section-25">&#x00a7;</a>
               </div>
-              <p>Neutral values:</p>
+              <p>Glue values</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">VGlue</span> <span class="hljs-type">Val</span> (<span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span>)
+         | <span class="hljs-type">VGlueElem</span> <span class="hljs-type">Val</span> (<span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span>)
+         | <span class="hljs-type">VUnGlueElem</span> <span class="hljs-type">Val</span> (<span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span>)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-26">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-26">&#x00a7;</a>
+              </div>
+              <p>Composition in the universe</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">VCompU</span> <span class="hljs-type">Val</span> (<span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span>)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-27">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-27">&#x00a7;</a>
+              </div>
+              <p>Composition for HITs; the type is constant</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">VHComp</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span> (<span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span>)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-28">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-28">&#x00a7;</a>
+              </div>
+              <p>Id</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">VId</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span>
+         | <span class="hljs-type">VIdPair</span> <span class="hljs-type">Val</span> (<span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span>)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-29">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-29">&#x00a7;</a>
+              </div>
+              <p>TODO: Neutral =&gt; normalization by evaluation?
+Neutral values:</p>
 
             </div>
             
@@ -587,9 +650,9 @@ speed up the Eq instance for Ctxt.</p>
          | <span class="hljs-type">VSnd</span> <span class="hljs-type">Val</span>
          | <span class="hljs-type">VSplit</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span>
          | <span class="hljs-type">VApp</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span>
-         | <span class="hljs-type">VAppFormula</span> <span class="hljs-type">Val</span> <span class="hljs-type">Formula</span>
+         | <span class="hljs-type">VAppFormula</span> <span class="hljs-type">Val</span> <span class="hljs-type">C</span>.<span class="hljs-type">Formula</span>
          | <span class="hljs-type">VLam</span> <span class="hljs-type">Ident</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span>
-         | <span class="hljs-type">VUnGlueElemU</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span> (<span class="hljs-type">System</span> <span class="hljs-type">Val</span>)
+         | <span class="hljs-type">VUnGlueElemU</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span> (<span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span>)
          | <span class="hljs-type">VIdJ</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span>
   <span class="hljs-keyword">deriving</span> <span class="hljs-type">Eq</span>
 
@@ -610,17 +673,17 @@ speed up the Eq instance for Ctxt.</p>
   <span class="hljs-type">VIdJ</span>{}         -&gt; <span class="hljs-type">True</span>
   _              -&gt; <span class="hljs-type">False</span>
 
-<span class="hljs-title">isNeutralSystem</span> :: <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Bool</span>
+<span class="hljs-title">isNeutralSystem</span> :: <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Bool</span>
 <span class="hljs-title">isNeutralSystem</span> = any isNeutral . elems</pre></div></div>
             
         </li>
         
         
-        <li id="section-26">
+        <li id="section-30">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-26">&#x00a7;</a>
+                <a class="ss" href="#section-30">&#x00a7;</a>
               </div>
               <p>isNeutralPath :: Val -&gt; Bool
 isNeutralPath (VPath _ v) = isNeutral v
@@ -647,27 +710,27 @@ isNeutralPath _ = True</p>
         </li>
         
         
-        <li id="section-27">
+        <li id="section-31">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-27">&#x00a7;</a>
+                <a class="ss" href="#section-31">&#x00a7;</a>
               </div>
               <p>Constant path: &lt;_&gt; v</p>
 
             </div>
             
             <div class="content"><div class='highlight'><pre><span class="hljs-title">constPath</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
-<span class="hljs-title">constPath</span> = <span class="hljs-type">VPLam</span> (<span class="hljs-type">Name</span> <span class="hljs-string">&quot;_&quot;</span>)</pre></div></div>
+<span class="hljs-title">constPath</span> = <span class="hljs-type">VPLam</span> (<span class="hljs-type">C</span>.<span class="hljs-type">Name</span> <span class="hljs-string">&quot;_&quot;</span>)</pre></div></div>
             
         </li>
         
         
-        <li id="section-28">
+        <li id="section-32">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-28">&#x00a7;</a>
+                <a class="ss" href="#section-32">&#x00a7;</a>
               </div>
               <hr>
 
@@ -676,11 +739,11 @@ isNeutralPath _ = True</p>
         </li>
         
         
-        <li id="section-29">
+        <li id="section-33">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-29">&#x00a7;</a>
+                <a class="ss" href="#section-33">&#x00a7;</a>
               </div>
               <p>| Environments</p>
 
@@ -689,7 +752,7 @@ isNeutralPath _ = True</p>
             <div class="content"><div class='highlight'><pre>
 <span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">Ctxt</span> = <span class="hljs-type">Empty</span></span>
           | <span class="hljs-type">Upd</span> <span class="hljs-type">Ident</span> <span class="hljs-type">Ctxt</span>
-          | <span class="hljs-type">Sub</span> <span class="hljs-type">Name</span> <span class="hljs-type">Ctxt</span>
+          | <span class="hljs-type">Sub</span> <span class="hljs-type">C</span>.<span class="hljs-type">Name</span> <span class="hljs-type">Ctxt</span>
           | <span class="hljs-type">Def</span> <span class="hljs-type">Loc</span> [<span class="hljs-type">Decl</span>] <span class="hljs-type">Ctxt</span>
   <span class="hljs-keyword">deriving</span> (<span class="hljs-type">Show</span>)
 <span class="hljs-class">
@@ -703,11 +766,11 @@ isNeutralPath _ = True</p>
         </li>
         
         
-        <li id="section-30">
+        <li id="section-34">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-30">&#x00a7;</a>
+                <a class="ss" href="#section-34">&#x00a7;</a>
               </div>
               <p>Invariant: if two declaration groups come from the same
 location, they are equal and their contents are not compared.</p>
@@ -719,42 +782,43 @@ location, they are equal and their contents are not compared.</p>
         </li>
         
         
-        <li id="section-31">
+        <li id="section-35">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-31">&#x00a7;</a>
+                <a class="ss" href="#section-35">&#x00a7;</a>
               </div>
               <p>The Idents and Names in the Ctxt refer to the elements in the two
 lists. This is more efficient because acting on an environment now
 only need to affect the lists and not the whole context.
-The last list is the list of opaque names</p>
+The last list is the list of opaque names
+| C.Nameless comes from Connections.hs</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-class"><span class="hljs-keyword">newtype</span> <span class="hljs-type">Env</span> = <span class="hljs-type">Env</span> (<span class="hljs-type">Ctxt</span>,[<span class="hljs-type">Val</span>],[<span class="hljs-type">Formula</span>],<span class="hljs-type">Nameless</span> (<span class="hljs-type">Set</span> <span class="hljs-type">Ident</span>))</span>
+            <div class="content"><div class='highlight'><pre><span class="hljs-class"><span class="hljs-keyword">newtype</span> <span class="hljs-type">Env</span> = <span class="hljs-type">Env</span> (<span class="hljs-type">Ctxt</span>,[<span class="hljs-type">Val</span>],[<span class="hljs-type">C</span>.<span class="hljs-type">Formula</span>],<span class="hljs-type">C</span>.<span class="hljs-type">Nameless</span> (<span class="hljs-type">Set</span> <span class="hljs-type">Ident</span>))</span>
   <span class="hljs-keyword">deriving</span> (<span class="hljs-type">Eq</span>)
 
 <span class="hljs-title">emptyEnv</span> :: <span class="hljs-type">Env</span>
-<span class="hljs-title">emptyEnv</span> = <span class="hljs-type">Env</span> (<span class="hljs-type">Empty</span>,[],[],<span class="hljs-type">Nameless</span> <span class="hljs-type">Set</span>.empty)
+<span class="hljs-title">emptyEnv</span> = <span class="hljs-type">Env</span> (<span class="hljs-type">Empty</span>,[],[],<span class="hljs-type">C</span>.<span class="hljs-type">Nameless</span> <span class="hljs-type">Set</span>.empty)
 
 <span class="hljs-title">def</span> :: <span class="hljs-type">Decls</span> -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Env</span>
-<span class="hljs-title">def</span> (<span class="hljs-type">MutualDecls</span> m ds) (<span class="hljs-type">Env</span> (rho,vs,fs,<span class="hljs-type">Nameless</span> os)) = <span class="hljs-type">Env</span> (<span class="hljs-type">Def</span> m ds rho,vs,fs,<span class="hljs-type">Nameless</span> (os <span class="hljs-type">Set</span>.\\ <span class="hljs-type">Set</span>.fromList (declIdents ds)))
-<span class="hljs-title">def</span> (<span class="hljs-type">OpaqueDecl</span> n) (<span class="hljs-type">Env</span> (rho,vs,fs,<span class="hljs-type">Nameless</span> os)) = <span class="hljs-type">Env</span> (rho,vs,fs,<span class="hljs-type">Nameless</span> (<span class="hljs-type">Set</span>.insert n os))
-<span class="hljs-title">def</span> (<span class="hljs-type">TransparentDecl</span> n) (<span class="hljs-type">Env</span> (rho,vs,fs,<span class="hljs-type">Nameless</span> os)) = <span class="hljs-type">Env</span> (rho,vs,fs,<span class="hljs-type">Nameless</span> (<span class="hljs-type">Set</span>.delete n os))
-<span class="hljs-title">def</span> <span class="hljs-type">TransparentAllDecl</span> (<span class="hljs-type">Env</span> (rho,vs,fs,<span class="hljs-type">Nameless</span> os)) = <span class="hljs-type">Env</span> (rho,vs,fs,<span class="hljs-type">Nameless</span> <span class="hljs-type">Set</span>.empty)
+<span class="hljs-title">def</span> (<span class="hljs-type">MutualDecls</span> m ds) (<span class="hljs-type">Env</span> (rho,vs,fs,<span class="hljs-type">C</span>.<span class="hljs-type">Nameless</span> os)) = <span class="hljs-type">Env</span> (<span class="hljs-type">Def</span> m ds rho,vs,fs,<span class="hljs-type">C</span>.<span class="hljs-type">Nameless</span> (os <span class="hljs-type">Set</span>.\\ <span class="hljs-type">Set</span>.fromList (declIdents ds)))
+<span class="hljs-title">def</span> (<span class="hljs-type">OpaqueDecl</span> n) (<span class="hljs-type">Env</span> (rho,vs,fs,<span class="hljs-type">C</span>.<span class="hljs-type">Nameless</span> os)) = <span class="hljs-type">Env</span> (rho,vs,fs,<span class="hljs-type">C</span>.<span class="hljs-type">Nameless</span> (<span class="hljs-type">Set</span>.insert n os))
+<span class="hljs-title">def</span> (<span class="hljs-type">TransparentDecl</span> n) (<span class="hljs-type">Env</span> (rho,vs,fs,<span class="hljs-type">C</span>.<span class="hljs-type">Nameless</span> os)) = <span class="hljs-type">Env</span> (rho,vs,fs,<span class="hljs-type">C</span>.<span class="hljs-type">Nameless</span> (<span class="hljs-type">Set</span>.delete n os))
+<span class="hljs-title">def</span> <span class="hljs-type">TransparentAllDecl</span> (<span class="hljs-type">Env</span> (rho,vs,fs,<span class="hljs-type">C</span>.<span class="hljs-type">Nameless</span> os)) = <span class="hljs-type">Env</span> (rho,vs,fs,<span class="hljs-type">C</span>.<span class="hljs-type">Nameless</span> <span class="hljs-type">Set</span>.empty)
 
 <span class="hljs-title">defWhere</span> :: <span class="hljs-type">Decls</span> -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Env</span>
-<span class="hljs-title">defWhere</span> (<span class="hljs-type">MutualDecls</span> m ds) (<span class="hljs-type">Env</span> (rho,vs,fs,<span class="hljs-type">Nameless</span> os)) = <span class="hljs-type">Env</span> (<span class="hljs-type">Def</span> m ds rho,vs,fs,<span class="hljs-type">Nameless</span> (os <span class="hljs-type">Set</span>.\\ <span class="hljs-type">Set</span>.fromList (declIdents ds)))
+<span class="hljs-title">defWhere</span> (<span class="hljs-type">MutualDecls</span> m ds) (<span class="hljs-type">Env</span> (rho,vs,fs,<span class="hljs-type">C</span>.<span class="hljs-type">Nameless</span> os)) = <span class="hljs-type">Env</span> (<span class="hljs-type">Def</span> m ds rho,vs,fs,<span class="hljs-type">C</span>.<span class="hljs-type">Nameless</span> (os <span class="hljs-type">Set</span>.\\ <span class="hljs-type">Set</span>.fromList (declIdents ds)))
 <span class="hljs-title">defWhere</span> (<span class="hljs-type">OpaqueDecl</span> _) rho = rho
 <span class="hljs-title">defWhere</span> (<span class="hljs-type">TransparentDecl</span> _) rho = rho
 <span class="hljs-title">defWhere</span> <span class="hljs-type">TransparentAllDecl</span> rho = rho
 
-<span class="hljs-title">sub</span> :: (<span class="hljs-type">Name</span>,<span class="hljs-type">Formula</span>) -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Env</span>
+<span class="hljs-title">sub</span> :: (<span class="hljs-type">C</span>.<span class="hljs-type">Name</span>,<span class="hljs-type">C</span>.<span class="hljs-type">Formula</span>) -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Env</span>
 <span class="hljs-title">sub</span> (i,phi) (<span class="hljs-type">Env</span> (rho,vs,fs,os)) = <span class="hljs-type">Env</span> (<span class="hljs-type">Sub</span> i rho,vs,phi:fs,os)
 
 <span class="hljs-title">upd</span> :: (<span class="hljs-type">Ident</span>,<span class="hljs-type">Val</span>) -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Env</span>
-<span class="hljs-title">upd</span> (x,v) (<span class="hljs-type">Env</span> (rho,vs,fs,<span class="hljs-type">Nameless</span> os)) = <span class="hljs-type">Env</span> (<span class="hljs-type">Upd</span> x rho,v:vs,fs,<span class="hljs-type">Nameless</span> (<span class="hljs-type">Set</span>.delete x os))
+<span class="hljs-title">upd</span> (x,v) (<span class="hljs-type">Env</span> (rho,vs,fs,<span class="hljs-type">C</span>.<span class="hljs-type">Nameless</span> os)) = <span class="hljs-type">Env</span> (<span class="hljs-type">Upd</span> x rho,v:vs,fs,<span class="hljs-type">C</span>.<span class="hljs-type">Nameless</span> (<span class="hljs-type">Set</span>.delete x os))
 
 <span class="hljs-title">upds</span> :: [(<span class="hljs-type">Ident</span>,<span class="hljs-type">Val</span>)] -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Env</span>
 <span class="hljs-title">upds</span> xus rho = foldl (flip upd) rho xus
@@ -762,22 +826,22 @@ The last list is the list of opaque names</p>
 <span class="hljs-title">updsTele</span> :: <span class="hljs-type">Tele</span> -&gt; [<span class="hljs-type">Val</span>] -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Env</span>
 <span class="hljs-title">updsTele</span> tele vs = upds (zip (map fst tele) vs)
 
-<span class="hljs-title">subs</span> :: [(<span class="hljs-type">Name</span>,<span class="hljs-type">Formula</span>)] -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Env</span>
+<span class="hljs-title">subs</span> :: [(<span class="hljs-type">C</span>.<span class="hljs-type">Name</span>,<span class="hljs-type">C</span>.<span class="hljs-type">Formula</span>)] -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Env</span>
 <span class="hljs-title">subs</span> iphis rho = foldl (flip sub) rho iphis
 
-<span class="hljs-title">mapEnv</span> :: (<span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>) -&gt; (<span class="hljs-type">Formula</span> -&gt; <span class="hljs-type">Formula</span>) -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Env</span>
+<span class="hljs-title">mapEnv</span> :: (<span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>) -&gt; (<span class="hljs-type">C</span>.<span class="hljs-type">Formula</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">Formula</span>) -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Env</span>
 <span class="hljs-title">mapEnv</span> f g (<span class="hljs-type">Env</span> (rho,vs,fs,os)) = <span class="hljs-type">Env</span> (rho,map f vs,map g fs,os)
 
-<span class="hljs-title">valAndFormulaOfEnv</span> :: <span class="hljs-type">Env</span> -&gt; ([<span class="hljs-type">Val</span>],[<span class="hljs-type">Formula</span>])
+<span class="hljs-title">valAndFormulaOfEnv</span> :: <span class="hljs-type">Env</span> -&gt; ([<span class="hljs-type">Val</span>],[<span class="hljs-type">C</span>.<span class="hljs-type">Formula</span>])
 <span class="hljs-title">valAndFormulaOfEnv</span> (<span class="hljs-type">Env</span> (_,vs,fs,_)) = (vs,fs)
 
 <span class="hljs-title">valOfEnv</span> :: <span class="hljs-type">Env</span> -&gt; [<span class="hljs-type">Val</span>]
 <span class="hljs-title">valOfEnv</span> = fst . valAndFormulaOfEnv
 
-<span class="hljs-title">formulaOfEnv</span> :: <span class="hljs-type">Env</span> -&gt; [<span class="hljs-type">Formula</span>]
+<span class="hljs-title">formulaOfEnv</span> :: <span class="hljs-type">Env</span> -&gt; [<span class="hljs-type">C</span>.<span class="hljs-type">Formula</span>]
 <span class="hljs-title">formulaOfEnv</span> = snd . valAndFormulaOfEnv
 
-<span class="hljs-title">domainEnv</span> :: <span class="hljs-type">Env</span> -&gt; [<span class="hljs-type">Name</span>]
+<span class="hljs-title">domainEnv</span> :: <span class="hljs-type">Env</span> -&gt; [<span class="hljs-type">C</span>.<span class="hljs-type">Name</span>]
 <span class="hljs-title">domainEnv</span> (<span class="hljs-type">Env</span> (rho,_,_,_)) = domCtxt rho
   <span class="hljs-keyword">where</span> domCtxt rho = <span class="hljs-keyword">case</span> rho <span class="hljs-keyword">of</span>
           <span class="hljs-type">Empty</span>      -&gt; []
@@ -788,13 +852,13 @@ The last list is the list of opaque names</p>
         </li>
         
         
-        <li id="section-32">
+        <li id="section-36">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-32">&#x00a7;</a>
+                <a class="ss" href="#section-36">&#x00a7;</a>
               </div>
-              <p>Extract the context from the environment, used when printing holes</p>
+              <p>| Extract the context from the environment, used when printing holes</p>
 
             </div>
             
@@ -809,11 +873,11 @@ The last list is the list of opaque names</p>
         </li>
         
         
-        <li id="section-33">
+        <li id="section-37">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-33">&#x00a7;</a>
+                <a class="ss" href="#section-37">&#x00a7;</a>
               </div>
               <hr>
 
@@ -822,11 +886,11 @@ The last list is the list of opaque names</p>
         </li>
         
         
-        <li id="section-34">
+        <li id="section-38">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-34">&#x00a7;</a>
+                <a class="ss" href="#section-38">&#x00a7;</a>
               </div>
               <p>| Pretty printing</p>
 
@@ -863,10 +927,10 @@ The last list is the list of opaque names</p>
 <span class="hljs-title">showLoc</span> :: <span class="hljs-type">Loc</span> -&gt; <span class="hljs-type">Doc</span>
 <span class="hljs-title">showLoc</span> (<span class="hljs-type">Loc</span> name (i,j)) = text (show (i,j) ++ <span class="hljs-string">&quot; in &quot;</span> ++ name)
 
-<span class="hljs-title">showFormula</span> :: <span class="hljs-type">Formula</span> -&gt; <span class="hljs-type">Doc</span>
+<span class="hljs-title">showFormula</span> :: <span class="hljs-type">C</span>.<span class="hljs-type">Formula</span> -&gt; <span class="hljs-type">Doc</span>
 <span class="hljs-title">showFormula</span> phi = <span class="hljs-keyword">case</span> phi <span class="hljs-keyword">of</span>
-  _ :\/: _ -&gt; parens (text (show phi))
-  _ :/\: _ -&gt; parens (text (show phi))
+  _ <span class="hljs-type">C</span>.:\/: _ -&gt; parens (text (show phi))
+  _ <span class="hljs-type">C</span>.:/\: _ -&gt; parens (text (show phi))
   _ -&gt; text $ show phi
 <span class="hljs-class">
 <span class="hljs-keyword">instance</span> <span class="hljs-type">Show</span> <span class="hljs-type">Ter</span> <span class="hljs-keyword">where</span></span>
@@ -896,14 +960,14 @@ The last list is the list of opaque names</p>
   <span class="hljs-type">PathP</span> e0 e1 e2     -&gt; text <span class="hljs-string">&quot;PathP&quot;</span> &lt;+&gt; showTers [e0,e1,e2]
   <span class="hljs-type">PLam</span> i e           -&gt; char &#x27;&lt;&#x27; &lt;&gt; text (show i) &lt;&gt; char &#x27;&gt;&#x27; &lt;+&gt; showTer e
   <span class="hljs-type">AppFormula</span> e phi   -&gt; showTer1 e &lt;+&gt; char &#x27;@&#x27; &lt;+&gt; showFormula phi
-  <span class="hljs-type">Comp</span> e t ts        -&gt; text <span class="hljs-string">&quot;comp&quot;</span> &lt;+&gt; showTers [e,t] &lt;+&gt; text (showSystem ts)
-  <span class="hljs-type">HComp</span> e t ts       -&gt; text <span class="hljs-string">&quot;hComp&quot;</span> &lt;+&gt; showTers [e,t] &lt;+&gt; text (showSystem ts) 
-  <span class="hljs-type">Fill</span> e t ts        -&gt; text <span class="hljs-string">&quot;fill&quot;</span> &lt;+&gt; showTers [e,t] &lt;+&gt; text (showSystem ts)
-  <span class="hljs-type">Glue</span> a ts          -&gt; text <span class="hljs-string">&quot;Glue&quot;</span> &lt;+&gt; showTer1 a &lt;+&gt; text (showSystem ts)
-  <span class="hljs-type">GlueElem</span> a ts      -&gt; text <span class="hljs-string">&quot;glue&quot;</span> &lt;+&gt; showTer1 a &lt;+&gt; text (showSystem ts)
-  <span class="hljs-type">UnGlueElem</span> a ts    -&gt; text <span class="hljs-string">&quot;unglue&quot;</span> &lt;+&gt; showTer1 a &lt;+&gt; text (showSystem ts)
+  <span class="hljs-type">Comp</span> e t ts        -&gt; text <span class="hljs-string">&quot;comp&quot;</span> &lt;+&gt; showTers [e,t] &lt;+&gt; text (<span class="hljs-type">C</span>.showSystem ts)
+  <span class="hljs-type">HComp</span> e t ts       -&gt; text <span class="hljs-string">&quot;hComp&quot;</span> &lt;+&gt; showTers [e,t] &lt;+&gt; text (<span class="hljs-type">C</span>.showSystem ts) 
+  <span class="hljs-type">Fill</span> e t ts        -&gt; text <span class="hljs-string">&quot;fill&quot;</span> &lt;+&gt; showTers [e,t] &lt;+&gt; text (<span class="hljs-type">C</span>.showSystem ts)
+  <span class="hljs-type">Glue</span> a ts          -&gt; text <span class="hljs-string">&quot;Glue&quot;</span> &lt;+&gt; showTer1 a &lt;+&gt; text (<span class="hljs-type">C</span>.showSystem ts)
+  <span class="hljs-type">GlueElem</span> a ts      -&gt; text <span class="hljs-string">&quot;glue&quot;</span> &lt;+&gt; showTer1 a &lt;+&gt; text (<span class="hljs-type">C</span>.showSystem ts)
+  <span class="hljs-type">UnGlueElem</span> a ts    -&gt; text <span class="hljs-string">&quot;unglue&quot;</span> &lt;+&gt; showTer1 a &lt;+&gt; text (<span class="hljs-type">C</span>.showSystem ts)
   <span class="hljs-type">Id</span> a u v           -&gt; text <span class="hljs-string">&quot;Id&quot;</span> &lt;+&gt; showTers [a,u,v]
-  <span class="hljs-type">IdPair</span> b ts        -&gt; text <span class="hljs-string">&quot;idC&quot;</span> &lt;+&gt; showTer1 b &lt;+&gt; text (showSystem ts)
+  <span class="hljs-type">IdPair</span> b ts        -&gt; text <span class="hljs-string">&quot;idC&quot;</span> &lt;+&gt; showTer1 b &lt;+&gt; text (<span class="hljs-type">C</span>.showSystem ts)
   <span class="hljs-type">IdJ</span> a t c d x p    -&gt; text <span class="hljs-string">&quot;idJ&quot;</span> &lt;+&gt; showTers [a,t,c,d,x,p]
 
 <span class="hljs-title">showTers</span> :: [<span class="hljs-type">Ter</span>] -&gt; <span class="hljs-type">Doc</span>
@@ -944,7 +1008,7 @@ The last list is the list of opaque names</p>
   <span class="hljs-type">VCon</span> c us         -&gt; text c &lt;+&gt; showVals us
   <span class="hljs-type">VPCon</span> c a us phis -&gt; text c &lt;+&gt; braces (showVal a) &lt;+&gt; showVals us
                        &lt;+&gt; hsep (map ((char &#x27;@&#x27; &lt;+&gt;) . showFormula) phis)
-  <span class="hljs-type">VHComp</span> v0 v1 vs   -&gt; text <span class="hljs-string">&quot;hComp&quot;</span> &lt;+&gt; showVals [v0,v1] &lt;+&gt; text (showSystem vs)
+  <span class="hljs-type">VHComp</span> v0 v1 vs   -&gt; text <span class="hljs-string">&quot;hComp&quot;</span> &lt;+&gt; showVals [v0,v1] &lt;+&gt; text (<span class="hljs-type">C</span>.showSystem vs)
   <span class="hljs-type">VPi</span> a l@(<span class="hljs-type">VLam</span> x t b)
     | <span class="hljs-string">&quot;_&quot;</span> `isPrefixOf` x -&gt; showVal1 a &lt;+&gt; text <span class="hljs-string">&quot;-&gt;&quot;</span> &lt;+&gt; showVal1 b
     | otherwise          -&gt; char &#x27;(&#x27; &lt;&gt; showLam v
@@ -962,15 +1026,15 @@ The last list is the list of opaque names</p>
   <span class="hljs-type">VPathP</span> v0 v1 v2   -&gt; text <span class="hljs-string">&quot;PathP&quot;</span> &lt;+&gt; showVals [v0,v1,v2]
   <span class="hljs-type">VAppFormula</span> v phi -&gt; showVal v &lt;+&gt; char &#x27;@&#x27; &lt;+&gt; showFormula phi
   <span class="hljs-type">VComp</span> v0 v1 vs    -&gt;
-    text <span class="hljs-string">&quot;comp&quot;</span> &lt;+&gt; showVals [v0,v1] &lt;+&gt; text (showSystem vs)
-  <span class="hljs-type">VGlue</span> a ts        -&gt; text <span class="hljs-string">&quot;Glue&quot;</span> &lt;+&gt; showVal1 a &lt;+&gt; text (showSystem ts)
-  <span class="hljs-type">VGlueElem</span> a ts    -&gt; text <span class="hljs-string">&quot;glue&quot;</span> &lt;+&gt; showVal1 a &lt;+&gt; text (showSystem ts)
-  <span class="hljs-type">VUnGlueElem</span> a ts  -&gt; text <span class="hljs-string">&quot;unglue&quot;</span> &lt;+&gt; showVal1 a &lt;+&gt; text (showSystem ts)
+    text <span class="hljs-string">&quot;comp&quot;</span> &lt;+&gt; showVals [v0,v1] &lt;+&gt; text (<span class="hljs-type">C</span>.showSystem vs)
+  <span class="hljs-type">VGlue</span> a ts        -&gt; text <span class="hljs-string">&quot;Glue&quot;</span> &lt;+&gt; showVal1 a &lt;+&gt; text (<span class="hljs-type">C</span>.showSystem ts)
+  <span class="hljs-type">VGlueElem</span> a ts    -&gt; text <span class="hljs-string">&quot;glue&quot;</span> &lt;+&gt; showVal1 a &lt;+&gt; text (<span class="hljs-type">C</span>.showSystem ts)
+  <span class="hljs-type">VUnGlueElem</span> a ts  -&gt; text <span class="hljs-string">&quot;unglue&quot;</span> &lt;+&gt; showVal1 a &lt;+&gt; text (<span class="hljs-type">C</span>.showSystem ts)
   <span class="hljs-type">VUnGlueElemU</span> v b es -&gt; text <span class="hljs-string">&quot;unglue U&quot;</span> &lt;+&gt; showVals [v,b]
-                         &lt;+&gt; text (showSystem es)
-  <span class="hljs-type">VCompU</span> a ts       -&gt; text <span class="hljs-string">&quot;comp (&lt;_&gt; U)&quot;</span> &lt;+&gt; showVal1 a &lt;+&gt; text (showSystem ts)
+                         &lt;+&gt; text (<span class="hljs-type">C</span>.showSystem es)
+  <span class="hljs-type">VCompU</span> a ts       -&gt; text <span class="hljs-string">&quot;comp (&lt;_&gt; U)&quot;</span> &lt;+&gt; showVal1 a &lt;+&gt; text (<span class="hljs-type">C</span>.showSystem ts)
   <span class="hljs-type">VId</span> a u v           -&gt; text <span class="hljs-string">&quot;Id&quot;</span> &lt;+&gt; showVals [a,u,v]
-  <span class="hljs-type">VIdPair</span> b ts        -&gt; text <span class="hljs-string">&quot;idC&quot;</span> &lt;+&gt; showVal1 b &lt;+&gt; text (showSystem ts)
+  <span class="hljs-type">VIdPair</span> b ts        -&gt; text <span class="hljs-string">&quot;idC&quot;</span> &lt;+&gt; showVal1 b &lt;+&gt; text (<span class="hljs-type">C</span>.showSystem ts)
   <span class="hljs-type">VIdJ</span> a t c d x p    -&gt; text <span class="hljs-string">&quot;idJ&quot;</span> &lt;+&gt; showVals [a,t,c,d,x,p]
 
 <span class="hljs-title">showPLam</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Doc</span>
@@ -982,11 +1046,11 @@ The last list is the list of opaque names</p>
         </li>
         
         
-        <li id="section-35">
+        <li id="section-39">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-35">&#x00a7;</a>
+                <a class="ss" href="#section-39">&#x00a7;</a>
               </div>
               <p>Merge lambdas of the same type</p>
 

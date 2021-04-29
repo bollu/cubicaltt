@@ -127,14 +127,7 @@
 <span class="hljs-keyword">import</span> Exp.Print
 <span class="hljs-keyword">import</span> Exp.Abs <span class="hljs-keyword">hiding</span> (<span class="hljs-type">NoArg</span>)
 <span class="hljs-keyword">import</span> Exp.Layout
-<span class="hljs-keyword">import</span> Exp.ErrM
-
-<span class="hljs-keyword">import</span> CTT
-<span class="hljs-keyword">import</span> Resolver
-<span class="hljs-keyword">import</span> <span class="hljs-keyword">qualified</span> TypeChecker <span class="hljs-keyword">as</span> TC
-<span class="hljs-keyword">import</span> <span class="hljs-keyword">qualified</span> Eval <span class="hljs-keyword">as</span> E
-
-<span class="hljs-class"><span class="hljs-keyword">type</span> <span class="hljs-type">Interpreter</span> a = <span class="hljs-type">InputT</span> <span class="hljs-type">IO</span> a</span></pre></div></div>
+<span class="hljs-keyword">import</span> Exp.ErrM</pre></div></div>
             
         </li>
         
@@ -144,6 +137,68 @@
               
               <div class="sswrap ">
                 <a class="ss" href="#section-2">&#x00a7;</a>
+              </div>
+              <p>| CubicalTT syntax</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-keyword">import</span> CTT</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-3">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-3">&#x00a7;</a>
+              </div>
+              <p>| Resolver for symbol resolution.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-keyword">import</span> Resolver</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-4">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-4">&#x00a7;</a>
+              </div>
+              <p>| Type checker</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-keyword">import</span> <span class="hljs-keyword">qualified</span> TypeChecker <span class="hljs-keyword">as</span> TC</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-5">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-5">&#x00a7;</a>
+              </div>
+              <p>| Evaluator</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-keyword">import</span> <span class="hljs-keyword">qualified</span> Eval <span class="hljs-keyword">as</span> E
+
+<span class="hljs-class"><span class="hljs-keyword">type</span> <span class="hljs-type">Interpreter</span> a = <span class="hljs-type">InputT</span> <span class="hljs-type">IO</span> a</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-6">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-6">&#x00a7;</a>
               </div>
               <p>| Flags</p>
 
@@ -162,11 +217,11 @@
         </li>
         
         
-        <li id="section-3">
+        <li id="section-7">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-3">&#x00a7;</a>
+                <a class="ss" href="#section-7">&#x00a7;</a>
               </div>
               <p>| Version number, welcome message, usage and prompt strings</p>
 
@@ -181,13 +236,14 @@
         </li>
         
         
-        <li id="section-4">
+        <li id="section-8">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-4">&#x00a7;</a>
+                <a class="ss" href="#section-8">&#x00a7;</a>
               </div>
-              <p>| main loop. Allows file loading, after which one is put in a file context</p>
+              <p>| Entrypoint. handle command line arguments. If passed a file, load the file
+and then enter REPL loop. If not, directly enter REPL loop.</p>
 
             </div>
             
@@ -214,133 +270,13 @@
         </li>
         
         
-        <li id="section-5">
-            <div class="annotation">
-              
-              <div class="sswrap ">
-                <a class="ss" href="#section-5">&#x00a7;</a>
-              </div>
-              <p>| Initialize the main loop of a given file</p>
-
-            </div>
-            
-            <div class="content"><div class='highlight'><pre><span class="hljs-title">initLoop</span> :: [<span class="hljs-type">Flag</span>] -&gt; <span class="hljs-type">FilePath</span> -&gt; <span class="hljs-type">History</span> -&gt; <span class="hljs-type">IO</span> ()
-<span class="hljs-title">initLoop</span> flags f hist = <span class="hljs-keyword">do</span></pre></div></div>
-            
-        </li>
-        
-        
-        <li id="section-6">
-            <div class="annotation">
-              
-              <div class="sswrap ">
-                <a class="ss" href="#section-6">&#x00a7;</a>
-              </div>
-              <p>Parse and type check files</p>
-
-            </div>
-            
-            <div class="content"><div class='highlight'><pre>  (_,_,mods) &lt;- <span class="hljs-type">E</span>.catch (imports <span class="hljs-type">True</span> ([],[],[]) f)
-                        (\e -&gt; <span class="hljs-keyword">do</span> putStrLn $ unlines $
-                                    (<span class="hljs-string">&quot;Exception: &quot;</span> :
-                                     (takeWhile (/= <span class="hljs-string">&quot;CallStack (from HasCallStack):&quot;</span>)
-                                                   (lines $ show (e :: <span class="hljs-type">SomeException</span>))))
-                                  return ([],[],[]))</pre></div></div>
-            
-        </li>
-        
-        
-        <li id="section-7">
-            <div class="annotation">
-              
-              <div class="sswrap ">
-                <a class="ss" href="#section-7">&#x00a7;</a>
-              </div>
-              <p>| Translate to TT. comes from Resolver.hs.</p>
-
-            </div>
-            
-            <div class="content"><div class='highlight'><pre>  <span class="hljs-keyword">let</span> res = runResolver $ resolveModules mods
-  <span class="hljs-keyword">case</span> res <span class="hljs-keyword">of</span>
-    <span class="hljs-type">Left</span> err    -&gt; <span class="hljs-keyword">do</span>
-      putStrLn $ <span class="hljs-string">&quot;Resolver failed: &quot;</span> ++ err
-      runInputT (settings []) (putHistory hist &gt;&gt; loop flags f [] <span class="hljs-type">TC</span>.verboseEnv)
-    <span class="hljs-type">Right</span> (adefs,names) -&gt; <span class="hljs-keyword">do</span></pre></div></div>
-            
-        </li>
-        
-        
-        <li id="section-8">
-            <div class="annotation">
-              
-              <div class="sswrap ">
-                <a class="ss" href="#section-8">&#x00a7;</a>
-              </div>
-              <p>After resolivng the file check if some definitions were shadowed:</p>
-
-            </div>
-            
-            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">let</span> ns = map fst names
-          uns = nub ns
-          dups = ns \\ uns
-      unless (dups == []) $
-        putStrLn $ <span class="hljs-string">&quot;Warning: the following definitions were shadowed [&quot;</span> ++
-                   intercalate <span class="hljs-string">&quot;, &quot;</span> dups ++ <span class="hljs-string">&quot;]&quot;</span>
-      (merr,tenv) &lt;- <span class="hljs-type">TC</span>.runDeclss <span class="hljs-type">TC</span>.verboseEnv adefs
-      <span class="hljs-keyword">case</span> merr <span class="hljs-keyword">of</span>
-        <span class="hljs-type">Just</span> err -&gt; putStrLn $ <span class="hljs-string">&quot;Type checking failed: &quot;</span> ++ shrink err
-        <span class="hljs-type">Nothing</span>  -&gt; unless (mods == []) $ putStrLn <span class="hljs-string">&quot;File loaded.&quot;</span>
-      <span class="hljs-keyword">if</span> <span class="hljs-type">Batch</span> `elem` flags
-        <span class="hljs-keyword">then</span> return ()
-        <span class="hljs-keyword">else</span> <span class="hljs-comment">-- Compute names for auto completion</span>
-             runInputT (settings [n | (n,_) &lt;- names])
-               (putHistory hist &gt;&gt; loop flags f names tenv)
-
-
-<span class="hljs-title">lexer</span> :: <span class="hljs-type">String</span> -&gt; [<span class="hljs-type">Token</span>]
-<span class="hljs-title">lexer</span> = resolveLayout <span class="hljs-type">True</span> . myLexer
-
-<span class="hljs-title">showTree</span> :: (<span class="hljs-type">Show</span> a, <span class="hljs-type">Print</span> a) =&gt; a -&gt; <span class="hljs-type">IO</span> ()
-<span class="hljs-title">showTree</span> tree = <span class="hljs-keyword">do</span>
-  putStrLn $ <span class="hljs-string">&quot;\n[Abstract Syntax]\n\n&quot;</span> ++ show tree
-  putStrLn $ <span class="hljs-string">&quot;\n[Linearized tree]\n\n&quot;</span> ++ printTree tree</pre></div></div>
-            
-        </li>
-        
-        
         <li id="section-9">
             <div class="annotation">
               
               <div class="sswrap ">
                 <a class="ss" href="#section-9">&#x00a7;</a>
               </div>
-              <p>Used for auto completion</p>
-
-            </div>
-            
-            <div class="content"><div class='highlight'><pre><span class="hljs-title">searchFunc</span> :: [<span class="hljs-type">String</span>] -&gt; <span class="hljs-type">String</span> -&gt; [<span class="hljs-type">Completion</span>]
-<span class="hljs-title">searchFunc</span> ns str = map simpleCompletion $ filter (str `isPrefixOf`) ns
-
-<span class="hljs-title">settings</span> :: [<span class="hljs-type">String</span>] -&gt; <span class="hljs-type">Settings</span> <span class="hljs-type">IO</span>
-<span class="hljs-title">settings</span> ns = <span class="hljs-type">Settings</span>
-  { historyFile    = <span class="hljs-type">Nothing</span>
-  , complete       = completeWord <span class="hljs-type">Nothing</span> <span class="hljs-string">&quot; \t&quot;</span> $ return . searchFunc ns
-  , autoAddHistory = <span class="hljs-type">True</span> }
-
-
-<span class="hljs-title">shrink</span> :: <span class="hljs-type">String</span> -&gt; <span class="hljs-type">String</span>
-<span class="hljs-title">shrink</span> s = s <span class="hljs-comment">-- if length s &gt; 1000 then take 1000 s ++ &quot;...&quot; else s</span></pre></div></div>
-            
-        </li>
-        
-        
-        <li id="section-10">
-            <div class="annotation">
-              
-              <div class="sswrap ">
-                <a class="ss" href="#section-10">&#x00a7;</a>
-              </div>
-              <p>The main loop</p>
+              <p>| The main loop</p>
 
             </div>
             
@@ -364,19 +300,26 @@
               (<span class="hljs-string">&quot;NORMEVAL: &quot;</span>,str,<span class="hljs-type">E</span>.normal [])
             str -&gt; (<span class="hljs-string">&quot;EVAL: &quot;</span>,str,id)
       <span class="hljs-keyword">in</span> <span class="hljs-keyword">case</span> pExp (lexer str) <span class="hljs-keyword">of</span>
-      <span class="hljs-type">Bad</span> err -&gt; outputStrLn (<span class="hljs-string">&quot;Parse error: &quot;</span> ++ err) &gt;&gt; loop flags f names tenv
-      <span class="hljs-type">Ok</span>  exp -&gt;
+      <span class="hljs-type">Bad</span> err -&gt; outputStrLn (<span class="hljs-string">&quot;Parse error: &quot;</span> ++ err) &gt;&gt; loop flags f names tenv</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-10">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-10">&#x00a7;</a>
+              </div>
+              <p>| Resolve the expression</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-type">Ok</span>  exp -&gt;
         <span class="hljs-keyword">case</span> runResolver $ local (insertIdents names) $ resolveExp exp <span class="hljs-keyword">of</span>
           <span class="hljs-type">Left</span>  err  -&gt; <span class="hljs-keyword">do</span> outputStrLn (<span class="hljs-string">&quot;Resolver failed: &quot;</span> ++ err)
                            loop flags f names tenv
-          <span class="hljs-type">Right</span> body -&gt; <span class="hljs-keyword">do</span>
-            x &lt;- liftIO $ <span class="hljs-type">TC</span>.runInfer tenv body
-            <span class="hljs-keyword">case</span> x <span class="hljs-keyword">of</span>
-              <span class="hljs-type">Left</span> err -&gt; <span class="hljs-keyword">do</span> outputStrLn (<span class="hljs-string">&quot;Could not type-check: &quot;</span> ++ err)
-                             loop flags f names tenv
-              <span class="hljs-type">Right</span> _  -&gt; <span class="hljs-keyword">do</span>
-                start &lt;- liftIO getCurrentTime
-                <span class="hljs-keyword">let</span> e = mod $ <span class="hljs-type">E</span>.eval (<span class="hljs-type">TC</span>.env tenv) body</pre></div></div>
+          <span class="hljs-type">Right</span> body -&gt; <span class="hljs-keyword">do</span></pre></div></div>
             
         </li>
         
@@ -387,11 +330,16 @@
               <div class="sswrap ">
                 <a class="ss" href="#section-11">&#x00a7;</a>
               </div>
-              <p>Let’s not crash if the evaluation raises an error:</p>
+              <p>| KEY STEP: type check the expression</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>                liftIO $ catch (putStrLn (msg ++ shrink (show e)))</pre></div></div>
+            <div class="content"><div class='highlight'><pre>            x &lt;- liftIO $ <span class="hljs-type">TC</span>.runInfer tenv body
+            <span class="hljs-keyword">case</span> x <span class="hljs-keyword">of</span>
+              <span class="hljs-type">Left</span> err -&gt; <span class="hljs-keyword">do</span> outputStrLn (<span class="hljs-string">&quot;Could not type-check: &quot;</span> ++ err)
+                             loop flags f names tenv
+              <span class="hljs-type">Right</span> _  -&gt; <span class="hljs-keyword">do</span>
+                start &lt;- liftIO getCurrentTime</pre></div></div>
             
         </li>
         
@@ -401,6 +349,36 @@
               
               <div class="sswrap ">
                 <a class="ss" href="#section-12">&#x00a7;</a>
+              </div>
+              <p>| KEY STEP: evaluate the expression.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>                <span class="hljs-keyword">let</span> e = mod $ <span class="hljs-type">E</span>.eval (<span class="hljs-type">TC</span>.env tenv) body</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-13">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-13">&#x00a7;</a>
+              </div>
+              <p>|  Let’s not crash if the evaluation raises an error:</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>                liftIO $ catch (putStrLn (msg ++ shrink (show e)))</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-14">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-14">&#x00a7;</a>
               </div>
               <p>(writeFile “examples/nunivalence3.ctt” (show e))</p>
 
@@ -413,13 +391,13 @@
         </li>
         
         
-        <li id="section-13">
+        <li id="section-15">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-13">&#x00a7;</a>
+                <a class="ss" href="#section-15">&#x00a7;</a>
               </div>
-              <p>Compute time and print nicely</p>
+              <p>| Compute time and print nicely if <code>-t</code> is used.</p>
 
             </div>
             
@@ -434,11 +412,11 @@
         </li>
         
         
-        <li id="section-14">
+        <li id="section-16">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-14">&#x00a7;</a>
+                <a class="ss" href="#section-16">&#x00a7;</a>
               </div>
               <p>Only print in seconds:
 when (Time <code>elem</code> flags) $ outputStrLn $ “Time: “ ++ show time</p>
@@ -450,11 +428,144 @@ when (Time <code>elem</code> flags) $ outputStrLn $ “Time: “ ++ show time</p
         </li>
         
         
-        <li id="section-15">
+        <li id="section-17">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-15">&#x00a7;</a>
+                <a class="ss" href="#section-17">&#x00a7;</a>
+              </div>
+              <p>| load file</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">initLoop</span> :: [<span class="hljs-type">Flag</span>] -&gt; <span class="hljs-type">FilePath</span> -&gt; <span class="hljs-type">History</span> -&gt; <span class="hljs-type">IO</span> ()
+<span class="hljs-title">initLoop</span> flags f hist = <span class="hljs-keyword">do</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-18">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-18">&#x00a7;</a>
+              </div>
+              <p>Parse and type check files
+| imports defined below. Load modules. Module defined in ???</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  (_,_,mods) &lt;- <span class="hljs-type">E</span>.catch (imports <span class="hljs-type">True</span> ([],[],[]) f)
+                        (\e -&gt; <span class="hljs-keyword">do</span> putStrLn $ unlines $
+                                    (<span class="hljs-string">&quot;Exception: &quot;</span> :
+                                     (takeWhile (/= <span class="hljs-string">&quot;CallStack (from HasCallStack):&quot;</span>)
+                                                   (lines $ show (e :: <span class="hljs-type">SomeException</span>))))
+                                  return ([],[],[]))</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-19">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-19">&#x00a7;</a>
+              </div>
+              <p>| Translate to TT. resolveModules from from Resolver.hs.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-keyword">let</span> res = runResolver $ resolveModules mods
+  <span class="hljs-keyword">case</span> res <span class="hljs-keyword">of</span>
+    <span class="hljs-type">Left</span> err    -&gt; <span class="hljs-keyword">do</span>
+      putStrLn $ <span class="hljs-string">&quot;Resolver failed: &quot;</span> ++ err
+      runInputT (settings []) (putHistory hist &gt;&gt; loop flags f [] <span class="hljs-type">TC</span>.verboseEnv)
+    <span class="hljs-type">Right</span> (adefs,names) -&gt; <span class="hljs-keyword">do</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-20">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-20">&#x00a7;</a>
+              </div>
+              <p>After resolivng the file check if some definitions were shadowed:</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      <span class="hljs-keyword">let</span> ns = map fst names
+          uns = nub ns
+          dups = ns \\ uns
+      unless (dups == []) $
+        putStrLn $ <span class="hljs-string">&quot;Warning: the following definitions were shadowed [&quot;</span> ++
+                   intercalate <span class="hljs-string">&quot;, &quot;</span> dups ++ <span class="hljs-string">&quot;]&quot;</span>
+      (merr,tenv) &lt;- <span class="hljs-type">TC</span>.runDeclss <span class="hljs-type">TC</span>.verboseEnv adefs
+      <span class="hljs-keyword">case</span> merr <span class="hljs-keyword">of</span>
+        <span class="hljs-type">Just</span> err -&gt; putStrLn $ <span class="hljs-string">&quot;Type checking failed: &quot;</span> ++ shrink err
+        <span class="hljs-type">Nothing</span>  -&gt; unless (mods == []) $ putStrLn <span class="hljs-string">&quot;File loaded.&quot;</span>
+      <span class="hljs-keyword">if</span> <span class="hljs-type">Batch</span> `elem` flags
+        <span class="hljs-keyword">then</span> return ()
+        <span class="hljs-keyword">else</span> <span class="hljs-comment">-- Compute names for auto completion</span>
+             runInputT (settings [n | (n,_) &lt;- names])
+               (putHistory hist &gt;&gt; loop flags f names tenv)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-21">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-21">&#x00a7;</a>
+              </div>
+              <p>| TODO: where is this coming from?!</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">lexer</span> :: <span class="hljs-type">String</span> -&gt; [<span class="hljs-type">Token</span>]
+<span class="hljs-title">lexer</span> = resolveLayout <span class="hljs-type">True</span> . myLexer
+
+<span class="hljs-title">showTree</span> :: (<span class="hljs-type">Show</span> a, <span class="hljs-type">Print</span> a) =&gt; a -&gt; <span class="hljs-type">IO</span> ()
+<span class="hljs-title">showTree</span> tree = <span class="hljs-keyword">do</span>
+  putStrLn $ <span class="hljs-string">&quot;\n[Abstract Syntax]\n\n&quot;</span> ++ show tree
+  putStrLn $ <span class="hljs-string">&quot;\n[Linearized tree]\n\n&quot;</span> ++ printTree tree</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-22">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-22">&#x00a7;</a>
+              </div>
+              <p>Used for auto completion</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">searchFunc</span> :: [<span class="hljs-type">String</span>] -&gt; <span class="hljs-type">String</span> -&gt; [<span class="hljs-type">Completion</span>]
+<span class="hljs-title">searchFunc</span> ns str = map simpleCompletion $ filter (str `isPrefixOf`) ns
+
+<span class="hljs-title">settings</span> :: [<span class="hljs-type">String</span>] -&gt; <span class="hljs-type">Settings</span> <span class="hljs-type">IO</span>
+<span class="hljs-title">settings</span> ns = <span class="hljs-type">Settings</span>
+  { historyFile    = <span class="hljs-type">Nothing</span>
+  , complete       = completeWord <span class="hljs-type">Nothing</span> <span class="hljs-string">&quot; \t&quot;</span> $ return . searchFunc ns
+  , autoAddHistory = <span class="hljs-type">True</span> }
+
+
+<span class="hljs-title">shrink</span> :: <span class="hljs-type">String</span> -&gt; <span class="hljs-type">String</span>
+<span class="hljs-title">shrink</span> s = s <span class="hljs-comment">-- if length s &gt; 1000 then take 1000 s ++ &quot;...&quot; else s</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-23">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-23">&#x00a7;</a>
               </div>
               <p>| import modules
 (not ok,loaded,already loaded defs) -&gt; to load -&gt;
@@ -473,13 +584,28 @@ the bool determines if it should be verbose or not</p>
     when (not b) $ error (f ++ <span class="hljs-string">&quot; does not exist&quot;</span>)
     <span class="hljs-keyword">let</span> prefix = dropFileName f
     s &lt;- readFile f
-    <span class="hljs-keyword">let</span> ts = lexer s
-    <span class="hljs-keyword">case</span> pModule ts <span class="hljs-keyword">of</span>
+    <span class="hljs-keyword">let</span> ts = lexer s</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-24">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-24">&#x00a7;</a>
+              </div>
+              <p>| parse a module and store it.
+| check that module name is same as filename.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="hljs-keyword">case</span> pModule ts <span class="hljs-keyword">of</span>
       <span class="hljs-type">Bad</span> s -&gt; error (<span class="hljs-string">&quot;Parse failed in &quot;</span> ++ show f ++ <span class="hljs-string">&quot;\n&quot;</span> ++ show s)
       <span class="hljs-type">Ok</span> mod@(<span class="hljs-type">Module</span> (<span class="hljs-type">AIdent</span> (_,name)) imp decls) -&gt; <span class="hljs-keyword">do</span>
         <span class="hljs-keyword">let</span> imp_ctt = [prefix ++ i ++ <span class="hljs-string">&quot;.ctt&quot;</span> | <span class="hljs-type">Import</span> (<span class="hljs-type">AIdent</span> (_,i)) &lt;- imp]
         when (name /= dropExtension (takeFileName f)) $
-          error (<span class="hljs-string">&quot;Module name mismatch in &quot;</span> ++ show f ++ <span class="hljs-string">&quot; with wrong name &quot;</span> ++ name)
+          error (<span class="hljs-string">&quot;Module name mismatch in &quot;</span> ++ show f ++ <span class="hljs-string">&quot; with wrong name &quot;</span> ++ <span class="hljs-string">&quot;\&quot;&quot;</span> ++ name ++ <span class="hljs-string">&quot;\&quot;&quot;</span>)
         (notok1,loaded1,mods1) &lt;-
           foldM (imports v) (f:notok,loaded,mods) imp_ctt
         when v $ putStrLn $ <span class="hljs-string">&quot;Parsed &quot;</span> ++ show f ++ <span class="hljs-string">&quot; successfully!&quot;</span>

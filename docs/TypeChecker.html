@@ -109,7 +109,12 @@
             </div>
             
             <div class="content"><div class='highlight'><pre><span class="hljs-meta">{-# LANGUAGE TupleSections #-}</span>
-<span class="hljs-keyword">module</span> TypeChecker <span class="hljs-keyword">where</span>
+<span class="hljs-keyword">module</span> TypeChecker(
+  <span class="hljs-title">runInfer</span>
+  , <span class="hljs-title">verboseEnv</span>
+  , <span class="hljs-title">runDeclss</span>
+  , <span class="hljs-title">env</span>
+  , <span class="hljs-type">TEnv</span>) <span class="hljs-keyword">where</span>
 
 <span class="hljs-keyword">import</span> Control.Applicative <span class="hljs-keyword">hiding</span> (<span class="hljs-title">empty</span>)
 <span class="hljs-keyword">import</span> Control.Monad
@@ -121,9 +126,9 @@
 <span class="hljs-keyword">import</span> <span class="hljs-keyword">qualified</span> Data.Map <span class="hljs-keyword">as</span> Map
 <span class="hljs-keyword">import</span> <span class="hljs-keyword">qualified</span> Data.Traversable <span class="hljs-keyword">as</span> T
 
-<span class="hljs-keyword">import</span> Connections
 <span class="hljs-keyword">import</span> CTT
-<span class="hljs-keyword">import</span> Eval</pre></div></div>
+<span class="hljs-keyword">import</span> <span class="hljs-keyword">qualified</span> Connections <span class="hljs-keyword">as</span> C
+<span class="hljs-keyword">import</span> <span class="hljs-keyword">qualified</span> Eval <span class="hljs-keyword">as</span> E</pre></div></div>
             
         </li>
         
@@ -134,7 +139,7 @@
               <div class="sswrap ">
                 <a class="ss" href="#section-2">&#x00a7;</a>
               </div>
-              <p>Type checking monad</p>
+              <p>| Type checking monad</p>
 
             </div>
             
@@ -149,7 +154,7 @@
               <div class="sswrap ">
                 <a class="ss" href="#section-3">&#x00a7;</a>
               </div>
-              <p>Environment for type checker</p>
+              <p>| Environment for type checker</p>
 
             </div>
             
@@ -236,14 +241,14 @@
   <span class="hljs-keyword">let</span> w@(<span class="hljs-type">VVar</span> n _) = mkVarNice ns x a
   <span class="hljs-keyword">in</span> <span class="hljs-type">TEnv</span> (n:ns) ind (upd (x,w) rho) v
 
-<span class="hljs-title">addSub</span> :: (<span class="hljs-type">Name</span>,<span class="hljs-type">Formula</span>) -&gt; <span class="hljs-type">TEnv</span> -&gt; <span class="hljs-type">TEnv</span>
+<span class="hljs-title">addSub</span> :: (<span class="hljs-type">C</span>.<span class="hljs-type">Name</span>,<span class="hljs-type">C</span>.<span class="hljs-type">Formula</span>) -&gt; <span class="hljs-type">TEnv</span> -&gt; <span class="hljs-type">TEnv</span>
 <span class="hljs-title">addSub</span> iphi (<span class="hljs-type">TEnv</span> ns ind rho v) = <span class="hljs-type">TEnv</span> ns ind (sub iphi rho) v
 
-<span class="hljs-title">addSubs</span> :: [(<span class="hljs-type">Name</span>,<span class="hljs-type">Formula</span>)] -&gt; <span class="hljs-type">TEnv</span> -&gt; <span class="hljs-type">TEnv</span>
+<span class="hljs-title">addSubs</span> :: [(<span class="hljs-type">C</span>.<span class="hljs-type">Name</span>,<span class="hljs-type">C</span>.<span class="hljs-type">Formula</span>)] -&gt; <span class="hljs-type">TEnv</span> -&gt; <span class="hljs-type">TEnv</span>
 <span class="hljs-title">addSubs</span> = flip $ foldr addSub
 
 <span class="hljs-title">addType</span> :: (<span class="hljs-type">Ident</span>,<span class="hljs-type">Ter</span>) -&gt; <span class="hljs-type">TEnv</span> -&gt; <span class="hljs-type">TEnv</span>
-<span class="hljs-title">addType</span> (x,a) tenv@(<span class="hljs-type">TEnv</span> _ _ rho _) = addTypeVal (x,eval rho a) tenv
+<span class="hljs-title">addType</span> (x,a) tenv@(<span class="hljs-type">TEnv</span> _ _ rho _) = addTypeVal (x,<span class="hljs-type">E</span>.eval rho a) tenv
 
 <span class="hljs-title">addBranch</span> :: [(<span class="hljs-type">Ident</span>,<span class="hljs-type">Val</span>)] -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">TEnv</span> -&gt; <span class="hljs-type">TEnv</span>
 <span class="hljs-title">addBranch</span> nvs env (<span class="hljs-type">TEnv</span> ns ind rho v) =
@@ -255,8 +260,8 @@
 <span class="hljs-title">addTele</span> :: <span class="hljs-type">Tele</span> -&gt; <span class="hljs-type">TEnv</span> -&gt; <span class="hljs-type">TEnv</span>
 <span class="hljs-title">addTele</span> xas lenv = foldl (flip addType) lenv xas
 
-<span class="hljs-title">faceEnv</span> :: <span class="hljs-type">Face</span> -&gt; <span class="hljs-type">TEnv</span> -&gt; <span class="hljs-type">TEnv</span>
-<span class="hljs-title">faceEnv</span> alpha tenv = tenv{env=env tenv `face` alpha}</pre></div></div>
+<span class="hljs-title">faceEnv</span> :: <span class="hljs-type">C</span>.<span class="hljs-type">Face</span> -&gt; <span class="hljs-type">TEnv</span> -&gt; <span class="hljs-type">TEnv</span>
+<span class="hljs-title">faceEnv</span> alpha tenv = tenv{env=env tenv `<span class="hljs-type">C</span>.face` alpha}</pre></div></div>
             
         </li>
         
@@ -314,7 +319,7 @@
 <span class="hljs-title">mkVars</span> :: [<span class="hljs-type">String</span>] -&gt; <span class="hljs-type">Tele</span> -&gt; <span class="hljs-type">Env</span> -&gt; [(<span class="hljs-type">Ident</span>,<span class="hljs-type">Val</span>)]
 <span class="hljs-title">mkVars</span> _ [] _           = []
 <span class="hljs-title">mkVars</span> ns ((x,a):xas) nu =
-  <span class="hljs-keyword">let</span> w@(<span class="hljs-type">VVar</span> n _) = mkVarNice ns x (eval nu a)
+  <span class="hljs-keyword">let</span> w@(<span class="hljs-type">VVar</span> n _) = mkVarNice ns x (<span class="hljs-type">E</span>.eval nu a)
   <span class="hljs-keyword">in</span> (x,w) : mkVars (n:ns) xas (upd (x,w) nu)</pre></div></div>
             
         </li>
@@ -330,8 +335,8 @@
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>(===) :: <span class="hljs-type">Convertible</span> a =&gt; a -&gt; a -&gt; <span class="hljs-type">Typing</span> <span class="hljs-type">Bool</span>
-<span class="hljs-title">u</span> === v = conv &lt;$&gt; asks names &lt;*&gt; pure u &lt;*&gt; pure v</pre></div></div>
+            <div class="content"><div class='highlight'><pre>(===) :: <span class="hljs-type">E</span>.<span class="hljs-type">Convertible</span> a =&gt; a -&gt; a -&gt; <span class="hljs-type">Typing</span> <span class="hljs-type">Bool</span>
+<span class="hljs-title">u</span> === v = <span class="hljs-type">E</span>.conv &lt;$&gt; asks names &lt;*&gt; pure u &lt;*&gt; pure v</pre></div></div>
             
         </li>
         
@@ -347,7 +352,7 @@
             </div>
             
             <div class="content"><div class='highlight'><pre><span class="hljs-title">evalTyping</span> :: <span class="hljs-type">Ter</span> -&gt; <span class="hljs-type">Typing</span> <span class="hljs-type">Val</span>
-<span class="hljs-title">evalTyping</span> t = eval &lt;$&gt; asks env &lt;*&gt; pure t</pre></div></div>
+<span class="hljs-title">evalTyping</span> t = <span class="hljs-type">E</span>.eval &lt;$&gt; asks env &lt;*&gt; pure t</pre></div></div>
             
         </li>
         
@@ -384,7 +389,7 @@
       <span class="hljs-keyword">let</span> e = unlines (reverse (contextOfEnv rho))
       ns &lt;- asks names
       trace $ <span class="hljs-string">&quot;\nHole at &quot;</span> ++ show l ++ <span class="hljs-string">&quot;:\n\n&quot;</span> ++
-              e ++ replicate <span class="hljs-number">80</span> &#x27;-&#x27; ++ <span class="hljs-string">&quot;\n&quot;</span> ++ show (normal ns a)  ++ <span class="hljs-string">&quot;\n&quot;</span>
+              e ++ replicate <span class="hljs-number">80</span> &#x27;-&#x27; ++ <span class="hljs-string">&quot;\n&quot;</span> ++ show (<span class="hljs-type">E</span>.normal ns a)  ++ <span class="hljs-string">&quot;\n&quot;</span>
   (_,<span class="hljs-type">Con</span> c es) -&gt; <span class="hljs-keyword">do</span>
     (bs,nu) &lt;- getLblType c a
     checks (bs,nu) es
@@ -399,10 +404,10 @@
     <span class="hljs-type">PLabel</span> _ tele is ts -&gt; <span class="hljs-keyword">do</span>
       checkTele tele
       rho &lt;- asks env
-      unless (all (`elem` is) (domain ts)) $
-        throwError <span class="hljs-string">&quot;names in path label system&quot;</span> <span class="hljs-comment">-- TODO</span>
+      unless (all (`elem` is) (<span class="hljs-type">C</span>.domain ts)) $
+        throwError <span class="hljs-string">&quot;names in path label C.System&quot;</span> <span class="hljs-comment">-- TODO</span>
       mapM_ checkFresh is
-      <span class="hljs-keyword">let</span> iis = zip is (map <span class="hljs-type">Atom</span> is)
+      <span class="hljs-keyword">let</span> iis = zip is (map <span class="hljs-type">C</span>.<span class="hljs-type">Atom</span> is)
       local (addSubs iis . addTele tele) $ <span class="hljs-keyword">do</span>
         checkSystemWith ts $ \alpha talpha -&gt;
           local (faceEnv alpha) $</pre></div></div>
@@ -422,11 +427,11 @@
             
             <div class="content"><div class='highlight'><pre>            check (<span class="hljs-type">Ter</span> t rho) talpha
         rho&#x27; &lt;- asks env
-        checkCompSystem (evalSystem rho&#x27; ts)
+        checkCompSystem (<span class="hljs-type">E</span>.evalSystem rho&#x27; ts)
   (<span class="hljs-type">VPi</span> va@(<span class="hljs-type">Ter</span> (<span class="hljs-type">Sum</span> _ _ cas) nu) f,<span class="hljs-type">Split</span> _ _ ty ces) -&gt; <span class="hljs-keyword">do</span>
     check <span class="hljs-type">VU</span> ty
     rho &lt;- asks env
-    unlessM (a === eval rho ty) $ throwError <span class="hljs-string">&quot;check: split annotations&quot;</span>
+    unlessM (a === <span class="hljs-type">E</span>.eval rho ty) $ throwError <span class="hljs-string">&quot;check: split annotations&quot;</span>
     <span class="hljs-keyword">if</span> map labelName cas == map branchName ces
        <span class="hljs-keyword">then</span> sequence_ [ checkBranch (lbl,nu) f brc (<span class="hljs-type">Ter</span> t rho) va
                       | (brc, lbl) &lt;- zip ces cas ]
@@ -434,7 +439,7 @@
   (<span class="hljs-type">VPi</span> va@(<span class="hljs-type">Ter</span> (<span class="hljs-type">HSum</span> _ _ cas) nu) f,<span class="hljs-type">Split</span> _ _ ty ces) -&gt; <span class="hljs-keyword">do</span>
     check <span class="hljs-type">VU</span> ty
     rho &lt;- asks env
-    unlessM (a === eval rho ty) $ throwError <span class="hljs-string">&quot;check: split annotations&quot;</span>
+    unlessM (a === <span class="hljs-type">E</span>.eval rho ty) $ throwError <span class="hljs-string">&quot;check: split annotations&quot;</span>
     <span class="hljs-keyword">if</span> map labelName cas == map branchName ces
        <span class="hljs-keyword">then</span> sequence_ [ checkBranch (lbl,nu) f brc (<span class="hljs-type">Ter</span> t rho) va
                       | (brc, lbl) &lt;- zip ces cas ]
@@ -443,18 +448,18 @@
     check <span class="hljs-type">VU</span> a&#x27;
     ns &lt;- asks names
     rho &lt;- asks env
-    unlessM (a === eval rho a&#x27;) $
+    unlessM (a === <span class="hljs-type">E</span>.eval rho a&#x27;) $
       throwError $ <span class="hljs-string">&quot;check: lam types don&#x27;t match&quot;</span>
         ++ <span class="hljs-string">&quot;\nlambda type annotation: &quot;</span> ++ show a&#x27;
         ++ <span class="hljs-string">&quot;\ndomain of Pi: &quot;</span> ++ show a
-        ++ <span class="hljs-string">&quot;\nnormal form of type: &quot;</span> ++ show (normal ns a)
+        ++ <span class="hljs-string">&quot;\nnormal form of type: &quot;</span> ++ show (<span class="hljs-type">E</span>.normal ns a)
     <span class="hljs-keyword">let</span> var = mkVarNice ns x a
 
-    local (addTypeVal (x,a)) $ check (app f var) t
+    local (addTypeVal (x,a)) $ check (<span class="hljs-type">E</span>.app f var) t
   (<span class="hljs-type">VSigma</span> a f, <span class="hljs-type">Pair</span> t1 t2) -&gt; <span class="hljs-keyword">do</span>
     check a t1
     v &lt;- evalTyping t1
-    check (app f v) t2
+    check (<span class="hljs-type">E</span>.app f v) t2
   (_,<span class="hljs-type">Where</span> e d) -&gt; <span class="hljs-keyword">do</span>
     local (\tenv@<span class="hljs-type">TEnv</span>{indent=i} -&gt; tenv{indent=i + <span class="hljs-number">2</span>}) $ checkDecls d
     local (addDecls d) $ check a e
@@ -465,13 +470,13 @@
   (<span class="hljs-type">VPathP</span> p a0 a1,<span class="hljs-type">PLam</span> _ e) -&gt; <span class="hljs-keyword">do</span>
     (u0,u1) &lt;- checkPLam p t
     ns &lt;- asks names
-    unless (conv ns a0 u0 &amp;&amp; conv ns a1 u1) $
+    unless (<span class="hljs-type">E</span>.conv ns a0 u0 &amp;&amp; <span class="hljs-type">E</span>.conv ns a1 u1) $
       throwError $ <span class="hljs-string">&quot;path endpoints don&#x27;t match for &quot;</span> ++ show e ++ <span class="hljs-string">&quot;, got &quot;</span> ++
                    show (u0,u1) ++ <span class="hljs-string">&quot;, but expected &quot;</span> ++ show (a0,a1)
   (<span class="hljs-type">VU</span>,<span class="hljs-type">Glue</span> a ts) -&gt; <span class="hljs-keyword">do</span>
     check <span class="hljs-type">VU</span> a
     rho &lt;- asks env
-    checkGlue (eval rho a) ts
+    checkGlue (<span class="hljs-type">E</span>.eval rho a) ts
   (<span class="hljs-type">VGlue</span> va ts,<span class="hljs-type">GlueElem</span> u us) -&gt; <span class="hljs-keyword">do</span>
     check va u
     vu &lt;- evalTyping u
@@ -490,12 +495,12 @@
     vw &lt;- evalTyping w
     checkSystemWith ts $ \alpha tAlpha -&gt;
       local (faceEnv alpha) $ <span class="hljs-keyword">do</span>
-        check (va `face` alpha) tAlpha
+        check (va `<span class="hljs-type">C</span>.face` alpha) tAlpha
         vtAlpha &lt;- evalTyping tAlpha
-        unlessM (vw `face` alpha === constPath vtAlpha) $
+        unlessM (vw `<span class="hljs-type">C</span>.face` alpha === constPath vtAlpha) $
           throwError <span class="hljs-string">&quot;malformed eqC&quot;</span>
     rho &lt;- asks env
-    checkCompSystem (evalSystem rho ts) <span class="hljs-comment">-- Not needed</span>
+    checkCompSystem (<span class="hljs-type">E</span>.evalSystem rho ts) <span class="hljs-comment">-- Not needed</span>
   _ -&gt; <span class="hljs-keyword">do</span>
     v &lt;- infer t
     unlessM (v === a) $
@@ -576,15 +581,15 @@
               <div class="sswrap ">
                 <a class="ss" href="#section-18">&#x00a7;</a>
               </div>
-              <p>Check that a system is compatible</p>
+              <p>Check that a C.System is compatible</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-title">checkCompSystem</span> :: <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Typing</span> ()
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">checkCompSystem</span> :: <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Typing</span> ()
 <span class="hljs-title">checkCompSystem</span> vus = <span class="hljs-keyword">do</span>
   ns &lt;- asks names
-  unless (isCompSystem ns vus)
-    (throwError $ <span class="hljs-string">&quot;Incompatible system &quot;</span> ++ showSystem vus)</pre></div></div>
+  unless (<span class="hljs-type">E</span>.isCompSystem ns vus)
+    (throwError $ <span class="hljs-string">&quot;Incompatible System &quot;</span> ++ <span class="hljs-type">C</span>.showSystem vus)</pre></div></div>
             
         </li>
         
@@ -600,7 +605,7 @@ systems have the same faces</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-title">checkSystemsWith</span> :: <span class="hljs-type">System</span> a -&gt; <span class="hljs-type">System</span> b -&gt; (<span class="hljs-type">Face</span> -&gt; a -&gt; b -&gt; <span class="hljs-type">Typing</span> c) -&gt;
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">checkSystemsWith</span> :: <span class="hljs-type">C</span>.<span class="hljs-type">System</span> a -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> b -&gt; (<span class="hljs-type">C</span>.<span class="hljs-type">Face</span> -&gt; a -&gt; b -&gt; <span class="hljs-type">Typing</span> c) -&gt;
                     <span class="hljs-type">Typing</span> ()
 <span class="hljs-title">checkSystemsWith</span> us vs f = sequence_ $ elems $ intersectionWithKey f us vs</pre></div></div>
             
@@ -613,11 +618,11 @@ systems have the same faces</p>
               <div class="sswrap ">
                 <a class="ss" href="#section-20">&#x00a7;</a>
               </div>
-              <p>Check the faces of a system</p>
+              <p>Check the faces of a C.System</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-title">checkSystemWith</span> :: <span class="hljs-type">System</span> a -&gt; (<span class="hljs-type">Face</span> -&gt; a -&gt; <span class="hljs-type">Typing</span> b) -&gt; <span class="hljs-type">Typing</span> ()
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">checkSystemWith</span> :: <span class="hljs-type">C</span>.<span class="hljs-type">System</span> a -&gt; (<span class="hljs-type">C</span>.<span class="hljs-type">Face</span> -&gt; a -&gt; <span class="hljs-type">Typing</span> b) -&gt; <span class="hljs-type">Typing</span> ()
 <span class="hljs-title">checkSystemWith</span> us f = sequence_ $ elems $ mapWithKey f us</pre></div></div>
             
         </li>
@@ -633,16 +638,16 @@ systems have the same faces</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-title">checkGlueElem</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Ter</span> -&gt; <span class="hljs-type">Typing</span> ()
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">checkGlueElem</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Ter</span> -&gt; <span class="hljs-type">Typing</span> ()
 <span class="hljs-title">checkGlueElem</span> vu ts us = <span class="hljs-keyword">do</span>
   unless (keys ts == keys us)
     (throwError (<span class="hljs-string">&quot;Keys don&#x27;t match in &quot;</span> ++ show ts ++ <span class="hljs-string">&quot; and &quot;</span> ++ show us))
   rho &lt;- asks env
   checkSystemsWith ts us
-    (\alpha vt u -&gt; local (faceEnv alpha) $ check (equivDom vt) u)
-  <span class="hljs-keyword">let</span> vus = evalSystem rho us
+    (\alpha vt u -&gt; local (faceEnv alpha) $ check (<span class="hljs-type">E</span>.equivDom vt) u)
+  <span class="hljs-keyword">let</span> vus = <span class="hljs-type">E</span>.evalSystem rho us
   checkSystemsWith ts vus (\alpha vt vAlpha -&gt;
-    unlessM (app (equivFun vt) vAlpha === (vu `face` alpha)) $
+    unlessM (<span class="hljs-type">E</span>.app (<span class="hljs-type">E</span>.equivFun vt) vAlpha === (vu `<span class="hljs-type">C</span>.face` alpha)) $
       throwError $ <span class="hljs-string">&quot;Image of glue component &quot;</span> ++ show vAlpha ++
                    <span class="hljs-string">&quot; doesn&#x27;t match &quot;</span> ++ show vu)
   checkCompSystem vus</pre></div></div>
@@ -660,25 +665,25 @@ systems have the same faces</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-title">checkGlueElemU</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Ter</span> -&gt; <span class="hljs-type">Typing</span> ()
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">checkGlueElemU</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Ter</span> -&gt; <span class="hljs-type">Typing</span> ()
 <span class="hljs-title">checkGlueElemU</span> vu ves us = <span class="hljs-keyword">do</span>
   unless (keys ves == keys us)
     (throwError (<span class="hljs-string">&quot;Keys don&#x27;t match in &quot;</span> ++ show ves ++ <span class="hljs-string">&quot; and &quot;</span> ++ show us))
   rho &lt;- asks env
   checkSystemsWith ves us
-    (\alpha ve u -&gt; local (faceEnv alpha) $ check (ve @@ <span class="hljs-type">One</span>) u)
-  <span class="hljs-keyword">let</span> vus = evalSystem rho us
+    (\alpha ve u -&gt; local (faceEnv alpha) $ check (ve <span class="hljs-type">E</span>.@@ <span class="hljs-type">C</span>.<span class="hljs-type">One</span>) u)
+  <span class="hljs-keyword">let</span> vus = <span class="hljs-type">E</span>.evalSystem rho us
   checkSystemsWith ves vus (\alpha ve vAlpha -&gt;
-    unlessM (eqFun ve vAlpha === (vu `face` alpha)) $
+    unlessM (<span class="hljs-type">E</span>.eqFun ve vAlpha === (vu `<span class="hljs-type">C</span>.face` alpha)) $
       throwError $ <span class="hljs-string">&quot;Transport of glueElem (for compU) component &quot;</span> ++ show vAlpha ++
                    <span class="hljs-string">&quot; doesn&#x27;t match &quot;</span> ++ show vu)
   checkCompSystem vus
 
-<span class="hljs-title">checkGlue</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Ter</span> -&gt; <span class="hljs-type">Typing</span> ()
+<span class="hljs-title">checkGlue</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Ter</span> -&gt; <span class="hljs-type">Typing</span> ()
 <span class="hljs-title">checkGlue</span> va ts = <span class="hljs-keyword">do</span>
-  checkSystemWith ts (\alpha tAlpha -&gt; checkEquiv (va `face` alpha) tAlpha)
+  checkSystemWith ts (\alpha tAlpha -&gt; checkEquiv (va `<span class="hljs-type">C</span>.face` alpha) tAlpha)
   rho &lt;- asks env
-  checkCompSystem (evalSystem rho ts)</pre></div></div>
+  checkCompSystem (<span class="hljs-type">E</span>.evalSystem rho ts)</pre></div></div>
             
         </li>
         
@@ -699,12 +704,12 @@ systems have the same faces</p>
             </div>
             
             <div class="content"><div class='highlight'><pre><span class="hljs-title">mkIso</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
-<span class="hljs-title">mkIso</span> vb = eval rho $
+<span class="hljs-title">mkIso</span> vb = <span class="hljs-type">E</span>.eval rho $
   <span class="hljs-type">Sigma</span> $ <span class="hljs-type">Lam</span> <span class="hljs-string">&quot;a&quot;</span> <span class="hljs-type">U</span> $
   <span class="hljs-type">Sigma</span> $ <span class="hljs-type">Lam</span> <span class="hljs-string">&quot;f&quot;</span> (<span class="hljs-type">Pi</span> (<span class="hljs-type">Lam</span> <span class="hljs-string">&quot;_&quot;</span> a b)) $
   <span class="hljs-type">Sigma</span> $ <span class="hljs-type">Lam</span> <span class="hljs-string">&quot;g&quot;</span> (<span class="hljs-type">Pi</span> (<span class="hljs-type">Lam</span> <span class="hljs-string">&quot;_&quot;</span> b a)) $
-  <span class="hljs-type">Sigma</span> $ <span class="hljs-type">Lam</span> <span class="hljs-string">&quot;s&quot;</span> (<span class="hljs-type">Pi</span> (<span class="hljs-type">Lam</span> <span class="hljs-string">&quot;y&quot;</span> b $ <span class="hljs-type">PathP</span> (<span class="hljs-type">PLam</span> (<span class="hljs-type">Name</span> <span class="hljs-string">&quot;_&quot;</span>) b) (<span class="hljs-type">App</span> f (<span class="hljs-type">App</span> g y)) y)) $
-    <span class="hljs-type">Pi</span> (<span class="hljs-type">Lam</span> <span class="hljs-string">&quot;x&quot;</span> a $ <span class="hljs-type">PathP</span> (<span class="hljs-type">PLam</span> (<span class="hljs-type">Name</span> <span class="hljs-string">&quot;_&quot;</span>) a) (<span class="hljs-type">App</span> g (<span class="hljs-type">App</span> f x)) x)
+  <span class="hljs-type">Sigma</span> $ <span class="hljs-type">Lam</span> <span class="hljs-string">&quot;s&quot;</span> (<span class="hljs-type">Pi</span> (<span class="hljs-type">Lam</span> <span class="hljs-string">&quot;y&quot;</span> b $ <span class="hljs-type">PathP</span> (<span class="hljs-type">PLam</span> (<span class="hljs-type">C</span>.<span class="hljs-type">Name</span> <span class="hljs-string">&quot;_&quot;</span>) b) (<span class="hljs-type">App</span> f (<span class="hljs-type">App</span> g y)) y)) $
+    <span class="hljs-type">Pi</span> (<span class="hljs-type">Lam</span> <span class="hljs-string">&quot;x&quot;</span> a $ <span class="hljs-type">PathP</span> (<span class="hljs-type">PLam</span> (<span class="hljs-type">C</span>.<span class="hljs-type">Name</span> <span class="hljs-string">&quot;_&quot;</span>) a) (<span class="hljs-type">App</span> g (<span class="hljs-type">App</span> f x)) x)
   <span class="hljs-keyword">where</span> [a,b,f,g,x,y] = map <span class="hljs-type">Var</span> [<span class="hljs-string">&quot;a&quot;</span>,<span class="hljs-string">&quot;b&quot;</span>,<span class="hljs-string">&quot;f&quot;</span>,<span class="hljs-string">&quot;g&quot;</span>,<span class="hljs-string">&quot;x&quot;</span>,<span class="hljs-string">&quot;y&quot;</span>]
         rho = upd (<span class="hljs-string">&quot;b&quot;</span>,vb) emptyEnv</pre></div></div>
             
@@ -726,15 +731,15 @@ with isContr c = (z : c) * ((z’ : C) -&gt; Id c z z’)</p>
             </div>
             
             <div class="content"><div class='highlight'><pre><span class="hljs-title">mkEquiv</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
-<span class="hljs-title">mkEquiv</span> va = eval rho $
+<span class="hljs-title">mkEquiv</span> va = <span class="hljs-type">E</span>.eval rho $
   <span class="hljs-type">Sigma</span> $ <span class="hljs-type">Lam</span> <span class="hljs-string">&quot;t&quot;</span> <span class="hljs-type">U</span> $
   <span class="hljs-type">Sigma</span> $ <span class="hljs-type">Lam</span> <span class="hljs-string">&quot;f&quot;</span> (<span class="hljs-type">Pi</span> (<span class="hljs-type">Lam</span> <span class="hljs-string">&quot;_&quot;</span> t a)) $
   <span class="hljs-type">Pi</span> (<span class="hljs-type">Lam</span> <span class="hljs-string">&quot;x&quot;</span> a $ iscontrfib)
   <span class="hljs-keyword">where</span> [a,b,f,x,y,s,t,z] = map <span class="hljs-type">Var</span> [<span class="hljs-string">&quot;a&quot;</span>,<span class="hljs-string">&quot;b&quot;</span>,<span class="hljs-string">&quot;f&quot;</span>,<span class="hljs-string">&quot;x&quot;</span>,<span class="hljs-string">&quot;y&quot;</span>,<span class="hljs-string">&quot;s&quot;</span>,<span class="hljs-string">&quot;t&quot;</span>,<span class="hljs-string">&quot;z&quot;</span>]
         rho = upd (<span class="hljs-string">&quot;a&quot;</span>,va) emptyEnv
-        fib = <span class="hljs-type">Sigma</span> $ <span class="hljs-type">Lam</span> <span class="hljs-string">&quot;y&quot;</span> t (<span class="hljs-type">PathP</span> (<span class="hljs-type">PLam</span> (<span class="hljs-type">Name</span> <span class="hljs-string">&quot;_&quot;</span>) a) x (<span class="hljs-type">App</span> f y))
+        fib = <span class="hljs-type">Sigma</span> $ <span class="hljs-type">Lam</span> <span class="hljs-string">&quot;y&quot;</span> t (<span class="hljs-type">PathP</span> (<span class="hljs-type">PLam</span> (<span class="hljs-type">C</span>.<span class="hljs-type">Name</span> <span class="hljs-string">&quot;_&quot;</span>) a) x (<span class="hljs-type">App</span> f y))
         iscontrfib = <span class="hljs-type">Sigma</span> $ <span class="hljs-type">Lam</span> <span class="hljs-string">&quot;s&quot;</span> fib $
-                     <span class="hljs-type">Pi</span> $ <span class="hljs-type">Lam</span> <span class="hljs-string">&quot;z&quot;</span> fib $ <span class="hljs-type">PathP</span> (<span class="hljs-type">PLam</span> (<span class="hljs-type">Name</span> <span class="hljs-string">&quot;_&quot;</span>) fib) s z
+                     <span class="hljs-type">Pi</span> $ <span class="hljs-type">Lam</span> <span class="hljs-string">&quot;z&quot;</span> fib $ <span class="hljs-type">PathP</span> (<span class="hljs-type">PLam</span> (<span class="hljs-type">C</span>.<span class="hljs-type">Name</span> <span class="hljs-string">&quot;_&quot;</span>) fib) s z
 
 <span class="hljs-title">checkEquiv</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Ter</span> -&gt; <span class="hljs-type">Typing</span> ()
 <span class="hljs-title">checkEquiv</span> va equiv = check (mkEquiv va) equiv
@@ -746,7 +751,7 @@ with isContr c = (z : c) * ((z’ : C) -&gt; Id c z z’)</p>
 <span class="hljs-title">checkBranch</span> (<span class="hljs-type">OLabel</span> _ tele,nu) f (<span class="hljs-type">OBranch</span> c ns e) _ _ = <span class="hljs-keyword">do</span>
   ns&#x27; &lt;- asks names
   <span class="hljs-keyword">let</span> us = map snd $ mkVars ns&#x27; tele nu
-  local (addBranch (zip ns us) nu) $ check (app f (<span class="hljs-type">VCon</span> c us)) e
+  local (addBranch (zip ns us) nu) $ check (<span class="hljs-type">E</span>.app f (<span class="hljs-type">VCon</span> c us)) e
 <span class="hljs-title">checkBranch</span> (<span class="hljs-type">PLabel</span> _ tele is ts,nu) f (<span class="hljs-type">PBranch</span> c ns js e) g va = <span class="hljs-keyword">do</span>
   ns&#x27; &lt;- asks names</pre></div></div>
             
@@ -765,29 +770,29 @@ with isContr c = (z : c) * ((z’ : C) -&gt; Id c z z’)</p>
             
             <div class="content"><div class='highlight'><pre>  <span class="hljs-keyword">let</span> us   = mkVars ns&#x27; tele nu
       vus  = map snd us
-      js&#x27;  = map <span class="hljs-type">Atom</span> js
-      vts  = evalSystem (subs (zip is js&#x27;) (upds us nu)) ts
-      vgts = intersectionWith app (border g vts) vts
+      js&#x27;  = map <span class="hljs-type">C</span>.<span class="hljs-type">Atom</span> js
+      vts  = <span class="hljs-type">E</span>.evalSystem (subs (zip is js&#x27;) (upds us nu)) ts
+      vgts = intersectionWith <span class="hljs-type">E</span>.app (<span class="hljs-type">C</span>.border g vts) vts
   local (addSubs (zip js js&#x27;) . addBranch (zip ns vus) nu) $ <span class="hljs-keyword">do</span>
-    check (app f (<span class="hljs-type">VPCon</span> c va vus js&#x27;)) e
+    check (<span class="hljs-type">E</span>.app f (<span class="hljs-type">VPCon</span> c va vus js&#x27;)) e
     ve  &lt;- evalTyping e <span class="hljs-comment">-- <span class="hljs-doctag">TODO:</span> combine with next two lines?</span>
-    <span class="hljs-keyword">let</span> veborder = border ve vts
+    <span class="hljs-keyword">let</span> veborder = <span class="hljs-type">C</span>.border ve vts
     unlessM (veborder === vgts) $
       throwError $ <span class="hljs-string">&quot;Faces in branch for &quot;</span> ++ show c ++ <span class="hljs-string">&quot; don&#x27;t match:&quot;</span>
-                   ++ <span class="hljs-string">&quot;\ngot\n&quot;</span> ++ showSystem veborder ++ <span class="hljs-string">&quot;\nbut expected\n&quot;</span>
-                   ++ showSystem vgts
+                   ++ <span class="hljs-string">&quot;\ngot\n&quot;</span> ++ <span class="hljs-type">C</span>.showSystem veborder ++ <span class="hljs-string">&quot;\nbut expected\n&quot;</span>
+                   ++ <span class="hljs-type">C</span>.showSystem vgts
 
-<span class="hljs-title">checkFormula</span> :: <span class="hljs-type">Formula</span> -&gt; <span class="hljs-type">Typing</span> ()
+<span class="hljs-title">checkFormula</span> :: <span class="hljs-type">C</span>.<span class="hljs-type">Formula</span> -&gt; <span class="hljs-type">Typing</span> ()
 <span class="hljs-title">checkFormula</span> phi = <span class="hljs-keyword">do</span>
   rho &lt;- asks env
   <span class="hljs-keyword">let</span> dom = domainEnv rho
-  unless (all (`elem` dom) (support phi)) $
+  unless (all (`elem` dom) (<span class="hljs-type">C</span>.support phi)) $
     throwError $ <span class="hljs-string">&quot;checkFormula: &quot;</span> ++ show phi
 
-<span class="hljs-title">checkFresh</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Typing</span> ()
+<span class="hljs-title">checkFresh</span> :: <span class="hljs-type">C</span>.<span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Typing</span> ()
 <span class="hljs-title">checkFresh</span> i = <span class="hljs-keyword">do</span>
   rho &lt;- asks env
-  when (i `elem` support rho)
+  when (i `elem` <span class="hljs-type">C</span>.support rho)
     (throwError $ show i ++ <span class="hljs-string">&quot; is already declared&quot;</span>)</pre></div></div>
             
         </li>
@@ -820,8 +825,8 @@ with isContr c = (z : c) * ((z’ : C) -&gt; Id c z z’)</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>  local (addSub (i,<span class="hljs-type">Atom</span> i)) $ check (v @@ i) a
-  return (eval (sub (i,<span class="hljs-type">Dir</span> <span class="hljs-number">0</span>) rho) a,eval (sub (i,<span class="hljs-type">Dir</span> <span class="hljs-number">1</span>) rho) a)
+            <div class="content"><div class='highlight'><pre>  local (addSub (i,<span class="hljs-type">C</span>.<span class="hljs-type">Atom</span> i)) $ check (v <span class="hljs-type">E</span>.@@ i) a
+  return (<span class="hljs-type">E</span>.eval (sub (i,<span class="hljs-type">C</span>.<span class="hljs-type">Dir</span> <span class="hljs-number">0</span>) rho) a, <span class="hljs-type">E</span>.eval (sub (i,<span class="hljs-type">C</span>.<span class="hljs-type">Dir</span> <span class="hljs-number">1</span>) rho) a)
 <span class="hljs-title">checkPLam</span> v t = <span class="hljs-keyword">do</span>
   vt &lt;- infer t
   <span class="hljs-keyword">case</span> vt <span class="hljs-keyword">of</span>
@@ -840,34 +845,34 @@ with isContr c = (z : c) * ((z’ : C) -&gt; Id c z z’)</p>
               <div class="sswrap ">
                 <a class="ss" href="#section-28">&#x00a7;</a>
               </div>
-              <p>Return system such that:
+              <p>Return C.System such that:
   rhoalpha |- p_alpha : Id (va alpha) (t0 rhoalpha) ualpha
-Moreover, check that the system ps is compatible.</p>
+Moreover, check that the C.System ps is compatible.</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-title">checkPLamSystem</span> :: <span class="hljs-type">Ter</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Ter</span> -&gt; <span class="hljs-type">Typing</span> (<span class="hljs-type">System</span> <span class="hljs-type">Val</span>)
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">checkPLamSystem</span> :: <span class="hljs-type">Ter</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Ter</span> -&gt; <span class="hljs-type">Typing</span> (<span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Val</span>)
 <span class="hljs-title">checkPLamSystem</span> t0 va ps = <span class="hljs-keyword">do</span>
   rho &lt;- asks env
   v &lt;- <span class="hljs-type">T</span>.sequence $ mapWithKey (\alpha pAlpha -&gt;
     local (faceEnv alpha) $ <span class="hljs-keyword">do</span>
       rhoAlpha &lt;- asks env
-      (a0,a1)  &lt;- checkPLam (va `face` alpha) pAlpha
-      unlessM (a0 === eval rhoAlpha t0) $
-        throwError $ <span class="hljs-string">&quot;Incompatible system &quot;</span> ++ showSystem ps ++
+      (a0,a1)  &lt;- checkPLam (va `<span class="hljs-type">C</span>.face` alpha) pAlpha
+      unlessM (a0 === <span class="hljs-type">E</span>.eval rhoAlpha t0) $
+        throwError $ <span class="hljs-string">&quot;Incompatible C.System &quot;</span> ++ <span class="hljs-type">C</span>.showSystem ps ++
                      <span class="hljs-string">&quot;, component\n &quot;</span> ++ show pAlpha ++
                      <span class="hljs-string">&quot;\nincompatible with\n &quot;</span> ++ show t0 ++
                      <span class="hljs-string">&quot;\na0 = &quot;</span> ++ show a0 ++
-                     <span class="hljs-string">&quot;\nt0alpha = &quot;</span> ++ show (eval rhoAlpha t0) ++
+                     <span class="hljs-string">&quot;\nt0alpha = &quot;</span> ++ show (<span class="hljs-type">E</span>.eval rhoAlpha t0) ++
                      <span class="hljs-string">&quot;\nva = &quot;</span> ++ show va
       return a1) ps
-  checkCompSystem (evalSystem rho ps)
+  checkCompSystem (<span class="hljs-type">E</span>.evalSystem rho ps)
   return v
 
 <span class="hljs-title">checks</span> :: (<span class="hljs-type">Tele</span>,<span class="hljs-type">Env</span>) -&gt; [<span class="hljs-type">Ter</span>] -&gt; <span class="hljs-type">Typing</span> ()
 <span class="hljs-title">checks</span> ([],_)         []     = return ()
 <span class="hljs-title">checks</span> ((x,a):xas,nu) (e:es) = <span class="hljs-keyword">do</span>
-  check (eval nu a) e
+  check (<span class="hljs-type">E</span>.eval nu a) e
   v&#x27; &lt;- evalTyping e
   checks (xas,upd (x,v&#x27;) nu) es
 <span class="hljs-title">checks</span> _              _      =
@@ -882,21 +887,21 @@ Moreover, check that the system ps is compatible.</p>
               <div class="sswrap ">
                 <a class="ss" href="#section-29">&#x00a7;</a>
               </div>
-              <p>infer the type of e</p>
+              <p>| infer the type of e</p>
 
             </div>
             
             <div class="content"><div class='highlight'><pre><span class="hljs-title">infer</span> :: <span class="hljs-type">Ter</span> -&gt; <span class="hljs-type">Typing</span> <span class="hljs-type">Val</span>
 <span class="hljs-title">infer</span> e = <span class="hljs-keyword">case</span> e <span class="hljs-keyword">of</span>
   <span class="hljs-type">U</span>           -&gt; return <span class="hljs-type">VU</span>  <span class="hljs-comment">-- U : U</span>
-  <span class="hljs-type">Var</span> n       -&gt; lookType n &lt;$&gt; asks env
+  <span class="hljs-type">Var</span> n       -&gt; <span class="hljs-type">E</span>.lookType n &lt;$&gt; asks env
   <span class="hljs-type">App</span> t u -&gt; <span class="hljs-keyword">do</span>
     c &lt;- infer t
     <span class="hljs-keyword">case</span> c <span class="hljs-keyword">of</span>
       <span class="hljs-type">VPi</span> a f -&gt; <span class="hljs-keyword">do</span>
         check a u
         v &lt;- evalTyping u
-        return $ app f v
+        return $ <span class="hljs-type">E</span>.app f v
       _       -&gt; throwError $ show c ++ <span class="hljs-string">&quot; is not a product&quot;</span>
   <span class="hljs-type">Fst</span> t -&gt; <span class="hljs-keyword">do</span>
     c &lt;- infer t
@@ -908,7 +913,7 @@ Moreover, check that the system ps is compatible.</p>
     <span class="hljs-keyword">case</span> c <span class="hljs-keyword">of</span>
       <span class="hljs-type">VSigma</span> a f -&gt; <span class="hljs-keyword">do</span>
         v &lt;- evalTyping t
-        return $ app f (fstVal v)
+        return $ <span class="hljs-type">E</span>.app f (<span class="hljs-type">E</span>.fstVal v)
       _          -&gt; throwError $ show c ++ <span class="hljs-string">&quot; is not a sigma-type&quot;</span>
   <span class="hljs-type">Where</span> t d -&gt; <span class="hljs-keyword">do</span>
     checkDecls d
@@ -922,7 +927,7 @@ Moreover, check that the system ps is compatible.</p>
     checkFormula phi
     t &lt;- infer e
     <span class="hljs-keyword">case</span> t <span class="hljs-keyword">of</span>
-      <span class="hljs-type">VPathP</span> a _ _ -&gt; return $ a @@ phi
+      <span class="hljs-type">VPathP</span> a _ _ -&gt; return $ a <span class="hljs-type">E</span>.@@ phi
       _ -&gt; throwError (show e ++ <span class="hljs-string">&quot; is not a path&quot;</span>)
   <span class="hljs-type">Comp</span> a t0 ps -&gt; <span class="hljs-keyword">do</span>
     (va0, va1) &lt;- checkPLam (constPath <span class="hljs-type">VU</span>) a
@@ -943,8 +948,8 @@ Moreover, check that the system ps is compatible.</p>
     checkPLamSystem t0 va ps
     vt  &lt;- evalTyping t0
     rho &lt;- asks env
-    <span class="hljs-keyword">let</span> vps = evalSystem rho ps
-    return (<span class="hljs-type">VPathP</span> va vt (compLine va vt vps))
+    <span class="hljs-keyword">let</span> vps = <span class="hljs-type">E</span>.evalSystem rho ps
+    return (<span class="hljs-type">VPathP</span> va vt (<span class="hljs-type">E</span>.compLine va vt vps))
   <span class="hljs-type">PCon</span> c a es phis -&gt; <span class="hljs-keyword">do</span>
     check <span class="hljs-type">VU</span> a
     va &lt;- evalTyping a
@@ -957,18 +962,18 @@ Moreover, check that the system ps is compatible.</p>
     va &lt;- evalTyping a
     check va u
     vu &lt;- evalTyping u
-    <span class="hljs-keyword">let</span> refu = <span class="hljs-type">VIdPair</span> (constPath vu) $ mkSystem [(eps,vu)]
+    <span class="hljs-keyword">let</span> refu = <span class="hljs-type">VIdPair</span> (constPath vu) $ <span class="hljs-type">C</span>.mkSystem [(<span class="hljs-type">C</span>.eps,vu)]
     rho &lt;- asks env
     <span class="hljs-keyword">let</span> z = <span class="hljs-type">Var</span> <span class="hljs-string">&quot;z&quot;</span>
-        ctype = eval rho $ <span class="hljs-type">Pi</span> $ <span class="hljs-type">Lam</span> <span class="hljs-string">&quot;z&quot;</span> a $ <span class="hljs-type">Pi</span> $ <span class="hljs-type">Lam</span> <span class="hljs-string">&quot;_&quot;</span> (<span class="hljs-type">Id</span> a u z) <span class="hljs-type">U</span>
+        ctype = <span class="hljs-type">E</span>.eval rho $ <span class="hljs-type">Pi</span> $ <span class="hljs-type">Lam</span> <span class="hljs-string">&quot;z&quot;</span> a $ <span class="hljs-type">Pi</span> $ <span class="hljs-type">Lam</span> <span class="hljs-string">&quot;_&quot;</span> (<span class="hljs-type">Id</span> a u z) <span class="hljs-type">U</span>
     check ctype c
     vc &lt;- evalTyping c
-    check (app (app vc vu) refu) d
+    check (<span class="hljs-type">E</span>.app (<span class="hljs-type">E</span>.app vc vu) refu) d
     check va x
     vx &lt;- evalTyping x
     check (<span class="hljs-type">VId</span> va vu vx) p
     vp &lt;- evalTyping p
-    return (app (app vc vx) vp)
+    return (<span class="hljs-type">E</span>.app (<span class="hljs-type">E</span>.app vc vx) vp)
   _ -&gt; throwError (<span class="hljs-string">&quot;infer &quot;</span> ++ show e)</pre></div></div>
             
         </li>

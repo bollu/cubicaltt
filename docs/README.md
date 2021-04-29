@@ -18,6 +18,13 @@ Grammar generated with [BNF converter](./../Exp.cf)
 $ stack build && stack exec cubical -- examples/circle.ctt -t
 ```
 
+# Notes
+
+- Modules are made more explicit, so type checker imports eval as `E`, everyone
+  imports `Connection` (the cubical data structure as `C`, and so on.
+
+# Prior information
+
 Experimental implementation of [Cubical Type
 Theory](http://www.cse.chalmers.se/~coquand/cubicaltt.pdf) in which
 the user can directly manipulate n-dimensional cubes. The language

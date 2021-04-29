@@ -11,7 +11,7 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import Prelude hiding ((<>))
 
-import Connections
+import qualified Connections as C
 
 --------------------------------------------------------------------------------
 -- | Terms, with type |Ter|.
@@ -31,22 +31,22 @@ type LIdent = String
 type Tele   = [(Ident,Ter)]
 
 -- | from Exp.cf:
--- |   System.     System ::= "[" [Side] "]" ;|
+-- |   C.System.     C.System ::= "[" [Side] "]" ;|
 -- |   Side.   Side ::= [Face] "->" Exp ;
 -- |   separator Side "," ;
 -- |   Face.     Face ::= "(" AIdent "=" Dir ")" ;
 -- |   separator Face "" ;
--- | System comes from Connections.hs. 
--- | System Ter is a map from Face to Term, 
+-- | C.System comes from Connections.hs. 
+-- | C.System Ter is a map from Face to Term, 
 --      where the faces are incomparable.
 data Label = OLabel LIdent Tele -- Object label
-           | PLabel LIdent Tele [Name] (System Ter) -- Path label
+           | PLabel LIdent Tele [C.Name] (C.System Ter) -- Path label
   deriving (Eq,Show)
 
 -- | OBranch of the form: c x1 .. xn -> e
 -- | PBranch of the form: c x1 .. xn i1 .. im -> e
 data Branch = OBranch LIdent [Ident] Ter
-            | PBranch LIdent [Ident] [Name] Ter
+            | PBranch LIdent [Ident] [C.Name] Ter
   deriving (Eq,Show)
 
 -- Declarations: x : A = e
@@ -85,7 +85,7 @@ labelTeles = map labelTele
 lookupLabel :: LIdent -> [Label] -> Maybe Tele
 lookupLabel x xs = lookup x (labelTeles xs)
 
-lookupPLabel :: LIdent -> [Label] -> Maybe (Tele,[Name],System Ter)
+lookupPLabel :: LIdent -> [Label] -> Maybe (Tele,[C.Name],C.System Ter)
 lookupPLabel x xs = listToMaybe [ (ts,is,es) | PLabel y ts is es <- xs, x == y ]
 
 branchName :: Branch -> LIdent
@@ -115,7 +115,7 @@ data Ter = Pi Ter -- TODO: ?
          | Snd Ter -- snd t
            -- constructor c Ms
          | Con LIdent [Ter]
-         | PCon LIdent Ter [Ter] [Formula] -- c A ts phis (A is the data type)
+         | PCon LIdent Ter [Ter] [C.Formula] -- c A ts phis (A is the data type)
            -- branches c1 xs1  -> M1,..., cn xsn -> Mn
          | Split Ident Loc Ter [Branch]
            -- labelled sum c1 A1s,..., cn Ans (assumes terms are constructors)
@@ -126,19 +126,19 @@ data Ter = Pi Ter -- TODO: ?
          | Hole Loc
            -- Path types
          | PathP Ter Ter Ter
-         | PLam Name Ter
-         | AppFormula Ter Formula
+         | PLam C.Name Ter
+         | AppFormula Ter C.Formula
            -- Kan composition and filling
-         | Comp Ter Ter (System Ter)
-         | Fill Ter Ter (System Ter)
-         | HComp Ter Ter (System Ter)
+         | Comp Ter Ter (C.System Ter)
+         | Fill Ter Ter (C.System Ter)
+         | HComp Ter Ter (C.System Ter)
          -- Glue
-         | Glue Ter (System Ter)
-         | GlueElem Ter (System Ter)
-         | UnGlueElem Ter (System Ter)
+         | Glue Ter (C.System Ter)
+         | GlueElem Ter (C.System Ter)
+         | UnGlueElem Ter (C.System Ter)
            -- Id
          | Id Ter Ter Ter
-         | IdPair Ter (System Ter)
+         | IdPair Ter (C.System Ter)
          | IdJ Ter Ter Ter Ter Ter Ter
   deriving Eq
 
@@ -166,27 +166,27 @@ data Val = VU
          | VSigma Val Val
          | VPair Val Val
          | VCon LIdent [Val]
-         | VPCon LIdent Val [Val] [Formula]
+         | VPCon LIdent Val [Val] [C.Formula]
 
            -- Path values
          | VPathP Val Val Val
-         | VPLam Name Val
-         | VComp Val Val (System Val)
+         | VPLam C.Name Val
+         | VComp Val Val (C.System Val)
 
            -- Glue values
-         | VGlue Val (System Val)
-         | VGlueElem Val (System Val)
-         | VUnGlueElem Val (System Val)
+         | VGlue Val (C.System Val)
+         | VGlueElem Val (C.System Val)
+         | VUnGlueElem Val (C.System Val)
 
            -- Composition in the universe
-         | VCompU Val (System Val)
+         | VCompU Val (C.System Val)
 
            -- Composition for HITs; the type is constant
-         | VHComp Val Val (System Val)
+         | VHComp Val Val (C.System Val)
 
            -- Id
          | VId Val Val Val
-         | VIdPair Val (System Val)
+         | VIdPair Val (C.System Val)
 
            -- TODO: Neutral => normalization by evaluation?
            -- Neutral values:
@@ -196,9 +196,9 @@ data Val = VU
          | VSnd Val
          | VSplit Val Val
          | VApp Val Val
-         | VAppFormula Val Formula
+         | VAppFormula Val C.Formula
          | VLam Ident Val Val
-         | VUnGlueElemU Val Val (System Val)
+         | VUnGlueElemU Val Val (C.System Val)
          | VIdJ Val Val Val Val Val Val
   deriving Eq
 
@@ -219,7 +219,7 @@ isNeutral v = case v of
   VIdJ{}         -> True
   _              -> False
 
-isNeutralSystem :: System Val -> Bool
+isNeutralSystem :: C.System Val -> Bool
 isNeutralSystem = any isNeutral . elems
 
 -- isNeutralPath :: Val -> Bool
@@ -243,7 +243,7 @@ isCon _      = False
 
 -- Constant path: <_> v
 constPath :: Val -> Val
-constPath = VPLam (Name "_")
+constPath = VPLam (C.Name "_")
 
 
 --------------------------------------------------------------------------------
@@ -251,7 +251,7 @@ constPath = VPLam (Name "_")
 
 data Ctxt = Empty
           | Upd Ident Ctxt
-          | Sub Name Ctxt
+          | Sub C.Name Ctxt
           | Def Loc [Decl] Ctxt
   deriving (Show)
 
@@ -269,30 +269,30 @@ instance Eq Ctxt where
 -- lists. This is more efficient because acting on an environment now
 -- only need to affect the lists and not the whole context.
 -- The last list is the list of opaque names
--- | Nameless comes from Connections.hs
-newtype Env = Env (Ctxt,[Val],[Formula],Nameless (Set Ident))
+-- | C.Nameless comes from Connections.hs
+newtype Env = Env (Ctxt,[Val],[C.Formula],C.Nameless (Set Ident))
   deriving (Eq)
 
 emptyEnv :: Env
-emptyEnv = Env (Empty,[],[],Nameless Set.empty)
+emptyEnv = Env (Empty,[],[],C.Nameless Set.empty)
 
 def :: Decls -> Env -> Env
-def (MutualDecls m ds) (Env (rho,vs,fs,Nameless os)) = Env (Def m ds rho,vs,fs,Nameless (os Set.\\ Set.fromList (declIdents ds)))
-def (OpaqueDecl n) (Env (rho,vs,fs,Nameless os)) = Env (rho,vs,fs,Nameless (Set.insert n os))
-def (TransparentDecl n) (Env (rho,vs,fs,Nameless os)) = Env (rho,vs,fs,Nameless (Set.delete n os))
-def TransparentAllDecl (Env (rho,vs,fs,Nameless os)) = Env (rho,vs,fs,Nameless Set.empty)
+def (MutualDecls m ds) (Env (rho,vs,fs,C.Nameless os)) = Env (Def m ds rho,vs,fs,C.Nameless (os Set.\\ Set.fromList (declIdents ds)))
+def (OpaqueDecl n) (Env (rho,vs,fs,C.Nameless os)) = Env (rho,vs,fs,C.Nameless (Set.insert n os))
+def (TransparentDecl n) (Env (rho,vs,fs,C.Nameless os)) = Env (rho,vs,fs,C.Nameless (Set.delete n os))
+def TransparentAllDecl (Env (rho,vs,fs,C.Nameless os)) = Env (rho,vs,fs,C.Nameless Set.empty)
 
 defWhere :: Decls -> Env -> Env
-defWhere (MutualDecls m ds) (Env (rho,vs,fs,Nameless os)) = Env (Def m ds rho,vs,fs,Nameless (os Set.\\ Set.fromList (declIdents ds)))
+defWhere (MutualDecls m ds) (Env (rho,vs,fs,C.Nameless os)) = Env (Def m ds rho,vs,fs,C.Nameless (os Set.\\ Set.fromList (declIdents ds)))
 defWhere (OpaqueDecl _) rho = rho
 defWhere (TransparentDecl _) rho = rho
 defWhere TransparentAllDecl rho = rho
 
-sub :: (Name,Formula) -> Env -> Env
+sub :: (C.Name,C.Formula) -> Env -> Env
 sub (i,phi) (Env (rho,vs,fs,os)) = Env (Sub i rho,vs,phi:fs,os)
 
 upd :: (Ident,Val) -> Env -> Env
-upd (x,v) (Env (rho,vs,fs,Nameless os)) = Env (Upd x rho,v:vs,fs,Nameless (Set.delete x os))
+upd (x,v) (Env (rho,vs,fs,C.Nameless os)) = Env (Upd x rho,v:vs,fs,C.Nameless (Set.delete x os))
 
 upds :: [(Ident,Val)] -> Env -> Env
 upds xus rho = foldl (flip upd) rho xus
@@ -300,22 +300,22 @@ upds xus rho = foldl (flip upd) rho xus
 updsTele :: Tele -> [Val] -> Env -> Env
 updsTele tele vs = upds (zip (map fst tele) vs)
 
-subs :: [(Name,Formula)] -> Env -> Env
+subs :: [(C.Name,C.Formula)] -> Env -> Env
 subs iphis rho = foldl (flip sub) rho iphis
 
-mapEnv :: (Val -> Val) -> (Formula -> Formula) -> Env -> Env
+mapEnv :: (Val -> Val) -> (C.Formula -> C.Formula) -> Env -> Env
 mapEnv f g (Env (rho,vs,fs,os)) = Env (rho,map f vs,map g fs,os)
 
-valAndFormulaOfEnv :: Env -> ([Val],[Formula])
+valAndFormulaOfEnv :: Env -> ([Val],[C.Formula])
 valAndFormulaOfEnv (Env (_,vs,fs,_)) = (vs,fs)
 
 valOfEnv :: Env -> [Val]
 valOfEnv = fst . valAndFormulaOfEnv
 
-formulaOfEnv :: Env -> [Formula]
+formulaOfEnv :: Env -> [C.Formula]
 formulaOfEnv = snd . valAndFormulaOfEnv
 
-domainEnv :: Env -> [Name]
+domainEnv :: Env -> [C.Name]
 domainEnv (Env (rho,_,_,_)) = domCtxt rho
   where domCtxt rho = case rho of
           Empty      -> []
@@ -365,10 +365,10 @@ instance Show Loc where
 showLoc :: Loc -> Doc
 showLoc (Loc name (i,j)) = text (show (i,j) ++ " in " ++ name)
 
-showFormula :: Formula -> Doc
+showFormula :: C.Formula -> Doc
 showFormula phi = case phi of
-  _ :\/: _ -> parens (text (show phi))
-  _ :/\: _ -> parens (text (show phi))
+  _ C.:\/: _ -> parens (text (show phi))
+  _ C.:/\: _ -> parens (text (show phi))
   _ -> text $ show phi
 
 instance Show Ter where
@@ -398,14 +398,14 @@ showTer v = case v of
   PathP e0 e1 e2     -> text "PathP" <+> showTers [e0,e1,e2]
   PLam i e           -> char '<' <> text (show i) <> char '>' <+> showTer e
   AppFormula e phi   -> showTer1 e <+> char '@' <+> showFormula phi
-  Comp e t ts        -> text "comp" <+> showTers [e,t] <+> text (showSystem ts)
-  HComp e t ts       -> text "hComp" <+> showTers [e,t] <+> text (showSystem ts) 
-  Fill e t ts        -> text "fill" <+> showTers [e,t] <+> text (showSystem ts)
-  Glue a ts          -> text "Glue" <+> showTer1 a <+> text (showSystem ts)
-  GlueElem a ts      -> text "glue" <+> showTer1 a <+> text (showSystem ts)
-  UnGlueElem a ts    -> text "unglue" <+> showTer1 a <+> text (showSystem ts)
+  Comp e t ts        -> text "comp" <+> showTers [e,t] <+> text (C.showSystem ts)
+  HComp e t ts       -> text "hComp" <+> showTers [e,t] <+> text (C.showSystem ts) 
+  Fill e t ts        -> text "fill" <+> showTers [e,t] <+> text (C.showSystem ts)
+  Glue a ts          -> text "Glue" <+> showTer1 a <+> text (C.showSystem ts)
+  GlueElem a ts      -> text "glue" <+> showTer1 a <+> text (C.showSystem ts)
+  UnGlueElem a ts    -> text "unglue" <+> showTer1 a <+> text (C.showSystem ts)
   Id a u v           -> text "Id" <+> showTers [a,u,v]
-  IdPair b ts        -> text "idC" <+> showTer1 b <+> text (showSystem ts)
+  IdPair b ts        -> text "idC" <+> showTer1 b <+> text (C.showSystem ts)
   IdJ a t c d x p    -> text "idJ" <+> showTers [a,t,c,d,x,p]
 
 showTers :: [Ter] -> Doc
@@ -446,7 +446,7 @@ showVal v = case v of
   VCon c us         -> text c <+> showVals us
   VPCon c a us phis -> text c <+> braces (showVal a) <+> showVals us
                        <+> hsep (map ((char '@' <+>) . showFormula) phis)
-  VHComp v0 v1 vs   -> text "hComp" <+> showVals [v0,v1] <+> text (showSystem vs)
+  VHComp v0 v1 vs   -> text "hComp" <+> showVals [v0,v1] <+> text (C.showSystem vs)
   VPi a l@(VLam x t b)
     | "_" `isPrefixOf` x -> showVal1 a <+> text "->" <+> showVal1 b
     | otherwise          -> char '(' <> showLam v
@@ -464,15 +464,15 @@ showVal v = case v of
   VPathP v0 v1 v2   -> text "PathP" <+> showVals [v0,v1,v2]
   VAppFormula v phi -> showVal v <+> char '@' <+> showFormula phi
   VComp v0 v1 vs    ->
-    text "comp" <+> showVals [v0,v1] <+> text (showSystem vs)
-  VGlue a ts        -> text "Glue" <+> showVal1 a <+> text (showSystem ts)
-  VGlueElem a ts    -> text "glue" <+> showVal1 a <+> text (showSystem ts)
-  VUnGlueElem a ts  -> text "unglue" <+> showVal1 a <+> text (showSystem ts)
+    text "comp" <+> showVals [v0,v1] <+> text (C.showSystem vs)
+  VGlue a ts        -> text "Glue" <+> showVal1 a <+> text (C.showSystem ts)
+  VGlueElem a ts    -> text "glue" <+> showVal1 a <+> text (C.showSystem ts)
+  VUnGlueElem a ts  -> text "unglue" <+> showVal1 a <+> text (C.showSystem ts)
   VUnGlueElemU v b es -> text "unglue U" <+> showVals [v,b]
-                         <+> text (showSystem es)
-  VCompU a ts       -> text "comp (<_> U)" <+> showVal1 a <+> text (showSystem ts)
+                         <+> text (C.showSystem es)
+  VCompU a ts       -> text "comp (<_> U)" <+> showVal1 a <+> text (C.showSystem ts)
   VId a u v           -> text "Id" <+> showVals [a,u,v]
-  VIdPair b ts        -> text "idC" <+> showVal1 b <+> text (showSystem ts)
+  VIdPair b ts        -> text "idC" <+> showVal1 b <+> text (C.showSystem ts)
   VIdJ a t c d x p    -> text "idJ" <+> showVals [a,t,c,d,x,p]
 
 showPLam :: Val -> Doc

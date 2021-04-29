@@ -35,6 +35,36 @@
                 </a>
               
                 
+                <a class="source" href="Exp/Abs.html">
+                  Exp/Abs.hs
+                </a>
+              
+                
+                <a class="source" href="Exp/ErrM.html">
+                  Exp/ErrM.hs
+                </a>
+              
+                
+                <a class="source" href="Exp/Layout.html">
+                  Exp/Layout.hs
+                </a>
+              
+                
+                <a class="source" href="Exp/Print.html">
+                  Exp/Print.hs
+                </a>
+              
+                
+                <a class="source" href="Exp/Skel.html">
+                  Exp/Skel.hs
+                </a>
+              
+                
+                <a class="source" href="Exp/Test.html">
+                  Exp/Test.hs
+                </a>
+              
+                
                 <a class="source" href="Main.html">
                   Main.hs
                 </a>
@@ -93,7 +123,13 @@
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-keyword">module</span> Resolver <span class="hljs-keyword">where</span>
+            <div class="content"><div class='highlight'><pre><span class="hljs-keyword">module</span> Resolver(
+   <span class="hljs-title">resolveModule</span>
+   , <span class="hljs-title">resolveModules</span>
+   , <span class="hljs-type">SymKind(..)</span>
+   , <span class="hljs-title">runResolver</span>
+   , <span class="hljs-title">resolveExp</span>
+   , <span class="hljs-title">insertIdents</span>) <span class="hljs-keyword">where</span>
 
 <span class="hljs-keyword">import</span> Control.Applicative
 <span class="hljs-keyword">import</span> Control.Monad

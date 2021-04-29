@@ -1,7 +1,14 @@
 {-# LANGUAGE TupleSections #-}
 
 -- | Convert the concrete syntax into the syntax of cubical TT.
-module Resolver where
+module Resolver(
+     Resolver
+   , resolveModule
+   , resolveModules
+   , SymKind(..)
+   , runResolver
+   , resolveExp
+   , insertIdents) where
 
 import Control.Applicative
 import Control.Monad
@@ -78,7 +85,7 @@ data Env = Env { envModule :: String,
                  variables :: [(Ident,SymKind)] }
   deriving (Eq,Show)
 
-type Resolver a = ReaderT Env (ExceptT String Identity) a
+type Resolver a = ReaderT Env (Except String) a
 
 emptyEnv :: Env
 emptyEnv = Env "" []

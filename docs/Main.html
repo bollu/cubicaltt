@@ -35,6 +35,36 @@
                 </a>
               
                 
+                <a class="source" href="Exp/Abs.html">
+                  Exp/Abs.hs
+                </a>
+              
+                
+                <a class="source" href="Exp/ErrM.html">
+                  Exp/ErrM.hs
+                </a>
+              
+                
+                <a class="source" href="Exp/Layout.html">
+                  Exp/Layout.hs
+                </a>
+              
+                
+                <a class="source" href="Exp/Print.html">
+                  Exp/Print.hs
+                </a>
+              
+                
+                <a class="source" href="Exp/Skel.html">
+                  Exp/Skel.hs
+                </a>
+              
+                
+                <a class="source" href="Exp/Test.html">
+                  Exp/Test.hs
+                </a>
+              
+                
                 <a class="source" href="Main.html">
                   Main.hs
                 </a>
@@ -115,7 +145,7 @@
               <div class="sswrap ">
                 <a class="ss" href="#section-2">&#x00a7;</a>
               </div>
-              <p>Flag handling</p>
+              <p>| Flags</p>
 
             </div>
             
@@ -138,7 +168,7 @@
               <div class="sswrap ">
                 <a class="ss" href="#section-3">&#x00a7;</a>
               </div>
-              <p>Version number, welcome message, usage and prompt strings</p>
+              <p>| Version number, welcome message, usage and prompt strings</p>
 
             </div>
             
@@ -146,15 +176,7 @@
 <span class="hljs-title">version</span> = <span class="hljs-string">&quot;1.0&quot;</span>
 <span class="hljs-title">welcome</span> = <span class="hljs-string">&quot;cubical, version: &quot;</span> ++ version ++ <span class="hljs-string">&quot;  (:h for help)\n&quot;</span>
 <span class="hljs-title">usage</span>   = <span class="hljs-string">&quot;Usage: cubical [options] &lt;file.ctt&gt;\nOptions:&quot;</span>
-<span class="hljs-title">prompt</span>  = <span class="hljs-string">&quot;&gt; &quot;</span>
-
-<span class="hljs-title">lexer</span> :: <span class="hljs-type">String</span> -&gt; [<span class="hljs-type">Token</span>]
-<span class="hljs-title">lexer</span> = resolveLayout <span class="hljs-type">True</span> . myLexer
-
-<span class="hljs-title">showTree</span> :: (<span class="hljs-type">Show</span> a, <span class="hljs-type">Print</span> a) =&gt; a -&gt; <span class="hljs-type">IO</span> ()
-<span class="hljs-title">showTree</span> tree = <span class="hljs-keyword">do</span>
-  putStrLn $ <span class="hljs-string">&quot;\n[Abstract Syntax]\n\n&quot;</span> ++ show tree
-  putStrLn $ <span class="hljs-string">&quot;\n[Linearized tree]\n\n&quot;</span> ++ printTree tree</pre></div></div>
+<span class="hljs-title">prompt</span>  = <span class="hljs-string">&quot;&gt; &quot;</span></pre></div></div>
             
         </li>
         
@@ -165,20 +187,11 @@
               <div class="sswrap ">
                 <a class="ss" href="#section-4">&#x00a7;</a>
               </div>
-              <p>Used for auto completion</p>
+              <p>| main loop. Allows file loading, after which one is put in a file context</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre><span class="hljs-title">searchFunc</span> :: [<span class="hljs-type">String</span>] -&gt; <span class="hljs-type">String</span> -&gt; [<span class="hljs-type">Completion</span>]
-<span class="hljs-title">searchFunc</span> ns str = map simpleCompletion $ filter (str `isPrefixOf`) ns
-
-<span class="hljs-title">settings</span> :: [<span class="hljs-type">String</span>] -&gt; <span class="hljs-type">Settings</span> <span class="hljs-type">IO</span>
-<span class="hljs-title">settings</span> ns = <span class="hljs-type">Settings</span>
-  { historyFile    = <span class="hljs-type">Nothing</span>
-  , complete       = completeWord <span class="hljs-type">Nothing</span> <span class="hljs-string">&quot; \t&quot;</span> $ return . searchFunc ns
-  , autoAddHistory = <span class="hljs-type">True</span> }
-
-<span class="hljs-title">main</span> :: <span class="hljs-type">IO</span> ()
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">main</span> :: <span class="hljs-type">IO</span> ()
 <span class="hljs-title">main</span> = <span class="hljs-keyword">do</span>
   args &lt;- getArgs
   <span class="hljs-keyword">case</span> getOpt <span class="hljs-type">Permute</span> options args <span class="hljs-keyword">of</span>
@@ -196,10 +209,7 @@
        _   -&gt; putStrLn $ <span class="hljs-string">&quot;Input error: zero or one file expected\n\n&quot;</span> ++
                          usageInfo usage options
     (_,_,errs) -&gt; putStrLn $ <span class="hljs-string">&quot;Input error: &quot;</span> ++ concat errs ++ <span class="hljs-string">&quot;\n&quot;</span> ++
-                             usageInfo usage options
-
-<span class="hljs-title">shrink</span> :: <span class="hljs-type">String</span> -&gt; <span class="hljs-type">String</span>
-<span class="hljs-title">shrink</span> s = s <span class="hljs-comment">-- if length s &gt; 1000 then take 1000 s ++ &quot;...&quot; else s</span></pre></div></div>
+                             usageInfo usage options</pre></div></div>
             
         </li>
         
@@ -210,7 +220,7 @@
               <div class="sswrap ">
                 <a class="ss" href="#section-5">&#x00a7;</a>
               </div>
-              <p>Initialize the main loop</p>
+              <p>| Initialize the main loop of a given file</p>
 
             </div>
             
@@ -246,7 +256,7 @@
               <div class="sswrap ">
                 <a class="ss" href="#section-7">&#x00a7;</a>
               </div>
-              <p>Translate to TT</p>
+              <p>| Translate to TT. comes from Resolver.hs.</p>
 
             </div>
             
@@ -284,7 +294,16 @@
         <span class="hljs-keyword">then</span> return ()
         <span class="hljs-keyword">else</span> <span class="hljs-comment">-- Compute names for auto completion</span>
              runInputT (settings [n | (n,_) &lt;- names])
-               (putHistory hist &gt;&gt; loop flags f names tenv)</pre></div></div>
+               (putHistory hist &gt;&gt; loop flags f names tenv)
+
+
+<span class="hljs-title">lexer</span> :: <span class="hljs-type">String</span> -&gt; [<span class="hljs-type">Token</span>]
+<span class="hljs-title">lexer</span> = resolveLayout <span class="hljs-type">True</span> . myLexer
+
+<span class="hljs-title">showTree</span> :: (<span class="hljs-type">Show</span> a, <span class="hljs-type">Print</span> a) =&gt; a -&gt; <span class="hljs-type">IO</span> ()
+<span class="hljs-title">showTree</span> tree = <span class="hljs-keyword">do</span>
+  putStrLn $ <span class="hljs-string">&quot;\n[Abstract Syntax]\n\n&quot;</span> ++ show tree
+  putStrLn $ <span class="hljs-string">&quot;\n[Linearized tree]\n\n&quot;</span> ++ printTree tree</pre></div></div>
             
         </li>
         
@@ -294,6 +313,32 @@
               
               <div class="sswrap ">
                 <a class="ss" href="#section-9">&#x00a7;</a>
+              </div>
+              <p>Used for auto completion</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">searchFunc</span> :: [<span class="hljs-type">String</span>] -&gt; <span class="hljs-type">String</span> -&gt; [<span class="hljs-type">Completion</span>]
+<span class="hljs-title">searchFunc</span> ns str = map simpleCompletion $ filter (str `isPrefixOf`) ns
+
+<span class="hljs-title">settings</span> :: [<span class="hljs-type">String</span>] -&gt; <span class="hljs-type">Settings</span> <span class="hljs-type">IO</span>
+<span class="hljs-title">settings</span> ns = <span class="hljs-type">Settings</span>
+  { historyFile    = <span class="hljs-type">Nothing</span>
+  , complete       = completeWord <span class="hljs-type">Nothing</span> <span class="hljs-string">&quot; \t&quot;</span> $ return . searchFunc ns
+  , autoAddHistory = <span class="hljs-type">True</span> }
+
+
+<span class="hljs-title">shrink</span> :: <span class="hljs-type">String</span> -&gt; <span class="hljs-type">String</span>
+<span class="hljs-title">shrink</span> s = s <span class="hljs-comment">-- if length s &gt; 1000 then take 1000 s ++ &quot;...&quot; else s</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-10">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-10">&#x00a7;</a>
               </div>
               <p>The main loop</p>
 
@@ -336,11 +381,11 @@
         </li>
         
         
-        <li id="section-10">
+        <li id="section-11">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-10">&#x00a7;</a>
+                <a class="ss" href="#section-11">&#x00a7;</a>
               </div>
               <p>Let’s not crash if the evaluation raises an error:</p>
 
@@ -351,11 +396,11 @@
         </li>
         
         
-        <li id="section-11">
+        <li id="section-12">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-11">&#x00a7;</a>
+                <a class="ss" href="#section-12">&#x00a7;</a>
               </div>
               <p>(writeFile “examples/nunivalence3.ctt” (show e))</p>
 
@@ -368,11 +413,11 @@
         </li>
         
         
-        <li id="section-12">
+        <li id="section-13">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-12">&#x00a7;</a>
+                <a class="ss" href="#section-13">&#x00a7;</a>
               </div>
               <p>Compute time and print nicely</p>
 
@@ -389,11 +434,11 @@
         </li>
         
         
-        <li id="section-13">
+        <li id="section-14">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-13">&#x00a7;</a>
+                <a class="ss" href="#section-14">&#x00a7;</a>
               </div>
               <p>Only print in seconds:
 when (Time <code>elem</code> flags) $ outputStrLn $ “Time: “ ++ show time</p>
@@ -405,13 +450,14 @@ when (Time <code>elem</code> flags) $ outputStrLn $ “Time: “ ++ show time</p
         </li>
         
         
-        <li id="section-14">
+        <li id="section-15">
             <div class="annotation">
               
               <div class="sswrap ">
-                <a class="ss" href="#section-14">&#x00a7;</a>
+                <a class="ss" href="#section-15">&#x00a7;</a>
               </div>
-              <p>(not ok,loaded,already loaded defs) -&gt; to load -&gt;
+              <p>| import modules
+(not ok,loaded,already loaded defs) -&gt; to load -&gt;
   (new not ok, new loaded, new defs)
 the bool determines if it should be verbose or not</p>
 

@@ -10,6 +10,8 @@ Code walkthrough:
 - [`Resolver.hs`](./Resolver.html)
 - [`TypeChecker.hs`](./TypeChecker.html)
 
+Grammar generated with [BNF converter](./../Exp.cf)
+
 Experimental implementation of [Cubical Type
 Theory](http://www.cse.chalmers.se/~coquand/cubicaltt.pdf) in which
 the user can directly manipulate n-dimensional cubes. The language

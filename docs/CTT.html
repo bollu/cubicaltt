@@ -1,0 +1,999 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>CTT.hs</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, target-densitydpi=160dpi, initial-scale=1.0; maximum-scale=1.0; user-scalable=0;">
+  <link rel="stylesheet" media="all" href="docco.css" />
+</head>
+<body>
+  <div id="container">
+    <div id="background"></div>
+    
+      <ul id="jump_to">
+        <li>
+          <a class="large" href="javascript:void(0);">Jump To &hellip;</a>
+          <a class="small" href="javascript:void(0);">+</a>
+          <div id="jump_wrapper">
+          <div id="jump_page_wrapper">
+            <div id="jump_page">
+              
+                
+                <a class="source" href="CTT.html">
+                  CTT.hs
+                </a>
+              
+                
+                <a class="source" href="Connections.html">
+                  Connections.hs
+                </a>
+              
+                
+                <a class="source" href="Eval.html">
+                  Eval.hs
+                </a>
+              
+                
+                <a class="source" href="Main.html">
+                  Main.hs
+                </a>
+              
+                
+                <a class="source" href="Resolver.html">
+                  Resolver.hs
+                </a>
+              
+                
+                <a class="source" href="Setup.html">
+                  Setup.hs
+                </a>
+              
+                
+                <a class="source" href="TypeChecker.html">
+                  TypeChecker.hs
+                </a>
+              
+            </div>
+          </div>
+        </li>
+      </ul>
+    
+    <ul class="sections">
+        
+          <li id="title">
+              <div class="annotation">
+                  <h1>CTT.hs</h1>
+              </div>
+          </li>
+        
+        
+        
+        <li id="section-1">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-1">&#x00a7;</a>
+              </div>
+              
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-meta">{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}</span>
+<span class="hljs-keyword">module</span> CTT <span class="hljs-keyword">where</span>
+
+<span class="hljs-keyword">import</span> Control.Applicative
+<span class="hljs-keyword">import</span> Data.List
+<span class="hljs-keyword">import</span> Data.Maybe
+<span class="hljs-keyword">import</span> Data.Map (<span class="hljs-type">Map</span>,(!),filterWithKey,elems)
+<span class="hljs-keyword">import</span> <span class="hljs-keyword">qualified</span> Data.Map <span class="hljs-keyword">as</span> Map
+<span class="hljs-keyword">import</span> Text.PrettyPrint <span class="hljs-keyword">as</span> PP
+<span class="hljs-keyword">import</span> Data.Set (<span class="hljs-type">Set</span>)
+<span class="hljs-keyword">import</span> <span class="hljs-keyword">qualified</span> Data.Set <span class="hljs-keyword">as</span> Set
+<span class="hljs-keyword">import</span> Prelude <span class="hljs-keyword">hiding</span> ((&lt;&gt;))
+
+<span class="hljs-keyword">import</span> Connections</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-2">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-2">&#x00a7;</a>
+              </div>
+              <hr>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-3">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-3">&#x00a7;</a>
+              </div>
+              <p>| Terms</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>
+<span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">Loc</span> = <span class="hljs-type">Loc</span> { <span class="hljs-title">locFile</span> :: <span class="hljs-type">String</span>
+               , <span class="hljs-title">locPos</span>  :: (<span class="hljs-type">Int</span>,<span class="hljs-type">Int</span>) }</span>
+  <span class="hljs-keyword">deriving</span> <span class="hljs-type">Eq</span>
+
+<span class="hljs-class"><span class="hljs-keyword">type</span> <span class="hljs-type">Ident</span>  = <span class="hljs-type">String</span></span>
+<span class="hljs-class"><span class="hljs-keyword">type</span> <span class="hljs-type">LIdent</span> = <span class="hljs-type">String</span></span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-4">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-4">&#x00a7;</a>
+              </div>
+              <p>Telescope (x1 : A1) .. (xn : An)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-class"><span class="hljs-keyword">type</span> <span class="hljs-type">Tele</span>   = [(<span class="hljs-type">Ident</span>,<span class="hljs-type">Ter</span>)]</span>
+
+<span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">Label</span> = <span class="hljs-type">OLabel</span> <span class="hljs-type">LIdent</span> <span class="hljs-type">Tele</span> <span class="hljs-comment">-- Object label</span></span>
+           | <span class="hljs-type">PLabel</span> <span class="hljs-type">LIdent</span> <span class="hljs-type">Tele</span> [<span class="hljs-type">Name</span>] (<span class="hljs-type">System</span> <span class="hljs-type">Ter</span>) <span class="hljs-comment">-- Path label</span>
+  <span class="hljs-keyword">deriving</span> (<span class="hljs-type">Eq</span>,<span class="hljs-type">Show</span>)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-5">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-5">&#x00a7;</a>
+              </div>
+              <p>OBranch of the form: c x1 .. xn -&gt; e
+PBranch of the form: c x1 .. xn i1 .. im -&gt; e</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">Branch</span> = <span class="hljs-type">OBranch</span> <span class="hljs-type">LIdent</span> [<span class="hljs-type">Ident</span>] <span class="hljs-type">Ter</span></span>
+            | <span class="hljs-type">PBranch</span> <span class="hljs-type">LIdent</span> [<span class="hljs-type">Ident</span>] [<span class="hljs-type">Name</span>] <span class="hljs-type">Ter</span>
+  <span class="hljs-keyword">deriving</span> (<span class="hljs-type">Eq</span>,<span class="hljs-type">Show</span>)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-6">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-6">&#x00a7;</a>
+              </div>
+              <p>Declarations: x : A = e
+A group of mutual declarations is identified by its location. It is used to
+speed up the Eq instance for Ctxt.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-class"><span class="hljs-keyword">type</span> <span class="hljs-type">Decl</span>  = (<span class="hljs-type">Ident</span>,(<span class="hljs-type">Ter</span>,<span class="hljs-type">Ter</span>))</span>
+<span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">Decls</span> = <span class="hljs-type">MutualDecls</span> <span class="hljs-type">Loc</span> [<span class="hljs-type">Decl</span>]</span>
+           | <span class="hljs-type">OpaqueDecl</span> <span class="hljs-type">Ident</span>
+           | <span class="hljs-type">TransparentDecl</span> <span class="hljs-type">Ident</span>
+           | <span class="hljs-type">TransparentAllDecl</span>
+           <span class="hljs-keyword">deriving</span> <span class="hljs-type">Eq</span>
+
+<span class="hljs-title">declIdents</span> :: [<span class="hljs-type">Decl</span>] -&gt; [<span class="hljs-type">Ident</span>]
+<span class="hljs-title">declIdents</span> decls = [ x | (x,_) &lt;- decls ]
+
+<span class="hljs-title">declTers</span> :: [<span class="hljs-type">Decl</span>] -&gt; [<span class="hljs-type">Ter</span>]
+<span class="hljs-title">declTers</span> decls = [ d | (_,(_,d)) &lt;- decls ]
+
+<span class="hljs-title">declTele</span> :: [<span class="hljs-type">Decl</span>] -&gt; <span class="hljs-type">Tele</span>
+<span class="hljs-title">declTele</span> decls = [ (x,t) | (x,(t,_)) &lt;- decls ]
+
+<span class="hljs-title">declDefs</span> :: [<span class="hljs-type">Decl</span>] -&gt; [(<span class="hljs-type">Ident</span>,<span class="hljs-type">Ter</span>)]
+<span class="hljs-title">declDefs</span> decls = [ (x,d) | (x,(_,d)) &lt;- decls ]
+
+<span class="hljs-title">labelTele</span> :: <span class="hljs-type">Label</span> -&gt; (<span class="hljs-type">LIdent</span>,<span class="hljs-type">Tele</span>)
+<span class="hljs-title">labelTele</span> (<span class="hljs-type">OLabel</span> c ts) = (c,ts)
+<span class="hljs-title">labelTele</span> (<span class="hljs-type">PLabel</span> c ts _ _) = (c,ts)
+
+<span class="hljs-title">labelName</span> :: <span class="hljs-type">Label</span> -&gt; <span class="hljs-type">LIdent</span>
+<span class="hljs-title">labelName</span> = fst . labelTele
+
+<span class="hljs-title">labelTeles</span> :: [<span class="hljs-type">Label</span>] -&gt; [(<span class="hljs-type">LIdent</span>,<span class="hljs-type">Tele</span>)]
+<span class="hljs-title">labelTeles</span> = map labelTele
+
+<span class="hljs-title">lookupLabel</span> :: <span class="hljs-type">LIdent</span> -&gt; [<span class="hljs-type">Label</span>] -&gt; <span class="hljs-type">Maybe</span> <span class="hljs-type">Tele</span>
+<span class="hljs-title">lookupLabel</span> x xs = lookup x (labelTeles xs)
+
+<span class="hljs-title">lookupPLabel</span> :: <span class="hljs-type">LIdent</span> -&gt; [<span class="hljs-type">Label</span>] -&gt; <span class="hljs-type">Maybe</span> (<span class="hljs-type">Tele</span>,[<span class="hljs-type">Name</span>],<span class="hljs-type">System</span> <span class="hljs-type">Ter</span>)
+<span class="hljs-title">lookupPLabel</span> x xs = listToMaybe [ (ts,is,es) | <span class="hljs-type">PLabel</span> y ts is es &lt;- xs, x == y ]
+
+<span class="hljs-title">branchName</span> :: <span class="hljs-type">Branch</span> -&gt; <span class="hljs-type">LIdent</span>
+<span class="hljs-title">branchName</span> (<span class="hljs-type">OBranch</span> c _ _) = c
+<span class="hljs-title">branchName</span> (<span class="hljs-type">PBranch</span> c _ _ _) = c
+
+<span class="hljs-title">lookupBranch</span> :: <span class="hljs-type">LIdent</span> -&gt; [<span class="hljs-type">Branch</span>] -&gt; <span class="hljs-type">Maybe</span> <span class="hljs-type">Branch</span>
+<span class="hljs-title">lookupBranch</span> _ []      = <span class="hljs-type">Nothing</span>
+<span class="hljs-title">lookupBranch</span> x (b:brs) = <span class="hljs-keyword">case</span> b <span class="hljs-keyword">of</span>
+  <span class="hljs-type">OBranch</span> c _ _   | x == c    -&gt; <span class="hljs-type">Just</span> b
+                  | otherwise -&gt; lookupBranch x brs
+  <span class="hljs-type">PBranch</span> c _ _ _ | x == c    -&gt; <span class="hljs-type">Just</span> b
+                  | otherwise -&gt; lookupBranch x brs</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-7">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-7">&#x00a7;</a>
+              </div>
+              <p>Terms</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">Ter</span> = <span class="hljs-type">Pi</span> <span class="hljs-type">Ter</span></span>
+         | <span class="hljs-type">App</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span>
+         | <span class="hljs-type">Lam</span> <span class="hljs-type">Ident</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span>
+         | <span class="hljs-type">Where</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Decls</span>
+         | <span class="hljs-type">Var</span> <span class="hljs-type">Ident</span>
+         | <span class="hljs-type">U</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-8">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-8">&#x00a7;</a>
+              </div>
+              <p>Sigma types:</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">Sigma</span> <span class="hljs-type">Ter</span>
+         | <span class="hljs-type">Pair</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span>
+         | <span class="hljs-type">Fst</span> <span class="hljs-type">Ter</span>
+         | <span class="hljs-type">Snd</span> <span class="hljs-type">Ter</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-9">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-9">&#x00a7;</a>
+              </div>
+              <p>constructor c Ms</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">Con</span> <span class="hljs-type">LIdent</span> [<span class="hljs-type">Ter</span>]
+         | <span class="hljs-type">PCon</span> <span class="hljs-type">LIdent</span> <span class="hljs-type">Ter</span> [<span class="hljs-type">Ter</span>] [<span class="hljs-type">Formula</span>] <span class="hljs-comment">-- c A ts phis (A is the data type)</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-10">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-10">&#x00a7;</a>
+              </div>
+              <p>branches c1 xs1  -&gt; M1,…, cn xsn -&gt; Mn</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">Split</span> <span class="hljs-type">Ident</span> <span class="hljs-type">Loc</span> <span class="hljs-type">Ter</span> [<span class="hljs-type">Branch</span>]</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-11">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-11">&#x00a7;</a>
+              </div>
+              <p>labelled sum c1 A1s,…, cn Ans (assumes terms are constructors)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">Sum</span> <span class="hljs-type">Loc</span> <span class="hljs-type">Ident</span> [<span class="hljs-type">Label</span>] <span class="hljs-comment">-- <span class="hljs-doctag">TODO:</span> should only contain OLabels</span>
+         | <span class="hljs-type">HSum</span> <span class="hljs-type">Loc</span> <span class="hljs-type">Ident</span> [<span class="hljs-type">Label</span>]</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-12">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-12">&#x00a7;</a>
+              </div>
+              <p>undefined and holes</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">Undef</span> <span class="hljs-type">Loc</span> <span class="hljs-type">Ter</span> <span class="hljs-comment">-- Location and type</span>
+         | <span class="hljs-type">Hole</span> <span class="hljs-type">Loc</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-13">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-13">&#x00a7;</a>
+              </div>
+              <p>Path types</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">PathP</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span>
+         | <span class="hljs-type">PLam</span> <span class="hljs-type">Name</span> <span class="hljs-type">Ter</span>
+         | <span class="hljs-type">AppFormula</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Formula</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-14">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-14">&#x00a7;</a>
+              </div>
+              <p>Kan composition and filling</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">Comp</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span> (<span class="hljs-type">System</span> <span class="hljs-type">Ter</span>)
+         | <span class="hljs-type">Fill</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span> (<span class="hljs-type">System</span> <span class="hljs-type">Ter</span>)
+         | <span class="hljs-type">HComp</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span> (<span class="hljs-type">System</span> <span class="hljs-type">Ter</span>)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-15">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-15">&#x00a7;</a>
+              </div>
+              <p>Glue</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">Glue</span> <span class="hljs-type">Ter</span> (<span class="hljs-type">System</span> <span class="hljs-type">Ter</span>)
+         | <span class="hljs-type">GlueElem</span> <span class="hljs-type">Ter</span> (<span class="hljs-type">System</span> <span class="hljs-type">Ter</span>)
+         | <span class="hljs-type">UnGlueElem</span> <span class="hljs-type">Ter</span> (<span class="hljs-type">System</span> <span class="hljs-type">Ter</span>)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-16">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-16">&#x00a7;</a>
+              </div>
+              <p>Id</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">Id</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span>
+         | <span class="hljs-type">IdPair</span> <span class="hljs-type">Ter</span> (<span class="hljs-type">System</span> <span class="hljs-type">Ter</span>)
+         | <span class="hljs-type">IdJ</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span>
+  <span class="hljs-keyword">deriving</span> <span class="hljs-type">Eq</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-17">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-17">&#x00a7;</a>
+              </div>
+              <p>For an expression t, returns (u,ts) where u is no application and t = u ts</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">unApps</span> :: <span class="hljs-type">Ter</span> -&gt; (<span class="hljs-type">Ter</span>,[<span class="hljs-type">Ter</span>])
+<span class="hljs-title">unApps</span> = aux []
+  <span class="hljs-keyword">where</span> aux :: [<span class="hljs-type">Ter</span>] -&gt; <span class="hljs-type">Ter</span> -&gt; (<span class="hljs-type">Ter</span>,[<span class="hljs-type">Ter</span>])
+        aux acc (<span class="hljs-type">App</span> r s) = aux (s:acc) r
+        aux acc t         = (t,acc)
+
+<span class="hljs-title">mkApps</span> :: <span class="hljs-type">Ter</span> -&gt; [<span class="hljs-type">Ter</span>] -&gt; <span class="hljs-type">Ter</span>
+<span class="hljs-title">mkApps</span> (<span class="hljs-type">Con</span> l us) vs = <span class="hljs-type">Con</span> l (us ++ vs)
+<span class="hljs-title">mkApps</span> t ts          = foldl <span class="hljs-type">App</span> t ts
+
+<span class="hljs-title">mkWheres</span> :: [<span class="hljs-type">Decls</span>] -&gt; <span class="hljs-type">Ter</span> -&gt; <span class="hljs-type">Ter</span>
+<span class="hljs-title">mkWheres</span> []     e = e
+<span class="hljs-title">mkWheres</span> (d:ds) e = <span class="hljs-type">Where</span> (mkWheres ds e) d</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-18">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-18">&#x00a7;</a>
+              </div>
+              <hr>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-19">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-19">&#x00a7;</a>
+              </div>
+              <p>| Values</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>
+<span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">Val</span> = <span class="hljs-type">VU</span></span>
+         | <span class="hljs-type">Ter</span> <span class="hljs-type">Ter</span> <span class="hljs-type">Env</span>
+         | <span class="hljs-type">VPi</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span>
+         | <span class="hljs-type">VSigma</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span>
+         | <span class="hljs-type">VPair</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span>
+         | <span class="hljs-type">VCon</span> <span class="hljs-type">LIdent</span> [<span class="hljs-type">Val</span>]
+         | <span class="hljs-type">VPCon</span> <span class="hljs-type">LIdent</span> <span class="hljs-type">Val</span> [<span class="hljs-type">Val</span>] [<span class="hljs-type">Formula</span>]</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-20">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-20">&#x00a7;</a>
+              </div>
+              <p>Path values</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">VPathP</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span>
+         | <span class="hljs-type">VPLam</span> <span class="hljs-type">Name</span> <span class="hljs-type">Val</span>
+         | <span class="hljs-type">VComp</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span> (<span class="hljs-type">System</span> <span class="hljs-type">Val</span>)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-21">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-21">&#x00a7;</a>
+              </div>
+              <p>Glue values</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">VGlue</span> <span class="hljs-type">Val</span> (<span class="hljs-type">System</span> <span class="hljs-type">Val</span>)
+         | <span class="hljs-type">VGlueElem</span> <span class="hljs-type">Val</span> (<span class="hljs-type">System</span> <span class="hljs-type">Val</span>)
+         | <span class="hljs-type">VUnGlueElem</span> <span class="hljs-type">Val</span> (<span class="hljs-type">System</span> <span class="hljs-type">Val</span>)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-22">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-22">&#x00a7;</a>
+              </div>
+              <p>Composition in the universe</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">VCompU</span> <span class="hljs-type">Val</span> (<span class="hljs-type">System</span> <span class="hljs-type">Val</span>)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-23">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-23">&#x00a7;</a>
+              </div>
+              <p>Composition for HITs; the type is constant</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">VHComp</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span> (<span class="hljs-type">System</span> <span class="hljs-type">Val</span>)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-24">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-24">&#x00a7;</a>
+              </div>
+              <p>Id</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">VId</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span>
+         | <span class="hljs-type">VIdPair</span> <span class="hljs-type">Val</span> (<span class="hljs-type">System</span> <span class="hljs-type">Val</span>)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-25">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-25">&#x00a7;</a>
+              </div>
+              <p>Neutral values:</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>         | <span class="hljs-type">VVar</span> <span class="hljs-type">Ident</span> <span class="hljs-type">Val</span>
+         | <span class="hljs-type">VOpaque</span> <span class="hljs-type">Ident</span> <span class="hljs-type">Val</span>
+         | <span class="hljs-type">VFst</span> <span class="hljs-type">Val</span>
+         | <span class="hljs-type">VSnd</span> <span class="hljs-type">Val</span>
+         | <span class="hljs-type">VSplit</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span>
+         | <span class="hljs-type">VApp</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span>
+         | <span class="hljs-type">VAppFormula</span> <span class="hljs-type">Val</span> <span class="hljs-type">Formula</span>
+         | <span class="hljs-type">VLam</span> <span class="hljs-type">Ident</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span>
+         | <span class="hljs-type">VUnGlueElemU</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span> (<span class="hljs-type">System</span> <span class="hljs-type">Val</span>)
+         | <span class="hljs-type">VIdJ</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span> <span class="hljs-type">Val</span>
+  <span class="hljs-keyword">deriving</span> <span class="hljs-type">Eq</span>
+
+<span class="hljs-title">isNeutral</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Bool</span>
+<span class="hljs-title">isNeutral</span> v = <span class="hljs-keyword">case</span> v <span class="hljs-keyword">of</span>
+  <span class="hljs-type">Ter</span> <span class="hljs-type">Undef</span>{} _  -&gt; <span class="hljs-type">True</span>
+  <span class="hljs-type">Ter</span> <span class="hljs-type">Hole</span>{} _   -&gt; <span class="hljs-type">True</span>
+  <span class="hljs-type">VVar</span>{}         -&gt; <span class="hljs-type">True</span>
+  <span class="hljs-type">VOpaque</span>{}      -&gt; <span class="hljs-type">True</span>
+  <span class="hljs-type">VComp</span>{}        -&gt; <span class="hljs-type">True</span>
+  <span class="hljs-type">VFst</span>{}         -&gt; <span class="hljs-type">True</span>
+  <span class="hljs-type">VSnd</span>{}         -&gt; <span class="hljs-type">True</span>
+  <span class="hljs-type">VSplit</span>{}       -&gt; <span class="hljs-type">True</span>
+  <span class="hljs-type">VApp</span>{}         -&gt; <span class="hljs-type">True</span>
+  <span class="hljs-type">VAppFormula</span>{}  -&gt; <span class="hljs-type">True</span>
+  <span class="hljs-type">VUnGlueElemU</span>{} -&gt; <span class="hljs-type">True</span>
+  <span class="hljs-type">VUnGlueElem</span>{}  -&gt; <span class="hljs-type">True</span>
+  <span class="hljs-type">VIdJ</span>{}         -&gt; <span class="hljs-type">True</span>
+  _              -&gt; <span class="hljs-type">False</span>
+
+<span class="hljs-title">isNeutralSystem</span> :: <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Bool</span>
+<span class="hljs-title">isNeutralSystem</span> = any isNeutral . elems</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-26">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-26">&#x00a7;</a>
+              </div>
+              <p>isNeutralPath :: Val -&gt; Bool
+isNeutralPath (VPath _ v) = isNeutral v
+isNeutralPath _ = True</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>
+<span class="hljs-title">mkVar</span> :: <span class="hljs-type">Int</span> -&gt; <span class="hljs-type">String</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">mkVar</span> k x = <span class="hljs-type">VVar</span> (x ++ show k)
+
+<span class="hljs-title">mkVarNice</span> :: [<span class="hljs-type">String</span>] -&gt; <span class="hljs-type">String</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">mkVarNice</span> xs x = <span class="hljs-type">VVar</span> (head (ys \\ xs))
+  <span class="hljs-keyword">where</span> ys = x:map (\n -&gt; x ++ show n) [<span class="hljs-number">0.</span>.]
+
+<span class="hljs-title">unCon</span> :: <span class="hljs-type">Val</span> -&gt; [<span class="hljs-type">Val</span>]
+<span class="hljs-title">unCon</span> (<span class="hljs-type">VCon</span> _ vs) = vs
+<span class="hljs-title">unCon</span> v           = error $ <span class="hljs-string">&quot;unCon: not a constructor: &quot;</span> ++ show v
+
+<span class="hljs-title">isCon</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Bool</span>
+<span class="hljs-title">isCon</span> <span class="hljs-type">VCon</span>{} = <span class="hljs-type">True</span>
+<span class="hljs-title">isCon</span> _      = <span class="hljs-type">False</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-27">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-27">&#x00a7;</a>
+              </div>
+              <p>Constant path: &lt;_&gt; v</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">constPath</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">constPath</span> = <span class="hljs-type">VPLam</span> (<span class="hljs-type">Name</span> <span class="hljs-string">&quot;_&quot;</span>)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-28">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-28">&#x00a7;</a>
+              </div>
+              <hr>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-29">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-29">&#x00a7;</a>
+              </div>
+              <p>| Environments</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>
+<span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">Ctxt</span> = <span class="hljs-type">Empty</span></span>
+          | <span class="hljs-type">Upd</span> <span class="hljs-type">Ident</span> <span class="hljs-type">Ctxt</span>
+          | <span class="hljs-type">Sub</span> <span class="hljs-type">Name</span> <span class="hljs-type">Ctxt</span>
+          | <span class="hljs-type">Def</span> <span class="hljs-type">Loc</span> [<span class="hljs-type">Decl</span>] <span class="hljs-type">Ctxt</span>
+  <span class="hljs-keyword">deriving</span> (<span class="hljs-type">Show</span>)
+<span class="hljs-class">
+<span class="hljs-keyword">instance</span> <span class="hljs-type">Eq</span> <span class="hljs-type">Ctxt</span> <span class="hljs-keyword">where</span></span>
+    c == d = <span class="hljs-keyword">case</span> (c, d) <span class="hljs-keyword">of</span>
+        (<span class="hljs-type">Empty</span>, <span class="hljs-type">Empty</span>)              -&gt; <span class="hljs-type">True</span>
+        (<span class="hljs-type">Upd</span> x c&#x27;, <span class="hljs-type">Upd</span> y d&#x27;)        -&gt; x == y &amp;&amp; c&#x27; == d&#x27;
+        (<span class="hljs-type">Sub</span> i c&#x27;, <span class="hljs-type">Sub</span> j d&#x27;)        -&gt; i == j &amp;&amp; c&#x27; == d&#x27;
+        (<span class="hljs-type">Def</span> m xs c&#x27;, <span class="hljs-type">Def</span> n ys d&#x27;)  -&gt; (m == n || xs == ys) &amp;&amp; c&#x27; == d&#x27;</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-30">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-30">&#x00a7;</a>
+              </div>
+              <p>Invariant: if two declaration groups come from the same
+location, they are equal and their contents are not compared.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        _                           -&gt; <span class="hljs-type">False</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-31">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-31">&#x00a7;</a>
+              </div>
+              <p>The Idents and Names in the Ctxt refer to the elements in the two
+lists. This is more efficient because acting on an environment now
+only need to affect the lists and not the whole context.
+The last list is the list of opaque names</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-class"><span class="hljs-keyword">newtype</span> <span class="hljs-type">Env</span> = <span class="hljs-type">Env</span> (<span class="hljs-type">Ctxt</span>,[<span class="hljs-type">Val</span>],[<span class="hljs-type">Formula</span>],<span class="hljs-type">Nameless</span> (<span class="hljs-type">Set</span> <span class="hljs-type">Ident</span>))</span>
+  <span class="hljs-keyword">deriving</span> (<span class="hljs-type">Eq</span>)
+
+<span class="hljs-title">emptyEnv</span> :: <span class="hljs-type">Env</span>
+<span class="hljs-title">emptyEnv</span> = <span class="hljs-type">Env</span> (<span class="hljs-type">Empty</span>,[],[],<span class="hljs-type">Nameless</span> <span class="hljs-type">Set</span>.empty)
+
+<span class="hljs-title">def</span> :: <span class="hljs-type">Decls</span> -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Env</span>
+<span class="hljs-title">def</span> (<span class="hljs-type">MutualDecls</span> m ds) (<span class="hljs-type">Env</span> (rho,vs,fs,<span class="hljs-type">Nameless</span> os)) = <span class="hljs-type">Env</span> (<span class="hljs-type">Def</span> m ds rho,vs,fs,<span class="hljs-type">Nameless</span> (os <span class="hljs-type">Set</span>.\\ <span class="hljs-type">Set</span>.fromList (declIdents ds)))
+<span class="hljs-title">def</span> (<span class="hljs-type">OpaqueDecl</span> n) (<span class="hljs-type">Env</span> (rho,vs,fs,<span class="hljs-type">Nameless</span> os)) = <span class="hljs-type">Env</span> (rho,vs,fs,<span class="hljs-type">Nameless</span> (<span class="hljs-type">Set</span>.insert n os))
+<span class="hljs-title">def</span> (<span class="hljs-type">TransparentDecl</span> n) (<span class="hljs-type">Env</span> (rho,vs,fs,<span class="hljs-type">Nameless</span> os)) = <span class="hljs-type">Env</span> (rho,vs,fs,<span class="hljs-type">Nameless</span> (<span class="hljs-type">Set</span>.delete n os))
+<span class="hljs-title">def</span> <span class="hljs-type">TransparentAllDecl</span> (<span class="hljs-type">Env</span> (rho,vs,fs,<span class="hljs-type">Nameless</span> os)) = <span class="hljs-type">Env</span> (rho,vs,fs,<span class="hljs-type">Nameless</span> <span class="hljs-type">Set</span>.empty)
+
+<span class="hljs-title">defWhere</span> :: <span class="hljs-type">Decls</span> -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Env</span>
+<span class="hljs-title">defWhere</span> (<span class="hljs-type">MutualDecls</span> m ds) (<span class="hljs-type">Env</span> (rho,vs,fs,<span class="hljs-type">Nameless</span> os)) = <span class="hljs-type">Env</span> (<span class="hljs-type">Def</span> m ds rho,vs,fs,<span class="hljs-type">Nameless</span> (os <span class="hljs-type">Set</span>.\\ <span class="hljs-type">Set</span>.fromList (declIdents ds)))
+<span class="hljs-title">defWhere</span> (<span class="hljs-type">OpaqueDecl</span> _) rho = rho
+<span class="hljs-title">defWhere</span> (<span class="hljs-type">TransparentDecl</span> _) rho = rho
+<span class="hljs-title">defWhere</span> <span class="hljs-type">TransparentAllDecl</span> rho = rho
+
+<span class="hljs-title">sub</span> :: (<span class="hljs-type">Name</span>,<span class="hljs-type">Formula</span>) -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Env</span>
+<span class="hljs-title">sub</span> (i,phi) (<span class="hljs-type">Env</span> (rho,vs,fs,os)) = <span class="hljs-type">Env</span> (<span class="hljs-type">Sub</span> i rho,vs,phi:fs,os)
+
+<span class="hljs-title">upd</span> :: (<span class="hljs-type">Ident</span>,<span class="hljs-type">Val</span>) -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Env</span>
+<span class="hljs-title">upd</span> (x,v) (<span class="hljs-type">Env</span> (rho,vs,fs,<span class="hljs-type">Nameless</span> os)) = <span class="hljs-type">Env</span> (<span class="hljs-type">Upd</span> x rho,v:vs,fs,<span class="hljs-type">Nameless</span> (<span class="hljs-type">Set</span>.delete x os))
+
+<span class="hljs-title">upds</span> :: [(<span class="hljs-type">Ident</span>,<span class="hljs-type">Val</span>)] -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Env</span>
+<span class="hljs-title">upds</span> xus rho = foldl (flip upd) rho xus
+
+<span class="hljs-title">updsTele</span> :: <span class="hljs-type">Tele</span> -&gt; [<span class="hljs-type">Val</span>] -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Env</span>
+<span class="hljs-title">updsTele</span> tele vs = upds (zip (map fst tele) vs)
+
+<span class="hljs-title">subs</span> :: [(<span class="hljs-type">Name</span>,<span class="hljs-type">Formula</span>)] -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Env</span>
+<span class="hljs-title">subs</span> iphis rho = foldl (flip sub) rho iphis
+
+<span class="hljs-title">mapEnv</span> :: (<span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>) -&gt; (<span class="hljs-type">Formula</span> -&gt; <span class="hljs-type">Formula</span>) -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Env</span>
+<span class="hljs-title">mapEnv</span> f g (<span class="hljs-type">Env</span> (rho,vs,fs,os)) = <span class="hljs-type">Env</span> (rho,map f vs,map g fs,os)
+
+<span class="hljs-title">valAndFormulaOfEnv</span> :: <span class="hljs-type">Env</span> -&gt; ([<span class="hljs-type">Val</span>],[<span class="hljs-type">Formula</span>])
+<span class="hljs-title">valAndFormulaOfEnv</span> (<span class="hljs-type">Env</span> (_,vs,fs,_)) = (vs,fs)
+
+<span class="hljs-title">valOfEnv</span> :: <span class="hljs-type">Env</span> -&gt; [<span class="hljs-type">Val</span>]
+<span class="hljs-title">valOfEnv</span> = fst . valAndFormulaOfEnv
+
+<span class="hljs-title">formulaOfEnv</span> :: <span class="hljs-type">Env</span> -&gt; [<span class="hljs-type">Formula</span>]
+<span class="hljs-title">formulaOfEnv</span> = snd . valAndFormulaOfEnv
+
+<span class="hljs-title">domainEnv</span> :: <span class="hljs-type">Env</span> -&gt; [<span class="hljs-type">Name</span>]
+<span class="hljs-title">domainEnv</span> (<span class="hljs-type">Env</span> (rho,_,_,_)) = domCtxt rho
+  <span class="hljs-keyword">where</span> domCtxt rho = <span class="hljs-keyword">case</span> rho <span class="hljs-keyword">of</span>
+          <span class="hljs-type">Empty</span>      -&gt; []
+          <span class="hljs-type">Upd</span> _ e    -&gt; domCtxt e
+          <span class="hljs-type">Def</span> _ ts e -&gt; domCtxt e
+          <span class="hljs-type">Sub</span> i e    -&gt; i : domCtxt e</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-32">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-32">&#x00a7;</a>
+              </div>
+              <p>Extract the context from the environment, used when printing holes</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">contextOfEnv</span> :: <span class="hljs-type">Env</span> -&gt; [<span class="hljs-type">String</span>]
+<span class="hljs-title">contextOfEnv</span> rho = <span class="hljs-keyword">case</span> rho <span class="hljs-keyword">of</span>
+  <span class="hljs-type">Env</span> (<span class="hljs-type">Empty</span>,_,_,_)               -&gt; []
+  <span class="hljs-type">Env</span> (<span class="hljs-type">Upd</span> x e,<span class="hljs-type">VVar</span> n t:vs,fs,os) -&gt; (n ++ <span class="hljs-string">&quot; : &quot;</span> ++ show t) : contextOfEnv (<span class="hljs-type">Env</span> (e,vs,fs,os))
+  <span class="hljs-type">Env</span> (<span class="hljs-type">Upd</span> x e,v:vs,fs,os)        -&gt; (x ++ <span class="hljs-string">&quot; = &quot;</span> ++ show v) : contextOfEnv (<span class="hljs-type">Env</span> (e,vs,fs,os))
+  <span class="hljs-type">Env</span> (<span class="hljs-type">Def</span> _ _ e,vs,fs,os)        -&gt; contextOfEnv (<span class="hljs-type">Env</span> (e,vs,fs,os))
+  <span class="hljs-type">Env</span> (<span class="hljs-type">Sub</span> i e,vs,phi:fs,os)      -&gt; (show i ++ <span class="hljs-string">&quot; = &quot;</span> ++ show phi) : contextOfEnv (<span class="hljs-type">Env</span> (e,vs,fs,os))</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-33">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-33">&#x00a7;</a>
+              </div>
+              <hr>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-34">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-34">&#x00a7;</a>
+              </div>
+              <p>| Pretty printing</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-class">
+<span class="hljs-keyword">instance</span> <span class="hljs-type">Show</span> <span class="hljs-type">Env</span> <span class="hljs-keyword">where</span></span>
+  show = render . showEnv <span class="hljs-type">True</span>
+
+<span class="hljs-title">showEnv</span> :: <span class="hljs-type">Bool</span> -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Doc</span>
+<span class="hljs-title">showEnv</span> b e =
+  <span class="hljs-keyword">let</span> <span class="hljs-comment">-- This decides if we should print &quot;x = &quot; or not</span>
+      names x = <span class="hljs-keyword">if</span> b <span class="hljs-keyword">then</span> text x &lt;+&gt; equals <span class="hljs-keyword">else</span> <span class="hljs-type">PP</span>.empty
+      par   x = <span class="hljs-keyword">if</span> b <span class="hljs-keyword">then</span> parens x <span class="hljs-keyword">else</span> x
+      com     = <span class="hljs-keyword">if</span> b <span class="hljs-keyword">then</span> comma <span class="hljs-keyword">else</span> <span class="hljs-type">PP</span>.empty
+      showEnv1 e = <span class="hljs-keyword">case</span> e <span class="hljs-keyword">of</span>
+        <span class="hljs-type">Env</span> (<span class="hljs-type">Upd</span> x env,u:us,fs,os)   -&gt;
+          showEnv1 (<span class="hljs-type">Env</span> (env,us,fs,os)) &lt;+&gt; names x &lt;+&gt; showVal1 u &lt;&gt; com
+        <span class="hljs-type">Env</span> (<span class="hljs-type">Sub</span> i env,us,phi:fs,os) -&gt;
+          showEnv1 (<span class="hljs-type">Env</span> (env,us,fs,os)) &lt;+&gt; names (show i) &lt;+&gt; text (show phi) &lt;&gt; com
+        <span class="hljs-type">Env</span> (<span class="hljs-type">Def</span> _ _ env,vs,fs,os)   -&gt; showEnv1 (<span class="hljs-type">Env</span> (env,vs,fs,os))
+        _                            -&gt; showEnv b e
+  <span class="hljs-keyword">in</span> <span class="hljs-keyword">case</span> e <span class="hljs-keyword">of</span>
+    <span class="hljs-type">Env</span> (<span class="hljs-type">Empty</span>,_,_,_)            -&gt; <span class="hljs-type">PP</span>.empty
+    <span class="hljs-type">Env</span> (<span class="hljs-type">Def</span> _ _ env,vs,fs,os)   -&gt; showEnv b (<span class="hljs-type">Env</span> (env,vs,fs,os))
+    <span class="hljs-type">Env</span> (<span class="hljs-type">Upd</span> x env,u:us,fs,os)   -&gt;
+      par $ showEnv1 (<span class="hljs-type">Env</span> (env,us,fs,os)) &lt;+&gt; names x &lt;+&gt; showVal1 u
+    <span class="hljs-type">Env</span> (<span class="hljs-type">Sub</span> i env,us,phi:fs,os) -&gt;
+      par $ showEnv1 (<span class="hljs-type">Env</span> (env,us,fs,os)) &lt;+&gt; names (show i) &lt;+&gt; text (show phi)
+<span class="hljs-class">
+<span class="hljs-keyword">instance</span> <span class="hljs-type">Show</span> <span class="hljs-type">Loc</span> <span class="hljs-keyword">where</span></span>
+  show = render . showLoc
+
+<span class="hljs-title">showLoc</span> :: <span class="hljs-type">Loc</span> -&gt; <span class="hljs-type">Doc</span>
+<span class="hljs-title">showLoc</span> (<span class="hljs-type">Loc</span> name (i,j)) = text (show (i,j) ++ <span class="hljs-string">&quot; in &quot;</span> ++ name)
+
+<span class="hljs-title">showFormula</span> :: <span class="hljs-type">Formula</span> -&gt; <span class="hljs-type">Doc</span>
+<span class="hljs-title">showFormula</span> phi = <span class="hljs-keyword">case</span> phi <span class="hljs-keyword">of</span>
+  _ :\/: _ -&gt; parens (text (show phi))
+  _ :/\: _ -&gt; parens (text (show phi))
+  _ -&gt; text $ show phi
+<span class="hljs-class">
+<span class="hljs-keyword">instance</span> <span class="hljs-type">Show</span> <span class="hljs-type">Ter</span> <span class="hljs-keyword">where</span></span>
+  show = render . showTer
+
+<span class="hljs-title">showTer</span> :: <span class="hljs-type">Ter</span> -&gt; <span class="hljs-type">Doc</span>
+<span class="hljs-title">showTer</span> v = <span class="hljs-keyword">case</span> v <span class="hljs-keyword">of</span>
+  <span class="hljs-type">U</span>                  -&gt; char &#x27;<span class="hljs-type">U&#x27;</span>
+  <span class="hljs-type">App</span> e0 e1          -&gt; showTer e0 &lt;+&gt; showTer1 e1
+  <span class="hljs-type">Pi</span> e0              -&gt; text <span class="hljs-string">&quot;Pi&quot;</span> &lt;+&gt; showTer e0
+  <span class="hljs-type">Lam</span> x t e          -&gt; char &#x27;\\&#x27; &lt;&gt; parens (text x &lt;+&gt; colon &lt;+&gt; showTer t) &lt;+&gt;
+                          text <span class="hljs-string">&quot;-&gt;&quot;</span> &lt;+&gt; showTer e
+  <span class="hljs-type">Fst</span> e              -&gt; showTer1 e &lt;&gt; text <span class="hljs-string">&quot;.1&quot;</span>
+  <span class="hljs-type">Snd</span> e              -&gt; showTer1 e &lt;&gt; text <span class="hljs-string">&quot;.2&quot;</span>
+  <span class="hljs-type">Sigma</span> e0           -&gt; text <span class="hljs-string">&quot;Sigma&quot;</span> &lt;+&gt; showTer1 e0
+  <span class="hljs-type">Pair</span> e0 e1         -&gt; parens (showTer e0 &lt;&gt; comma &lt;&gt; showTer e1)
+  <span class="hljs-type">Where</span> e d          -&gt; showTer e &lt;+&gt; text <span class="hljs-string">&quot;where&quot;</span> &lt;+&gt; showDecls d
+  <span class="hljs-type">Var</span> x              -&gt; text x
+  <span class="hljs-type">Con</span> c es           -&gt; text c &lt;+&gt; showTers es
+  <span class="hljs-type">PCon</span> c a es phis   -&gt; text c &lt;+&gt; braces (showTer a) &lt;+&gt; showTers es
+                        &lt;+&gt; hsep (map ((char &#x27;@&#x27; &lt;+&gt;) . showFormula) phis)
+  <span class="hljs-type">Split</span> f _ _ _      -&gt; text f
+  <span class="hljs-type">Sum</span> _ n _          -&gt; text n
+  <span class="hljs-type">HSum</span> _ n _         -&gt; text n
+  <span class="hljs-type">Undef</span>{}            -&gt; text <span class="hljs-string">&quot;undefined&quot;</span>
+  <span class="hljs-type">Hole</span>{}             -&gt; text <span class="hljs-string">&quot;?&quot;</span>
+  <span class="hljs-type">PathP</span> e0 e1 e2     -&gt; text <span class="hljs-string">&quot;PathP&quot;</span> &lt;+&gt; showTers [e0,e1,e2]
+  <span class="hljs-type">PLam</span> i e           -&gt; char &#x27;&lt;&#x27; &lt;&gt; text (show i) &lt;&gt; char &#x27;&gt;&#x27; &lt;+&gt; showTer e
+  <span class="hljs-type">AppFormula</span> e phi   -&gt; showTer1 e &lt;+&gt; char &#x27;@&#x27; &lt;+&gt; showFormula phi
+  <span class="hljs-type">Comp</span> e t ts        -&gt; text <span class="hljs-string">&quot;comp&quot;</span> &lt;+&gt; showTers [e,t] &lt;+&gt; text (showSystem ts)
+  <span class="hljs-type">HComp</span> e t ts       -&gt; text <span class="hljs-string">&quot;hComp&quot;</span> &lt;+&gt; showTers [e,t] &lt;+&gt; text (showSystem ts) 
+  <span class="hljs-type">Fill</span> e t ts        -&gt; text <span class="hljs-string">&quot;fill&quot;</span> &lt;+&gt; showTers [e,t] &lt;+&gt; text (showSystem ts)
+  <span class="hljs-type">Glue</span> a ts          -&gt; text <span class="hljs-string">&quot;Glue&quot;</span> &lt;+&gt; showTer1 a &lt;+&gt; text (showSystem ts)
+  <span class="hljs-type">GlueElem</span> a ts      -&gt; text <span class="hljs-string">&quot;glue&quot;</span> &lt;+&gt; showTer1 a &lt;+&gt; text (showSystem ts)
+  <span class="hljs-type">UnGlueElem</span> a ts    -&gt; text <span class="hljs-string">&quot;unglue&quot;</span> &lt;+&gt; showTer1 a &lt;+&gt; text (showSystem ts)
+  <span class="hljs-type">Id</span> a u v           -&gt; text <span class="hljs-string">&quot;Id&quot;</span> &lt;+&gt; showTers [a,u,v]
+  <span class="hljs-type">IdPair</span> b ts        -&gt; text <span class="hljs-string">&quot;idC&quot;</span> &lt;+&gt; showTer1 b &lt;+&gt; text (showSystem ts)
+  <span class="hljs-type">IdJ</span> a t c d x p    -&gt; text <span class="hljs-string">&quot;idJ&quot;</span> &lt;+&gt; showTers [a,t,c,d,x,p]
+
+<span class="hljs-title">showTers</span> :: [<span class="hljs-type">Ter</span>] -&gt; <span class="hljs-type">Doc</span>
+<span class="hljs-title">showTers</span> = hsep . map showTer1
+
+<span class="hljs-title">showTer1</span> :: <span class="hljs-type">Ter</span> -&gt; <span class="hljs-type">Doc</span>
+<span class="hljs-title">showTer1</span> t = <span class="hljs-keyword">case</span> t <span class="hljs-keyword">of</span>
+  <span class="hljs-type">U</span>        -&gt; char &#x27;<span class="hljs-type">U&#x27;</span>
+  <span class="hljs-type">Con</span> c [] -&gt; text c
+  <span class="hljs-type">Var</span>{}    -&gt; showTer t
+  <span class="hljs-type">Undef</span>{}  -&gt; showTer t
+  <span class="hljs-type">Hole</span>{}   -&gt; showTer t
+  <span class="hljs-type">Split</span>{}  -&gt; showTer t
+  <span class="hljs-type">Sum</span>{}    -&gt; showTer t
+  <span class="hljs-type">HSum</span>{}   -&gt; showTer t
+  <span class="hljs-type">Fst</span>{}    -&gt; showTer t
+  <span class="hljs-type">Snd</span>{}    -&gt; showTer t
+  _        -&gt; parens (showTer t)
+
+<span class="hljs-title">showDecls</span> :: <span class="hljs-type">Decls</span> -&gt; <span class="hljs-type">Doc</span>
+<span class="hljs-title">showDecls</span> (<span class="hljs-type">MutualDecls</span> _ defs) =
+  hsep $ punctuate comma
+  [ text x &lt;+&gt; equals &lt;+&gt; showTer d | (x,(_,d)) &lt;- defs ]
+<span class="hljs-title">showDecls</span> (<span class="hljs-type">OpaqueDecl</span> i) = text <span class="hljs-string">&quot;opaque&quot;</span> &lt;+&gt; text i
+<span class="hljs-title">showDecls</span> (<span class="hljs-type">TransparentDecl</span> i) = text <span class="hljs-string">&quot;transparent&quot;</span> &lt;+&gt; text i
+<span class="hljs-title">showDecls</span> <span class="hljs-type">TransparentAllDecl</span> = text <span class="hljs-string">&quot;transparent_all&quot;</span>
+<span class="hljs-class">
+<span class="hljs-keyword">instance</span> <span class="hljs-type">Show</span> <span class="hljs-type">Val</span> <span class="hljs-keyword">where</span></span>
+  show = render . showVal
+
+<span class="hljs-title">showVal</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Doc</span>
+<span class="hljs-title">showVal</span> v = <span class="hljs-keyword">case</span> v <span class="hljs-keyword">of</span>
+  <span class="hljs-type">VU</span>                -&gt; char &#x27;<span class="hljs-type">U&#x27;</span>
+  <span class="hljs-type">Ter</span> t@<span class="hljs-type">Sum</span>{} rho   -&gt; showTer t &lt;+&gt; showEnv <span class="hljs-type">False</span> rho
+  <span class="hljs-type">Ter</span> t@<span class="hljs-type">HSum</span>{} rho  -&gt; showTer t &lt;+&gt; showEnv <span class="hljs-type">False</span> rho
+  <span class="hljs-type">Ter</span> t@<span class="hljs-type">Split</span>{} rho -&gt; showTer t &lt;+&gt; showEnv <span class="hljs-type">False</span> rho
+  <span class="hljs-type">Ter</span> t rho         -&gt; showTer1 t &lt;+&gt; showEnv <span class="hljs-type">True</span> rho
+  <span class="hljs-type">VCon</span> c us         -&gt; text c &lt;+&gt; showVals us
+  <span class="hljs-type">VPCon</span> c a us phis -&gt; text c &lt;+&gt; braces (showVal a) &lt;+&gt; showVals us
+                       &lt;+&gt; hsep (map ((char &#x27;@&#x27; &lt;+&gt;) . showFormula) phis)
+  <span class="hljs-type">VHComp</span> v0 v1 vs   -&gt; text <span class="hljs-string">&quot;hComp&quot;</span> &lt;+&gt; showVals [v0,v1] &lt;+&gt; text (showSystem vs)
+  <span class="hljs-type">VPi</span> a l@(<span class="hljs-type">VLam</span> x t b)
+    | <span class="hljs-string">&quot;_&quot;</span> `isPrefixOf` x -&gt; showVal1 a &lt;+&gt; text <span class="hljs-string">&quot;-&gt;&quot;</span> &lt;+&gt; showVal1 b
+    | otherwise          -&gt; char &#x27;(&#x27; &lt;&gt; showLam v
+  <span class="hljs-type">VPi</span> a b           -&gt; text <span class="hljs-string">&quot;Pi&quot;</span> &lt;+&gt; showVals [a,b]
+  <span class="hljs-type">VPair</span> u v         -&gt; parens (showVal u &lt;&gt; comma &lt;&gt; showVal v)
+  <span class="hljs-type">VSigma</span> u v        -&gt; text <span class="hljs-string">&quot;Sigma&quot;</span> &lt;+&gt; showVals [u,v]
+  <span class="hljs-type">VApp</span> u v          -&gt; showVal u &lt;+&gt; showVal1 v
+  <span class="hljs-type">VLam</span>{}            -&gt; text <span class="hljs-string">&quot;\\(&quot;</span> &lt;&gt; showLam v
+  <span class="hljs-type">VPLam</span>{}           -&gt; char &#x27;&lt;&#x27; &lt;&gt; showPLam v
+  <span class="hljs-type">VSplit</span> u v        -&gt; showVal u &lt;+&gt; showVal1 v
+  <span class="hljs-type">VVar</span> x _          -&gt; text x
+  <span class="hljs-type">VOpaque</span> x _       -&gt; text (&#x27;#&#x27;:x)
+  <span class="hljs-type">VFst</span> u            -&gt; showVal1 u &lt;&gt; text <span class="hljs-string">&quot;.1&quot;</span>
+  <span class="hljs-type">VSnd</span> u            -&gt; showVal1 u &lt;&gt; text <span class="hljs-string">&quot;.2&quot;</span>
+  <span class="hljs-type">VPathP</span> v0 v1 v2   -&gt; text <span class="hljs-string">&quot;PathP&quot;</span> &lt;+&gt; showVals [v0,v1,v2]
+  <span class="hljs-type">VAppFormula</span> v phi -&gt; showVal v &lt;+&gt; char &#x27;@&#x27; &lt;+&gt; showFormula phi
+  <span class="hljs-type">VComp</span> v0 v1 vs    -&gt;
+    text <span class="hljs-string">&quot;comp&quot;</span> &lt;+&gt; showVals [v0,v1] &lt;+&gt; text (showSystem vs)
+  <span class="hljs-type">VGlue</span> a ts        -&gt; text <span class="hljs-string">&quot;Glue&quot;</span> &lt;+&gt; showVal1 a &lt;+&gt; text (showSystem ts)
+  <span class="hljs-type">VGlueElem</span> a ts    -&gt; text <span class="hljs-string">&quot;glue&quot;</span> &lt;+&gt; showVal1 a &lt;+&gt; text (showSystem ts)
+  <span class="hljs-type">VUnGlueElem</span> a ts  -&gt; text <span class="hljs-string">&quot;unglue&quot;</span> &lt;+&gt; showVal1 a &lt;+&gt; text (showSystem ts)
+  <span class="hljs-type">VUnGlueElemU</span> v b es -&gt; text <span class="hljs-string">&quot;unglue U&quot;</span> &lt;+&gt; showVals [v,b]
+                         &lt;+&gt; text (showSystem es)
+  <span class="hljs-type">VCompU</span> a ts       -&gt; text <span class="hljs-string">&quot;comp (&lt;_&gt; U)&quot;</span> &lt;+&gt; showVal1 a &lt;+&gt; text (showSystem ts)
+  <span class="hljs-type">VId</span> a u v           -&gt; text <span class="hljs-string">&quot;Id&quot;</span> &lt;+&gt; showVals [a,u,v]
+  <span class="hljs-type">VIdPair</span> b ts        -&gt; text <span class="hljs-string">&quot;idC&quot;</span> &lt;+&gt; showVal1 b &lt;+&gt; text (showSystem ts)
+  <span class="hljs-type">VIdJ</span> a t c d x p    -&gt; text <span class="hljs-string">&quot;idJ&quot;</span> &lt;+&gt; showVals [a,t,c,d,x,p]
+
+<span class="hljs-title">showPLam</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Doc</span>
+<span class="hljs-title">showPLam</span> e = <span class="hljs-keyword">case</span> e <span class="hljs-keyword">of</span>
+  <span class="hljs-type">VPLam</span> i a@<span class="hljs-type">VPLam</span>{} -&gt; text (show i) &lt;+&gt; showPLam a
+  <span class="hljs-type">VPLam</span> i a         -&gt; text (show i) &lt;&gt; char &#x27;&gt;&#x27; &lt;+&gt; showVal a
+  _                 -&gt; showVal e</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-35">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-35">&#x00a7;</a>
+              </div>
+              <p>Merge lambdas of the same type</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">showLam</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Doc</span>
+<span class="hljs-title">showLam</span> e = <span class="hljs-keyword">case</span> e <span class="hljs-keyword">of</span>
+  <span class="hljs-type">VLam</span> x t a@(<span class="hljs-type">VLam</span> _ t&#x27; _)
+    | t == t&#x27;   -&gt; text x &lt;+&gt; showLam a
+    | otherwise -&gt;
+      text x &lt;+&gt; colon &lt;+&gt; showVal t &lt;&gt; char &#x27;)&#x27; &lt;+&gt; text <span class="hljs-string">&quot;-&gt;&quot;</span> &lt;+&gt; showVal a
+  <span class="hljs-type">VPi</span> _ (<span class="hljs-type">VLam</span> x t a@(<span class="hljs-type">VPi</span> _ (<span class="hljs-type">VLam</span> _ t&#x27; _)))
+    | t == t&#x27;   -&gt; text x &lt;+&gt; showLam a
+    | otherwise -&gt;
+      text x &lt;+&gt; colon &lt;+&gt; showVal t &lt;&gt; char &#x27;)&#x27; &lt;+&gt; text <span class="hljs-string">&quot;-&gt;&quot;</span> &lt;+&gt; showVal a
+  <span class="hljs-type">VLam</span> x t e         -&gt;
+    text x &lt;+&gt; colon &lt;+&gt; showVal t &lt;&gt; char &#x27;)&#x27; &lt;+&gt; text <span class="hljs-string">&quot;-&gt;&quot;</span> &lt;+&gt; showVal e
+  <span class="hljs-type">VPi</span> _ (<span class="hljs-type">VLam</span> x t e) -&gt;
+    text x &lt;+&gt; colon &lt;+&gt; showVal t &lt;&gt; char &#x27;)&#x27; &lt;+&gt; text <span class="hljs-string">&quot;-&gt;&quot;</span> &lt;+&gt; showVal e
+  _ -&gt; showVal e
+
+<span class="hljs-title">showVal1</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Doc</span>
+<span class="hljs-title">showVal1</span> v = <span class="hljs-keyword">case</span> v <span class="hljs-keyword">of</span>
+  <span class="hljs-type">VU</span>                -&gt; showVal v
+  <span class="hljs-type">VCon</span> c []         -&gt; showVal v
+  <span class="hljs-type">VVar</span>{}            -&gt; showVal v
+  <span class="hljs-type">VFst</span>{}            -&gt; showVal v
+  <span class="hljs-type">VSnd</span>{}            -&gt; showVal v
+  <span class="hljs-type">Ter</span> t rho | isEmpty (showEnv <span class="hljs-type">False</span> rho) -&gt; showTer1 t
+  _                 -&gt; parens (showVal v)
+
+<span class="hljs-title">showVals</span> :: [<span class="hljs-type">Val</span>] -&gt; <span class="hljs-type">Doc</span>
+<span class="hljs-title">showVals</span> = hsep . map showVal1</pre></div></div>
+            
+        </li>
+        
+    </ul>
+  </div>
+</body>
+</html>

@@ -13,4 +13,5 @@ Main
 cabal.sandbox.config
 .stack-work
 .*.sw?
-
+dist-newstyle/
+stack.yaml.lock

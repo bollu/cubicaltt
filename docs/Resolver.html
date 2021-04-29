@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>Resolver.hs</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, target-densitydpi=160dpi, initial-scale=1.0; maximum-scale=1.0; user-scalable=0;">
+  <link rel="stylesheet" media="all" href="docco.css" />
+</head>
+<body>
+  <div id="container">
+    <div id="background"></div>
+    
+      <ul id="jump_to">
+        <li>
+          <a class="large" href="javascript:void(0);">Jump To &hellip;</a>
+          <a class="small" href="javascript:void(0);">+</a>
+          <div id="jump_wrapper">
+          <div id="jump_page_wrapper">
+            <div id="jump_page">
+              
+                
+                <a class="source" href="CTT.html">
+                  CTT.hs
+                </a>
+              
+                
+                <a class="source" href="Connections.html">
+                  Connections.hs
+                </a>
+              
+                
+                <a class="source" href="Eval.html">
+                  Eval.hs
+                </a>
+              
+                
+                <a class="source" href="Main.html">
+                  Main.hs
+                </a>
+              
+                
+                <a class="source" href="Resolver.html">
+                  Resolver.hs
+                </a>
+              
+                
+                <a class="source" href="Setup.html">
+                  Setup.hs
+                </a>
+              
+                
+                <a class="source" href="TypeChecker.html">
+                  TypeChecker.hs
+                </a>
+              
+            </div>
+          </div>
+        </li>
+      </ul>
+    
+    <ul class="sections">
+        
+          <li id="title">
+              <div class="annotation">
+                  <h1>Resolver.hs</h1>
+              </div>
+          </li>
+        
+        
+        
+        <li id="section-1">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-1">&#x00a7;</a>
+              </div>
+              
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-meta">{-# LANGUAGE TupleSections #-}</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-2">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-2">&#x00a7;</a>
+              </div>
+              <p>| Convert the concrete syntax into the syntax of cubical TT.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-keyword">module</span> Resolver <span class="hljs-keyword">where</span>
+
+<span class="hljs-keyword">import</span> Control.Applicative
+<span class="hljs-keyword">import</span> Control.Monad
+<span class="hljs-keyword">import</span> Control.Monad.Reader
+<span class="hljs-keyword">import</span> Control.Monad.Except
+<span class="hljs-keyword">import</span> Control.Monad.Identity
+<span class="hljs-keyword">import</span> Data.Maybe
+<span class="hljs-keyword">import</span> Data.List
+<span class="hljs-keyword">import</span> Data.Map (<span class="hljs-type">Map</span>,(!))
+<span class="hljs-keyword">import</span> <span class="hljs-keyword">qualified</span> Data.Map <span class="hljs-keyword">as</span> Map
+
+<span class="hljs-keyword">import</span> Exp.Abs
+<span class="hljs-keyword">import</span> CTT (<span class="hljs-type">Ter</span>,<span class="hljs-type">Ident</span>,<span class="hljs-type">Loc(..)</span>,<span class="hljs-title">mkApps</span>,<span class="hljs-title">mkWheres</span>)
+<span class="hljs-keyword">import</span> <span class="hljs-keyword">qualified</span> CTT
+<span class="hljs-keyword">import</span> Connections (<span class="hljs-title">negFormula</span>,<span class="hljs-title">andFormula</span>,<span class="hljs-title">orFormula</span>)
+<span class="hljs-keyword">import</span> <span class="hljs-keyword">qualified</span> Connections <span class="hljs-keyword">as</span> C</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-3">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-3">&#x00a7;</a>
+              </div>
+              <p>| Useful auxiliary functions</p>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-4">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-4">&#x00a7;</a>
+              </div>
+              <p>Applicative cons</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>(&lt;:&gt;) :: <span class="hljs-type">Applicative</span> f =&gt; f a -&gt; f [a] -&gt; f [a]
+<span class="hljs-title">a</span> &lt;:&gt; b = (:) &lt;$&gt; a &lt;*&gt; b</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-5">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-5">&#x00a7;</a>
+              </div>
+              <p>Un-something functions</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">unVar</span> :: <span class="hljs-type">Exp</span> -&gt; <span class="hljs-type">Maybe</span> <span class="hljs-type">Ident</span>
+<span class="hljs-title">unVar</span> (<span class="hljs-type">Var</span> (<span class="hljs-type">AIdent</span> (_,x))) = <span class="hljs-type">Just</span> x
+<span class="hljs-title">unVar</span> _                    = <span class="hljs-type">Nothing</span>
+
+<span class="hljs-title">unWhere</span> :: <span class="hljs-type">ExpWhere</span> -&gt; <span class="hljs-type">Exp</span>
+<span class="hljs-title">unWhere</span> (<span class="hljs-type">Where</span> e ds) = <span class="hljs-type">Let</span> ds e
+<span class="hljs-title">unWhere</span> (<span class="hljs-type">NoWhere</span> e)  = e</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-6">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-6">&#x00a7;</a>
+              </div>
+              <p>Tail recursive form to transform a sequence of applications
+App (App (App u v) …) w  into (u, [v, …, w])
+(cleaner than the previous version of unApps)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">unApps</span> :: <span class="hljs-type">Exp</span> -&gt; [<span class="hljs-type">Exp</span>] -&gt; (<span class="hljs-type">Exp</span>, [<span class="hljs-type">Exp</span>])
+<span class="hljs-title">unApps</span> (<span class="hljs-type">App</span> u v) ws = unApps u (v : ws)
+<span class="hljs-title">unApps</span> u         ws = (u, ws)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-7">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-7">&#x00a7;</a>
+              </div>
+              <p>Turns an expression of the form App (… (App id1 id2) … idn)
+into a list of idents</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">appsToIdents</span> :: <span class="hljs-type">Exp</span> -&gt; <span class="hljs-type">Maybe</span> [<span class="hljs-type">Ident</span>]
+<span class="hljs-title">appsToIdents</span> = mapM unVar . uncurry (:) . flip unApps []</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-8">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-8">&#x00a7;</a>
+              </div>
+              <p>Transform a sequence of applications
+(((u v1) .. vn) phi1) .. phim into (u,[v1,..,vn],[phi1,..,phim])</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">unAppsFormulas</span> :: <span class="hljs-type">Exp</span> -&gt; [<span class="hljs-type">Formula</span>]-&gt; (<span class="hljs-type">Exp</span>,[<span class="hljs-type">Exp</span>],[<span class="hljs-type">Formula</span>])
+<span class="hljs-title">unAppsFormulas</span> (<span class="hljs-type">AppFormula</span> u phi) phis = unAppsFormulas u (phi:phis)
+<span class="hljs-title">unAppsFormulas</span> u phis = (x,xs,phis)
+  <span class="hljs-keyword">where</span> (x,xs) = unApps u []</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-9">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-9">&#x00a7;</a>
+              </div>
+              <p>Flatten a tele</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">flattenTele</span> :: [<span class="hljs-type">Tele</span>] -&gt; [(<span class="hljs-type">Ident</span>,<span class="hljs-type">Exp</span>)]
+<span class="hljs-title">flattenTele</span> tele =
+  [ (unAIdent i,typ) | <span class="hljs-type">Tele</span> id ids typ &lt;- tele, i &lt;- id:ids ]</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-10">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-10">&#x00a7;</a>
+              </div>
+              <p>Flatten a PTele</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">flattenPTele</span> :: [<span class="hljs-type">PTele</span>] -&gt; <span class="hljs-type">Resolver</span> [(<span class="hljs-type">Ident</span>,<span class="hljs-type">Exp</span>)]
+<span class="hljs-title">flattenPTele</span> []                   = return []
+<span class="hljs-title">flattenPTele</span> (<span class="hljs-type">PTele</span> exp typ : xs) = <span class="hljs-keyword">case</span> appsToIdents exp <span class="hljs-keyword">of</span>
+  <span class="hljs-type">Just</span> ids -&gt; <span class="hljs-keyword">do</span>
+    pt &lt;- flattenPTele xs
+    return $ map (,typ) ids ++ pt
+  <span class="hljs-type">Nothing</span> -&gt; throwError <span class="hljs-string">&quot;malformed ptele&quot;</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-11">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-11">&#x00a7;</a>
+              </div>
+              <hr>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-12">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-12">&#x00a7;</a>
+              </div>
+              <p>| Resolver and environment</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>
+<span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">SymKind</span> = <span class="hljs-type">Variable</span> | <span class="hljs-type">Constructor</span> | <span class="hljs-type">PConstructor</span> | <span class="hljs-type">Name</span></span>
+  <span class="hljs-keyword">deriving</span> (<span class="hljs-type">Eq</span>,<span class="hljs-type">Show</span>)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-13">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-13">&#x00a7;</a>
+              </div>
+              <p>local environment for constructors</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-class"><span class="hljs-keyword">data</span> <span class="hljs-type">Env</span> = <span class="hljs-type">Env</span> { <span class="hljs-title">envModule</span> :: <span class="hljs-type">String</span>,
+                 <span class="hljs-title">variables</span> :: [(<span class="hljs-type">Ident</span>,<span class="hljs-type">SymKind</span>)] }</span>
+  <span class="hljs-keyword">deriving</span> (<span class="hljs-type">Eq</span>,<span class="hljs-type">Show</span>)
+
+<span class="hljs-class"><span class="hljs-keyword">type</span> <span class="hljs-type">Resolver</span> a = <span class="hljs-type">ReaderT</span> <span class="hljs-type">Env</span> (<span class="hljs-type">ExceptT</span> <span class="hljs-type">String</span> <span class="hljs-type">Identity</span>) a</span>
+
+<span class="hljs-title">emptyEnv</span> :: <span class="hljs-type">Env</span>
+<span class="hljs-title">emptyEnv</span> = <span class="hljs-type">Env</span> <span class="hljs-string">&quot;&quot;</span> []
+
+<span class="hljs-title">runResolver</span> :: <span class="hljs-type">Resolver</span> a -&gt; <span class="hljs-type">Either</span> <span class="hljs-type">String</span> a
+<span class="hljs-title">runResolver</span> x = runIdentity $ runExceptT $ runReaderT x emptyEnv
+
+<span class="hljs-title">updateModule</span> :: <span class="hljs-type">String</span> -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Env</span>
+<span class="hljs-title">updateModule</span> mod e = e{envModule = mod}
+
+<span class="hljs-title">insertIdent</span> :: (<span class="hljs-type">Ident</span>,<span class="hljs-type">SymKind</span>) -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Env</span>
+<span class="hljs-title">insertIdent</span> (n,var) e
+  | n == <span class="hljs-string">&quot;_&quot;</span>  = e
+  | otherwise = e{variables = (n,var) : variables e}
+
+<span class="hljs-title">insertIdents</span> :: [(<span class="hljs-type">Ident</span>,<span class="hljs-type">SymKind</span>)] -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Env</span>
+<span class="hljs-title">insertIdents</span> = flip $ foldr insertIdent
+
+<span class="hljs-title">insertName</span> :: <span class="hljs-type">AIdent</span> -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Env</span>
+<span class="hljs-title">insertName</span> (<span class="hljs-type">AIdent</span> (_,x)) = insertIdent (x,<span class="hljs-type">Name</span>)
+
+<span class="hljs-title">insertNames</span> :: [<span class="hljs-type">AIdent</span>] -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Env</span>
+<span class="hljs-title">insertNames</span> = flip $ foldr insertName
+
+<span class="hljs-title">insertVar</span> :: <span class="hljs-type">Ident</span> -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Env</span>
+<span class="hljs-title">insertVar</span> x = insertIdent (x,<span class="hljs-type">Variable</span>)
+
+<span class="hljs-title">insertVars</span> :: [<span class="hljs-type">Ident</span>] -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Env</span>
+<span class="hljs-title">insertVars</span> = flip $ foldr insertVar
+
+<span class="hljs-title">insertAIdent</span> :: <span class="hljs-type">AIdent</span> -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Env</span>
+<span class="hljs-title">insertAIdent</span> (<span class="hljs-type">AIdent</span> (_,x)) = insertIdent (x,<span class="hljs-type">Variable</span>)
+
+<span class="hljs-title">insertAIdents</span> :: [<span class="hljs-type">AIdent</span>] -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Env</span>
+<span class="hljs-title">insertAIdents</span>  = flip $ foldr insertAIdent
+
+<span class="hljs-title">getLoc</span> :: (<span class="hljs-type">Int</span>,<span class="hljs-type">Int</span>) -&gt; <span class="hljs-type">Resolver</span> <span class="hljs-type">Loc</span>
+<span class="hljs-title">getLoc</span> l = <span class="hljs-type">Loc</span> &lt;$&gt; asks envModule &lt;*&gt; pure l
+
+<span class="hljs-title">unAIdent</span> :: <span class="hljs-type">AIdent</span> -&gt; <span class="hljs-type">Ident</span>
+<span class="hljs-title">unAIdent</span> (<span class="hljs-type">AIdent</span> (_,x)) = x
+
+<span class="hljs-title">resolveName</span> :: <span class="hljs-type">AIdent</span> -&gt; <span class="hljs-type">Resolver</span> <span class="hljs-type">C</span>.<span class="hljs-type">Name</span>
+<span class="hljs-title">resolveName</span> (<span class="hljs-type">AIdent</span> (l,x)) = <span class="hljs-keyword">do</span>
+  modName &lt;- asks envModule
+  vars &lt;- asks variables
+  <span class="hljs-keyword">case</span> lookup x vars <span class="hljs-keyword">of</span>
+    <span class="hljs-type">Just</span> <span class="hljs-type">Name</span> -&gt; return $ <span class="hljs-type">C</span>.<span class="hljs-type">Name</span> x
+    _ -&gt; throwError $ <span class="hljs-string">&quot;Cannot resolve name &quot;</span> ++ x ++ <span class="hljs-string">&quot; at position &quot;</span> ++
+                      show l ++ <span class="hljs-string">&quot; in module &quot;</span> ++ modName
+
+<span class="hljs-title">resolveVar</span> :: <span class="hljs-type">AIdent</span> -&gt; <span class="hljs-type">Resolver</span> <span class="hljs-type">Ter</span>
+<span class="hljs-title">resolveVar</span> (<span class="hljs-type">AIdent</span> (l,x)) = <span class="hljs-keyword">do</span>
+  modName &lt;- asks envModule
+  vars    &lt;- asks variables
+  <span class="hljs-keyword">case</span> lookup x vars <span class="hljs-keyword">of</span>
+    <span class="hljs-type">Just</span> <span class="hljs-type">Variable</span>    -&gt; return $ <span class="hljs-type">CTT</span>.<span class="hljs-type">Var</span> x
+    <span class="hljs-type">Just</span> <span class="hljs-type">Constructor</span> -&gt; return $ <span class="hljs-type">CTT</span>.<span class="hljs-type">Con</span> x []
+    <span class="hljs-type">Just</span> <span class="hljs-type">PConstructor</span> -&gt;
+      throwError $ <span class="hljs-string">&quot;The path constructor &quot;</span> ++ x ++ <span class="hljs-string">&quot; is used as a&quot;</span> ++
+                   <span class="hljs-string">&quot; variable at &quot;</span> ++ show l ++ <span class="hljs-string">&quot; in &quot;</span> ++ modName ++
+                   <span class="hljs-string">&quot; (path constructors should have their type in&quot;</span> ++
+                   <span class="hljs-string">&quot; curly braces as first argument)&quot;</span>
+    <span class="hljs-type">Just</span> <span class="hljs-type">Name</span>        -&gt;
+      throwError $ <span class="hljs-string">&quot;Name &quot;</span> ++ x ++ <span class="hljs-string">&quot; used as a variable at position &quot;</span> ++
+                   show l ++ <span class="hljs-string">&quot; in module &quot;</span> ++ modName
+    _ -&gt; throwError $ <span class="hljs-string">&quot;Cannot resolve variable &quot;</span> ++ x ++ <span class="hljs-string">&quot; at position &quot;</span> ++
+                      show l ++ <span class="hljs-string">&quot; in module &quot;</span> ++ modName
+
+<span class="hljs-title">lam</span> :: (<span class="hljs-type">Ident</span>,<span class="hljs-type">Exp</span>) -&gt; <span class="hljs-type">Resolver</span> <span class="hljs-type">Ter</span> -&gt; <span class="hljs-type">Resolver</span> <span class="hljs-type">Ter</span>
+<span class="hljs-title">lam</span> (a,t) e = <span class="hljs-type">CTT</span>.<span class="hljs-type">Lam</span> a &lt;$&gt; resolveExp t &lt;*&gt; local (insertVar a) e
+
+<span class="hljs-title">lams</span> :: [(<span class="hljs-type">Ident</span>,<span class="hljs-type">Exp</span>)] -&gt; <span class="hljs-type">Resolver</span> <span class="hljs-type">Ter</span> -&gt; <span class="hljs-type">Resolver</span> <span class="hljs-type">Ter</span>
+<span class="hljs-title">lams</span> = flip $ foldr lam
+
+<span class="hljs-title">plam</span> :: <span class="hljs-type">AIdent</span> -&gt; <span class="hljs-type">Resolver</span> <span class="hljs-type">Ter</span> -&gt; <span class="hljs-type">Resolver</span> <span class="hljs-type">Ter</span>
+<span class="hljs-title">plam</span> i e = <span class="hljs-type">CTT</span>.<span class="hljs-type">PLam</span> (<span class="hljs-type">C</span>.<span class="hljs-type">Name</span> (unAIdent i)) &lt;$&gt; local (insertName i) e
+
+<span class="hljs-title">plams</span> :: [<span class="hljs-type">AIdent</span>] -&gt; <span class="hljs-type">Resolver</span> <span class="hljs-type">Ter</span> -&gt; <span class="hljs-type">Resolver</span> <span class="hljs-type">Ter</span>
+<span class="hljs-title">plams</span> [] _ = throwError <span class="hljs-string">&quot;Empty plam abstraction&quot;</span>
+<span class="hljs-title">plams</span> xs e = foldr plam e xs
+
+<span class="hljs-title">bind</span> :: (<span class="hljs-type">Ter</span> -&gt; <span class="hljs-type">Ter</span>) -&gt; (<span class="hljs-type">Ident</span>,<span class="hljs-type">Exp</span>) -&gt; <span class="hljs-type">Resolver</span> <span class="hljs-type">Ter</span> -&gt; <span class="hljs-type">Resolver</span> <span class="hljs-type">Ter</span>
+<span class="hljs-title">bind</span> f (x,t) e = f &lt;$&gt; lam (x,t) e
+
+<span class="hljs-title">binds</span> :: (<span class="hljs-type">Ter</span> -&gt; <span class="hljs-type">Ter</span>) -&gt; [(<span class="hljs-type">Ident</span>,<span class="hljs-type">Exp</span>)] -&gt; <span class="hljs-type">Resolver</span> <span class="hljs-type">Ter</span> -&gt; <span class="hljs-type">Resolver</span> <span class="hljs-type">Ter</span>
+<span class="hljs-title">binds</span> f = flip $ foldr $ bind f
+
+<span class="hljs-title">resolveApps</span> :: <span class="hljs-type">Exp</span> -&gt; [<span class="hljs-type">Exp</span>] -&gt; <span class="hljs-type">Resolver</span> <span class="hljs-type">Ter</span>
+<span class="hljs-title">resolveApps</span> x xs = mkApps &lt;$&gt; resolveExp x &lt;*&gt; mapM resolveExp xs
+
+<span class="hljs-title">resolveExp</span> :: <span class="hljs-type">Exp</span> -&gt; <span class="hljs-type">Resolver</span> <span class="hljs-type">Ter</span>
+<span class="hljs-title">resolveExp</span> e = <span class="hljs-keyword">case</span> e <span class="hljs-keyword">of</span>
+  <span class="hljs-type">U</span>             -&gt; return <span class="hljs-type">CTT</span>.<span class="hljs-type">U</span>
+  <span class="hljs-type">Var</span> x         -&gt; resolveVar x
+  <span class="hljs-type">App</span> t s       -&gt; resolveApps x xs
+    <span class="hljs-keyword">where</span> (x,xs) = unApps t [s]
+  <span class="hljs-type">Sigma</span> ptele b -&gt; <span class="hljs-keyword">do</span>
+    tele &lt;- flattenPTele ptele
+    binds <span class="hljs-type">CTT</span>.<span class="hljs-type">Sigma</span> tele (resolveExp b)
+  <span class="hljs-type">Pi</span> ptele b    -&gt; <span class="hljs-keyword">do</span>
+    tele &lt;- flattenPTele ptele
+    binds <span class="hljs-type">CTT</span>.<span class="hljs-type">Pi</span> tele (resolveExp b)
+  <span class="hljs-type">Fun</span> a b       -&gt; bind <span class="hljs-type">CTT</span>.<span class="hljs-type">Pi</span> (<span class="hljs-string">&quot;_&quot;</span>,a) (resolveExp b)
+  <span class="hljs-type">Lam</span> ptele t   -&gt; <span class="hljs-keyword">do</span>
+    tele &lt;- flattenPTele ptele
+    lams tele (resolveExp t)
+  <span class="hljs-type">Fst</span> t         -&gt; <span class="hljs-type">CTT</span>.<span class="hljs-type">Fst</span> &lt;$&gt; resolveExp t
+  <span class="hljs-type">Snd</span> t         -&gt; <span class="hljs-type">CTT</span>.<span class="hljs-type">Snd</span> &lt;$&gt; resolveExp t
+  <span class="hljs-type">Pair</span> t0 ts    -&gt; <span class="hljs-keyword">do</span>
+    e  &lt;- resolveExp t0
+    es &lt;- mapM resolveExp ts
+    return $ foldr1 <span class="hljs-type">CTT</span>.<span class="hljs-type">Pair</span> (e:es)
+  <span class="hljs-type">Split</span> t brs -&gt; <span class="hljs-keyword">do</span>
+    t&#x27;   &lt;- resolveExp t
+    brs&#x27; &lt;- mapM resolveBranch brs
+    l@(<span class="hljs-type">Loc</span> n (i,j)) &lt;- getLoc (<span class="hljs-keyword">case</span> brs <span class="hljs-keyword">of</span>
+                                  <span class="hljs-type">OBranch</span> (<span class="hljs-type">AIdent</span> (l,_)) _ _:_ -&gt; l
+                                  <span class="hljs-type">PBranch</span> (<span class="hljs-type">AIdent</span> (l,_)) _ _ _:_ -&gt; l
+                                  _ -&gt; (<span class="hljs-number">0</span>,<span class="hljs-number">0</span>))
+    return $ <span class="hljs-type">CTT</span>.<span class="hljs-type">Split</span> (n ++ <span class="hljs-string">&quot;_L&quot;</span> ++ show i ++ <span class="hljs-string">&quot;_C&quot;</span> ++ show j) l t&#x27; brs&#x27;
+  <span class="hljs-type">Let</span> decls e   -&gt; <span class="hljs-keyword">do</span>
+    (rdecls,names) &lt;- resolveDecls decls
+    mkWheres rdecls &lt;$&gt; local (insertIdents names) (resolveExp e)
+  <span class="hljs-type">PLam</span> is e     -&gt; plams is (resolveExp e)
+  <span class="hljs-type">Hole</span> (<span class="hljs-type">HoleIdent</span> (l,_)) -&gt; <span class="hljs-type">CTT</span>.<span class="hljs-type">Hole</span> &lt;$&gt; getLoc l
+  <span class="hljs-type">AppFormula</span> t phi -&gt;
+    <span class="hljs-keyword">let</span> (x,xs,phis) = unAppsFormulas e []
+    <span class="hljs-keyword">in</span> <span class="hljs-keyword">case</span> x <span class="hljs-keyword">of</span>
+      <span class="hljs-type">PCon</span> n a -&gt;
+        <span class="hljs-type">CTT</span>.<span class="hljs-type">PCon</span> (unAIdent n) &lt;$&gt; resolveExp a &lt;*&gt; mapM resolveExp xs
+                              &lt;*&gt; mapM resolveFormula phis
+      _ -&gt; <span class="hljs-type">CTT</span>.<span class="hljs-type">AppFormula</span> &lt;$&gt; resolveExp t &lt;*&gt; resolveFormula phi
+  <span class="hljs-type">PathP</span> a u v   -&gt; <span class="hljs-type">CTT</span>.<span class="hljs-type">PathP</span> &lt;$&gt; resolveExp a &lt;*&gt; resolveExp u &lt;*&gt; resolveExp v
+  <span class="hljs-type">Comp</span> u v ts   -&gt; <span class="hljs-type">CTT</span>.<span class="hljs-type">Comp</span> &lt;$&gt; resolveExp u &lt;*&gt; resolveExp v &lt;*&gt; resolveSystem ts
+  <span class="hljs-type">HComp</span> u v ts  -&gt; <span class="hljs-type">CTT</span>.<span class="hljs-type">HComp</span> &lt;$&gt; resolveExp u &lt;*&gt; resolveExp v &lt;*&gt; resolveSystem ts
+  <span class="hljs-type">Fill</span> u v ts   -&gt; <span class="hljs-type">CTT</span>.<span class="hljs-type">Fill</span> &lt;$&gt; resolveExp u &lt;*&gt; resolveExp v &lt;*&gt; resolveSystem ts
+  <span class="hljs-type">Trans</span> u v     -&gt; <span class="hljs-type">CTT</span>.<span class="hljs-type">Comp</span> &lt;$&gt; resolveExp u &lt;*&gt; resolveExp v &lt;*&gt; pure <span class="hljs-type">Map</span>.empty
+  <span class="hljs-type">Glue</span> u ts     -&gt; <span class="hljs-type">CTT</span>.<span class="hljs-type">Glue</span> &lt;$&gt; resolveExp u &lt;*&gt; resolveSystem ts
+  <span class="hljs-type">GlueElem</span> u ts -&gt; <span class="hljs-type">CTT</span>.<span class="hljs-type">GlueElem</span> &lt;$&gt; resolveExp u &lt;*&gt; resolveSystem ts
+  <span class="hljs-type">UnGlueElem</span> u ts -&gt; <span class="hljs-type">CTT</span>.<span class="hljs-type">UnGlueElem</span> &lt;$&gt; resolveExp u &lt;*&gt; resolveSystem ts
+  <span class="hljs-type">Id</span> a u v      -&gt; <span class="hljs-type">CTT</span>.<span class="hljs-type">Id</span> &lt;$&gt; resolveExp a &lt;*&gt; resolveExp u &lt;*&gt; resolveExp v
+  <span class="hljs-type">IdPair</span> u ts   -&gt; <span class="hljs-type">CTT</span>.<span class="hljs-type">IdPair</span> &lt;$&gt; resolveExp u &lt;*&gt; resolveSystem ts
+  <span class="hljs-type">IdJ</span> a t c d x p -&gt; <span class="hljs-type">CTT</span>.<span class="hljs-type">IdJ</span> &lt;$&gt; resolveExp a &lt;*&gt; resolveExp t &lt;*&gt; resolveExp c
+                             &lt;*&gt; resolveExp d &lt;*&gt; resolveExp x &lt;*&gt; resolveExp p
+  _ -&gt; <span class="hljs-keyword">do</span>
+    modName &lt;- asks envModule
+    throwError (<span class="hljs-string">&quot;Could not resolve &quot;</span> ++ show e ++ <span class="hljs-string">&quot; in module &quot;</span> ++ modName)
+
+<span class="hljs-title">resolveWhere</span> :: <span class="hljs-type">ExpWhere</span> -&gt; <span class="hljs-type">Resolver</span> <span class="hljs-type">Ter</span>
+<span class="hljs-title">resolveWhere</span> = resolveExp . unWhere
+
+<span class="hljs-title">resolveSystem</span> :: <span class="hljs-type">System</span> -&gt; <span class="hljs-type">Resolver</span> (<span class="hljs-type">C</span>.<span class="hljs-type">System</span> <span class="hljs-type">Ter</span>)
+<span class="hljs-title">resolveSystem</span> (<span class="hljs-type">System</span> ts) = <span class="hljs-keyword">do</span>
+  ts&#x27; &lt;- sequence [ (,) &lt;$&gt; resolveFace alpha &lt;*&gt; resolveExp u
+                  | <span class="hljs-type">Side</span> alpha u &lt;- ts ]
+  <span class="hljs-keyword">let</span> alphas = map fst ts&#x27;
+  unless (nub alphas == alphas) $
+    throwError $ <span class="hljs-string">&quot;system contains same face multiple times: &quot;</span> ++
+                 <span class="hljs-type">C</span>.showListSystem ts&#x27;</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-14">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-14">&#x00a7;</a>
+              </div>
+              <p>Note: the symbols in alpha are in scope in u, but they mean 0 or 1</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  return $ <span class="hljs-type">Map</span>.fromList ts&#x27;
+
+<span class="hljs-title">resolveFace</span> :: [<span class="hljs-type">Face</span>] -&gt; <span class="hljs-type">Resolver</span> <span class="hljs-type">C</span>.<span class="hljs-type">Face</span>
+<span class="hljs-title">resolveFace</span> alpha =
+  <span class="hljs-type">Map</span>.fromList &lt;$&gt; sequence [ (,) &lt;$&gt; resolveName i &lt;*&gt; resolveDir d
+                            | <span class="hljs-type">Face</span> i d &lt;- alpha ]
+
+<span class="hljs-title">resolveDir</span> :: <span class="hljs-type">Dir</span> -&gt; <span class="hljs-type">Resolver</span> <span class="hljs-type">C</span>.<span class="hljs-type">Dir</span>
+<span class="hljs-title">resolveDir</span> <span class="hljs-type">Dir0</span> = return <span class="hljs-number">0</span>
+<span class="hljs-title">resolveDir</span> <span class="hljs-type">Dir1</span> = return <span class="hljs-number">1</span>
+
+<span class="hljs-title">resolveFormula</span> :: <span class="hljs-type">Formula</span> -&gt; <span class="hljs-type">Resolver</span> <span class="hljs-type">C</span>.<span class="hljs-type">Formula</span>
+<span class="hljs-title">resolveFormula</span> (<span class="hljs-type">Dir</span> d)          = <span class="hljs-type">C</span>.<span class="hljs-type">Dir</span> &lt;$&gt; resolveDir d
+<span class="hljs-title">resolveFormula</span> (<span class="hljs-type">Atom</span> i)         = <span class="hljs-type">C</span>.<span class="hljs-type">Atom</span> &lt;$&gt; resolveName i
+<span class="hljs-title">resolveFormula</span> (<span class="hljs-type">Neg</span> phi)        = negFormula &lt;$&gt; resolveFormula phi
+<span class="hljs-title">resolveFormula</span> (<span class="hljs-type">Conj</span> phi _ psi) =
+    andFormula &lt;$&gt; resolveFormula phi &lt;*&gt; resolveFormula psi
+<span class="hljs-title">resolveFormula</span> (<span class="hljs-type">Disj</span> phi psi)   =
+    orFormula &lt;$&gt; resolveFormula phi &lt;*&gt; resolveFormula psi
+
+<span class="hljs-title">resolveBranch</span> :: <span class="hljs-type">Branch</span> -&gt; <span class="hljs-type">Resolver</span> <span class="hljs-type">CTT</span>.<span class="hljs-type">Branch</span>
+<span class="hljs-title">resolveBranch</span> (<span class="hljs-type">OBranch</span> (<span class="hljs-type">AIdent</span> (_,lbl)) args e) = <span class="hljs-keyword">do</span>
+  re &lt;- local (insertAIdents args) $ resolveWhere e
+  return $ <span class="hljs-type">CTT</span>.<span class="hljs-type">OBranch</span> lbl (map unAIdent args) re
+<span class="hljs-title">resolveBranch</span> (<span class="hljs-type">PBranch</span> (<span class="hljs-type">AIdent</span> (_,lbl)) args is e) = <span class="hljs-keyword">do</span>
+  re &lt;- local (insertNames is . insertAIdents args) $ resolveWhere e
+  <span class="hljs-keyword">let</span> names = map (<span class="hljs-type">C</span>.<span class="hljs-type">Name</span> . unAIdent) is
+  return $ <span class="hljs-type">CTT</span>.<span class="hljs-type">PBranch</span> lbl (map unAIdent args) names re
+
+<span class="hljs-title">resolveTele</span> :: [(<span class="hljs-type">Ident</span>,<span class="hljs-type">Exp</span>)] -&gt; <span class="hljs-type">Resolver</span> <span class="hljs-type">CTT</span>.<span class="hljs-type">Tele</span>
+<span class="hljs-title">resolveTele</span> []        = return []
+<span class="hljs-title">resolveTele</span> ((i,d):t) =
+  ((i,) &lt;$&gt; resolveExp d) &lt;:&gt; local (insertVar i) (resolveTele t)
+
+<span class="hljs-title">resolveLabel</span> :: [(<span class="hljs-type">Ident</span>,<span class="hljs-type">SymKind</span>)] -&gt; <span class="hljs-type">Label</span> -&gt; <span class="hljs-type">Resolver</span> <span class="hljs-type">CTT</span>.<span class="hljs-type">Label</span>
+<span class="hljs-title">resolveLabel</span> _ (<span class="hljs-type">OLabel</span> n vdecl) =
+  <span class="hljs-type">CTT</span>.<span class="hljs-type">OLabel</span> (unAIdent n) &lt;$&gt; resolveTele (flattenTele vdecl)
+<span class="hljs-title">resolveLabel</span> cs (<span class="hljs-type">PLabel</span> n vdecl is sys) = <span class="hljs-keyword">do</span>
+  <span class="hljs-keyword">let</span> tele&#x27; = flattenTele vdecl
+      ts    = map fst tele&#x27;
+      names = map (<span class="hljs-type">C</span>.<span class="hljs-type">Name</span> . unAIdent) is
+      n&#x27;    = unAIdent n
+      cs&#x27;   = delete (n&#x27;,<span class="hljs-type">PConstructor</span>) cs
+  <span class="hljs-type">CTT</span>.<span class="hljs-type">PLabel</span> n&#x27; &lt;$&gt; resolveTele tele&#x27; &lt;*&gt; pure names
+                &lt;*&gt; local (insertNames is . insertIdents cs&#x27; . insertVars ts)
+                      (resolveSystem sys)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-15">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-15">&#x00a7;</a>
+              </div>
+              <p>Resolve a non-mutual declaration; returns resolver for type and
+body separately</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">resolveNonMutualDecl</span> :: <span class="hljs-type">Decl</span> -&gt; (<span class="hljs-type">Ident</span>,<span class="hljs-type">Resolver</span> <span class="hljs-type">CTT</span>.<span class="hljs-type">Ter</span>
+                                ,<span class="hljs-type">Resolver</span> <span class="hljs-type">CTT</span>.<span class="hljs-type">Ter</span>,[(<span class="hljs-type">Ident</span>,<span class="hljs-type">SymKind</span>)])
+<span class="hljs-title">resolveNonMutualDecl</span> d = <span class="hljs-keyword">case</span> d <span class="hljs-keyword">of</span>
+  <span class="hljs-type">DeclDef</span> (<span class="hljs-type">AIdent</span> (_,f)) tele t body -&gt;
+    <span class="hljs-keyword">let</span> tele&#x27; = flattenTele tele
+        a     = binds <span class="hljs-type">CTT</span>.<span class="hljs-type">Pi</span> tele&#x27; (resolveExp t)
+        d     = lams tele&#x27; (local (insertVar f) $ resolveWhere body)
+    <span class="hljs-keyword">in</span> (f,a,d,[(f,<span class="hljs-type">Variable</span>)])
+  <span class="hljs-type">DeclData</span> x tele sums  -&gt; resolveDeclData x tele sums null
+  <span class="hljs-type">DeclHData</span> x tele sums -&gt;
+    resolveDeclData x tele sums (const <span class="hljs-type">False</span>) <span class="hljs-comment">-- always pick HSum</span>
+  <span class="hljs-type">DeclSplit</span> (<span class="hljs-type">AIdent</span> (l,f)) tele t brs -&gt;
+    <span class="hljs-keyword">let</span> tele&#x27; = flattenTele tele
+        vars  = map fst tele&#x27;
+        a     = binds <span class="hljs-type">CTT</span>.<span class="hljs-type">Pi</span> tele&#x27; (resolveExp t)
+        d     = <span class="hljs-keyword">do</span>
+                  loc &lt;- getLoc l
+                  ty  &lt;- local (insertVars vars) $ resolveExp t
+                  brs&#x27; &lt;- local (insertVars (f:vars)) (mapM resolveBranch brs)
+                  lams tele&#x27; (return $ <span class="hljs-type">CTT</span>.<span class="hljs-type">Split</span> f loc ty brs&#x27;)
+    <span class="hljs-keyword">in</span> (f,a,d,[(f,<span class="hljs-type">Variable</span>)])
+  <span class="hljs-type">DeclUndef</span> (<span class="hljs-type">AIdent</span> (l,f)) tele t -&gt;
+    <span class="hljs-keyword">let</span> tele&#x27; = flattenTele tele
+        a     = binds <span class="hljs-type">CTT</span>.<span class="hljs-type">Pi</span> tele&#x27; (resolveExp t)
+        d     = <span class="hljs-type">CTT</span>.<span class="hljs-type">Undef</span> &lt;$&gt; getLoc l &lt;*&gt; a
+    <span class="hljs-keyword">in</span> (f,a,d,[(f,<span class="hljs-type">Variable</span>)])</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-16">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-16">&#x00a7;</a>
+              </div>
+              <p>Helper function to resolve data declarations. The predicate p is
+used to decide if we should use Sum or HSum.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">resolveDeclData</span> :: <span class="hljs-type">AIdent</span> -&gt; [<span class="hljs-type">Tele</span>] -&gt; [<span class="hljs-type">Label</span>] -&gt; ([(<span class="hljs-type">Ident</span>,<span class="hljs-type">SymKind</span>)] -&gt; <span class="hljs-type">Bool</span>) -&gt;
+                   (<span class="hljs-type">Ident</span>, <span class="hljs-type">Resolver</span> <span class="hljs-type">Ter</span>, <span class="hljs-type">Resolver</span> <span class="hljs-type">Ter</span>, [(<span class="hljs-type">Ident</span>, <span class="hljs-type">SymKind</span>)])
+<span class="hljs-title">resolveDeclData</span> (<span class="hljs-type">AIdent</span> (l,f)) tele sums p =
+  <span class="hljs-keyword">let</span> tele&#x27; = flattenTele tele
+      a     = binds <span class="hljs-type">CTT</span>.<span class="hljs-type">Pi</span> tele&#x27; (return <span class="hljs-type">CTT</span>.<span class="hljs-type">U</span>)
+      cs    = [ (unAIdent lbl,<span class="hljs-type">Constructor</span>) | <span class="hljs-type">OLabel</span> lbl _ &lt;- sums ]
+      pcs   = [ (unAIdent lbl,<span class="hljs-type">PConstructor</span>) | <span class="hljs-type">PLabel</span> lbl _ _ _ &lt;- sums ]
+      sum   = <span class="hljs-keyword">if</span> p pcs <span class="hljs-keyword">then</span> <span class="hljs-type">CTT</span>.<span class="hljs-type">Sum</span> <span class="hljs-keyword">else</span> <span class="hljs-type">CTT</span>.<span class="hljs-type">HSum</span>
+      d = lams tele&#x27; $ local (insertVar f) $
+            sum &lt;$&gt; getLoc l &lt;*&gt; pure f
+                &lt;*&gt; mapM (resolveLabel (cs ++ pcs)) sums
+  <span class="hljs-keyword">in</span> (f,a,d,(f,<span class="hljs-type">Variable</span>):cs ++ pcs)
+
+<span class="hljs-title">resolveRTele</span> :: [<span class="hljs-type">Ident</span>] -&gt; [<span class="hljs-type">Resolver</span> <span class="hljs-type">CTT</span>.<span class="hljs-type">Ter</span>] -&gt; <span class="hljs-type">Resolver</span> <span class="hljs-type">CTT</span>.<span class="hljs-type">Tele</span>
+<span class="hljs-title">resolveRTele</span> [] _ = return []
+<span class="hljs-title">resolveRTele</span> (i:is) (t:ts) = <span class="hljs-keyword">do</span>
+  a  &lt;- t
+  <span class="hljs-keyword">as</span> &lt;- local (insertVar i) (resolveRTele is ts)
+  return ((i,a):<span class="hljs-keyword">as</span>)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-17">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-17">&#x00a7;</a>
+              </div>
+              <p>Best effort to find the location of a declaration. This implementation
+returns the location of the first identifier it contains.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">findDeclLoc</span> :: <span class="hljs-type">Decl</span> -&gt; <span class="hljs-type">Resolver</span> <span class="hljs-type">Loc</span>
+<span class="hljs-title">findDeclLoc</span> d = getLoc loc
+    <span class="hljs-keyword">where</span> loc = fromMaybe (<span class="hljs-number">-1</span>, <span class="hljs-number">0</span>) $ mloc d
+          mloc d = <span class="hljs-keyword">case</span> d <span class="hljs-keyword">of</span>
+            <span class="hljs-type">DeclDef</span> (<span class="hljs-type">AIdent</span> (l, _)) _ _ _   -&gt; <span class="hljs-type">Just</span> l
+            <span class="hljs-type">DeclData</span> (<span class="hljs-type">AIdent</span> (l, _)) _ _    -&gt; <span class="hljs-type">Just</span> l
+            <span class="hljs-type">DeclHData</span> (<span class="hljs-type">AIdent</span> (l, _)) _ _   -&gt; <span class="hljs-type">Just</span> l
+            <span class="hljs-type">DeclSplit</span> (<span class="hljs-type">AIdent</span> (l, _)) _ _ _ -&gt; <span class="hljs-type">Just</span> l
+            <span class="hljs-type">DeclUndef</span> (<span class="hljs-type">AIdent</span> (l, _)) _ _   -&gt; <span class="hljs-type">Just</span> l
+            <span class="hljs-type">DeclMutual</span> ds                   -&gt; listToMaybe $ mapMaybe mloc ds
+            <span class="hljs-type">DeclOpaque</span> (<span class="hljs-type">AIdent</span> (l, _))      -&gt; <span class="hljs-type">Just</span> l
+            <span class="hljs-type">DeclTransparent</span> (<span class="hljs-type">AIdent</span> (l, _)) -&gt; <span class="hljs-type">Just</span> l
+            <span class="hljs-type">DeclTransparentAll</span>              -&gt; <span class="hljs-type">Nothing</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-18">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-18">&#x00a7;</a>
+              </div>
+              <p>Resolve a declaration</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">resolveDecl</span> :: <span class="hljs-type">Decl</span> -&gt; <span class="hljs-type">Resolver</span> (<span class="hljs-type">CTT</span>.<span class="hljs-type">Decls</span>,[(<span class="hljs-type">Ident</span>,<span class="hljs-type">SymKind</span>)])
+<span class="hljs-title">resolveDecl</span> d = <span class="hljs-keyword">case</span> d <span class="hljs-keyword">of</span>
+  <span class="hljs-type">DeclMutual</span> decls -&gt; <span class="hljs-keyword">do</span>
+    <span class="hljs-keyword">let</span> (fs,ts,bs,nss) = unzip4 $ map resolveNonMutualDecl decls
+        ns = concat nss <span class="hljs-comment">-- <span class="hljs-doctag">TODO:</span> some sanity checks? Duplicates!?</span>
+    when (nub (map fst ns) /= concatMap (map fst) nss) $
+      throwError (<span class="hljs-string">&quot;Duplicated constructor or ident: &quot;</span> ++ show nss)
+    <span class="hljs-keyword">as</span> &lt;- resolveRTele fs ts</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-19">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-19">&#x00a7;</a>
+              </div>
+              <p>The bodies know about all the names and constructors in the
+mutual block</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    ds &lt;- sequence $ map (local (insertIdents ns)) bs
+    <span class="hljs-keyword">let</span> ads = zipWith (\ (x,y) z -&gt; (x,(y,z))) <span class="hljs-keyword">as</span> ds
+    l &lt;- findDeclLoc d
+    return (<span class="hljs-type">CTT</span>.<span class="hljs-type">MutualDecls</span> l ads,ns)
+  <span class="hljs-type">DeclOpaque</span> i  -&gt; <span class="hljs-keyword">do</span>
+    resolveVar i
+    return (<span class="hljs-type">CTT</span>.<span class="hljs-type">OpaqueDecl</span> (unAIdent i), [])
+  <span class="hljs-type">DeclTransparent</span> i -&gt; <span class="hljs-keyword">do</span>
+    resolveVar i
+    return (<span class="hljs-type">CTT</span>.<span class="hljs-type">TransparentDecl</span> (unAIdent i), [])
+  <span class="hljs-type">DeclTransparentAll</span> -&gt; return (<span class="hljs-type">CTT</span>.<span class="hljs-type">TransparentAllDecl</span>, [])
+  _ -&gt; <span class="hljs-keyword">do</span> <span class="hljs-keyword">let</span> (f,typ,body,ns) = resolveNonMutualDecl d
+          l &lt;- findDeclLoc d
+          a &lt;- typ
+          d &lt;- body
+          return (<span class="hljs-type">CTT</span>.<span class="hljs-type">MutualDecls</span> l [(f,(a,d))],ns)
+
+<span class="hljs-title">resolveDecls</span> :: [<span class="hljs-type">Decl</span>] -&gt; <span class="hljs-type">Resolver</span> ([<span class="hljs-type">CTT</span>.<span class="hljs-type">Decls</span>],[(<span class="hljs-type">Ident</span>,<span class="hljs-type">SymKind</span>)])
+<span class="hljs-title">resolveDecls</span> []     = return ([],[])
+<span class="hljs-title">resolveDecls</span> (d:ds) = <span class="hljs-keyword">do</span>
+  (rtd,names)  &lt;- resolveDecl d
+  (rds,names&#x27;) &lt;- local (insertIdents names) $ resolveDecls ds
+  return (rtd : rds, names&#x27; ++ names)
+
+<span class="hljs-title">resolveModule</span> :: <span class="hljs-type">Module</span> -&gt; <span class="hljs-type">Resolver</span> ([<span class="hljs-type">CTT</span>.<span class="hljs-type">Decls</span>],[(<span class="hljs-type">Ident</span>,<span class="hljs-type">SymKind</span>)])
+<span class="hljs-title">resolveModule</span> (<span class="hljs-type">Module</span> (<span class="hljs-type">AIdent</span> (_,n)) _ decls) =
+  local (updateModule n) $ resolveDecls decls
+
+<span class="hljs-title">resolveModules</span> :: [<span class="hljs-type">Module</span>] -&gt; <span class="hljs-type">Resolver</span> ([<span class="hljs-type">CTT</span>.<span class="hljs-type">Decls</span>],[(<span class="hljs-type">Ident</span>,<span class="hljs-type">SymKind</span>)])
+<span class="hljs-title">resolveModules</span> []         = return ([],[])
+<span class="hljs-title">resolveModules</span> (mod:mods) = <span class="hljs-keyword">do</span>
+  (rmod, names)  &lt;- resolveModule mod
+  (rmods,names&#x27;) &lt;- local (insertIdents names) $ resolveModules mods
+  return (rmod ++ rmods, names&#x27; ++ names)</pre></div></div>
+            
+        </li>
+        
+    </ul>
+  </div>
+</body>
+</html>

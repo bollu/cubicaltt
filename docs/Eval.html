@@ -1,0 +1,1741 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>Eval.hs</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, target-densitydpi=160dpi, initial-scale=1.0; maximum-scale=1.0; user-scalable=0;">
+  <link rel="stylesheet" media="all" href="docco.css" />
+</head>
+<body>
+  <div id="container">
+    <div id="background"></div>
+    
+      <ul id="jump_to">
+        <li>
+          <a class="large" href="javascript:void(0);">Jump To &hellip;</a>
+          <a class="small" href="javascript:void(0);">+</a>
+          <div id="jump_wrapper">
+          <div id="jump_page_wrapper">
+            <div id="jump_page">
+              
+                
+                <a class="source" href="CTT.html">
+                  CTT.hs
+                </a>
+              
+                
+                <a class="source" href="Connections.html">
+                  Connections.hs
+                </a>
+              
+                
+                <a class="source" href="Eval.html">
+                  Eval.hs
+                </a>
+              
+                
+                <a class="source" href="Main.html">
+                  Main.hs
+                </a>
+              
+                
+                <a class="source" href="Resolver.html">
+                  Resolver.hs
+                </a>
+              
+                
+                <a class="source" href="Setup.html">
+                  Setup.hs
+                </a>
+              
+                
+                <a class="source" href="TypeChecker.html">
+                  TypeChecker.hs
+                </a>
+              
+            </div>
+          </div>
+        </li>
+      </ul>
+    
+    <ul class="sections">
+        
+          <li id="title">
+              <div class="annotation">
+                  <h1>Eval.hs</h1>
+              </div>
+          </li>
+        
+        
+        
+        <li id="section-1">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-1">&#x00a7;</a>
+              </div>
+              
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-meta">{-# LANGUAGE TypeSynonymInstances, FlexibleInstances #-}</span>
+<span class="hljs-keyword">module</span> Eval <span class="hljs-keyword">where</span>
+
+<span class="hljs-keyword">import</span> Data.List
+<span class="hljs-keyword">import</span> Data.Maybe (<span class="hljs-title">fromMaybe</span>)
+<span class="hljs-keyword">import</span> Data.Map (<span class="hljs-type">Map</span>,(!),mapWithKey,assocs,filterWithKey
+                ,elems,intersectionWith,intersection,keys
+                ,member,notMember,empty)
+<span class="hljs-keyword">import</span> <span class="hljs-keyword">qualified</span> Data.Map <span class="hljs-keyword">as</span> Map
+<span class="hljs-keyword">import</span> <span class="hljs-keyword">qualified</span> Data.Set <span class="hljs-keyword">as</span> Set
+
+<span class="hljs-keyword">import</span> Connections
+<span class="hljs-keyword">import</span> CTT</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-2">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-2">&#x00a7;</a>
+              </div>
+              <hr>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-3">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-3">&#x00a7;</a>
+              </div>
+              <p>Lookup functions</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>
+<span class="hljs-title">look</span> :: <span class="hljs-type">String</span> -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">look</span> x (<span class="hljs-type">Env</span> (<span class="hljs-type">Upd</span> y rho,v:vs,fs,os)) | x == y = v
+                                    | otherwise = look x (<span class="hljs-type">Env</span> (rho,vs,fs,os))
+<span class="hljs-title">look</span> x r@(<span class="hljs-type">Env</span> (<span class="hljs-type">Def</span> _ decls rho,vs,fs,<span class="hljs-type">Nameless</span> os)) = <span class="hljs-keyword">case</span> lookup x decls <span class="hljs-keyword">of</span>
+  <span class="hljs-type">Just</span> (_,t) -&gt; eval r t
+  <span class="hljs-type">Nothing</span>    -&gt; look x (<span class="hljs-type">Env</span> (rho,vs,fs,<span class="hljs-type">Nameless</span> os))
+<span class="hljs-title">look</span> x (<span class="hljs-type">Env</span> (<span class="hljs-type">Sub</span> _ rho,vs,_:fs,os)) = look x (<span class="hljs-type">Env</span> (rho,vs,fs,os))
+<span class="hljs-title">look</span> x (<span class="hljs-type">Env</span> (<span class="hljs-type">Empty</span>,_,_,_)) = error $ <span class="hljs-string">&quot;look: not found &quot;</span> ++ show x
+
+<span class="hljs-title">lookType</span> :: <span class="hljs-type">String</span> -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">lookType</span> x (<span class="hljs-type">Env</span> (<span class="hljs-type">Upd</span> y rho,v:vs,fs,os))
+  | x /= y        = lookType x (<span class="hljs-type">Env</span> (rho,vs,fs,os))
+  | <span class="hljs-type">VVar</span> _ a &lt;- v = a
+  | otherwise     = error <span class="hljs-string">&quot;&quot;</span>
+<span class="hljs-title">lookType</span> x r@(<span class="hljs-type">Env</span> (<span class="hljs-type">Def</span> _ decls rho,vs,fs,os)) = <span class="hljs-keyword">case</span> lookup x decls <span class="hljs-keyword">of</span>
+  <span class="hljs-type">Just</span> (a,_) -&gt; eval r a
+  <span class="hljs-type">Nothing</span> -&gt; lookType x (<span class="hljs-type">Env</span> (rho,vs,fs,os))
+<span class="hljs-title">lookType</span> x (<span class="hljs-type">Env</span> (<span class="hljs-type">Sub</span> _ rho,vs,_:fs,os)) = lookType x (<span class="hljs-type">Env</span> (rho,vs,fs,os))
+<span class="hljs-title">lookType</span> x (<span class="hljs-type">Env</span> (<span class="hljs-type">Empty</span>,_,_,_))          = error $ <span class="hljs-string">&quot;lookType: not found &quot;</span> ++ show x
+
+<span class="hljs-title">lookName</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Formula</span>
+<span class="hljs-title">lookName</span> i (<span class="hljs-type">Env</span> (<span class="hljs-type">Upd</span> _ rho,v:vs,fs,os)) = lookName i (<span class="hljs-type">Env</span> (rho,vs,fs,os))
+<span class="hljs-title">lookName</span> i (<span class="hljs-type">Env</span> (<span class="hljs-type">Def</span> _ _ rho,vs,fs,os)) = lookName i (<span class="hljs-type">Env</span> (rho,vs,fs,os))
+<span class="hljs-title">lookName</span> i (<span class="hljs-type">Env</span> (<span class="hljs-type">Sub</span> j rho,vs,phi:fs,os)) | i == j    = phi
+                                          | otherwise = lookName i (<span class="hljs-type">Env</span> (rho,vs,fs,os))
+<span class="hljs-title">lookName</span> i _ = error $ <span class="hljs-string">&quot;lookName: not found &quot;</span> ++ show i</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-4">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-4">&#x00a7;</a>
+              </div>
+              <hr>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-5">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-5">&#x00a7;</a>
+              </div>
+              <p>Nominal instances</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-class">
+<span class="hljs-keyword">instance</span> <span class="hljs-type">Nominal</span> <span class="hljs-type">Ctxt</span> <span class="hljs-keyword">where</span></span>
+  support _ = []
+  act e _   = e
+  swap e _  = e
+<span class="hljs-class">
+<span class="hljs-keyword">instance</span> <span class="hljs-type">Nominal</span> <span class="hljs-type">Env</span> <span class="hljs-keyword">where</span></span>
+  support (<span class="hljs-type">Env</span> (rho,vs,fs,os)) = support (rho,vs,fs,os)
+  act (<span class="hljs-type">Env</span> (rho,vs,fs,os)) iphi = <span class="hljs-type">Env</span> $ act (rho,vs,fs,os) iphi
+  swap (<span class="hljs-type">Env</span> (rho,vs,fs,os)) ij = <span class="hljs-type">Env</span> $ swap (rho,vs,fs,os) ij
+<span class="hljs-class">
+<span class="hljs-keyword">instance</span> <span class="hljs-type">Nominal</span> <span class="hljs-type">Val</span> <span class="hljs-keyword">where</span></span>
+  support v = <span class="hljs-keyword">case</span> v <span class="hljs-keyword">of</span>
+    <span class="hljs-type">VU</span>                      -&gt; []
+    <span class="hljs-type">Ter</span> _ e                 -&gt; support e
+    <span class="hljs-type">VPi</span> u v                 -&gt; support [u,v]
+    <span class="hljs-type">VComp</span> a u ts            -&gt; support (a,u,ts)
+    <span class="hljs-type">VPathP</span> a v0 v1          -&gt; support [a,v0,v1]
+    <span class="hljs-type">VPLam</span> i v               -&gt; i `delete` support v
+    <span class="hljs-type">VSigma</span> u v              -&gt; support (u,v)
+    <span class="hljs-type">VPair</span> u v               -&gt; support (u,v)
+    <span class="hljs-type">VFst</span> u                  -&gt; support u
+    <span class="hljs-type">VSnd</span> u                  -&gt; support u
+    <span class="hljs-type">VCon</span> _ vs               -&gt; support vs
+    <span class="hljs-type">VPCon</span> _ a vs phis       -&gt; support (a,vs,phis)
+    <span class="hljs-type">VHComp</span> a u ts           -&gt; support (a,u,ts)
+    <span class="hljs-type">VVar</span> _ v                -&gt; support v
+    <span class="hljs-type">VOpaque</span> _ v             -&gt; support v
+    <span class="hljs-type">VApp</span> u v                -&gt; support (u,v)
+    <span class="hljs-type">VLam</span> _ u v              -&gt; support (u,v)
+    <span class="hljs-type">VAppFormula</span> u phi       -&gt; support (u,phi)
+    <span class="hljs-type">VSplit</span> u v              -&gt; support (u,v)
+    <span class="hljs-type">VGlue</span> a ts              -&gt; support (a,ts)
+    <span class="hljs-type">VGlueElem</span> a ts          -&gt; support (a,ts)
+    <span class="hljs-type">VUnGlueElem</span> a ts        -&gt; support (a,ts)
+    <span class="hljs-type">VCompU</span> a ts             -&gt; support (a,ts)
+    <span class="hljs-type">VUnGlueElemU</span> a b es     -&gt; support (a,b,es)
+    <span class="hljs-type">VIdPair</span> u us            -&gt; support (u,us)
+    <span class="hljs-type">VId</span> a u v               -&gt; support (a,u,v)
+    <span class="hljs-type">VIdJ</span> a u c d x p        -&gt; support [a,u,c,d,x,p]
+
+  act u (i, phi) | i `notElem` support u = u
+                 | otherwise =
+    <span class="hljs-keyword">let</span> acti :: <span class="hljs-type">Nominal</span> a =&gt; a -&gt; a
+        acti u = act u (i, phi)
+        sphi = support phi
+    <span class="hljs-keyword">in</span> <span class="hljs-keyword">case</span> u <span class="hljs-keyword">of</span>
+         <span class="hljs-type">VU</span>           -&gt; <span class="hljs-type">VU</span>
+         <span class="hljs-type">Ter</span> t e      -&gt; <span class="hljs-type">Ter</span> t (acti e)
+         <span class="hljs-type">VPi</span> a f      -&gt; <span class="hljs-type">VPi</span> (acti a) (acti f)
+         <span class="hljs-type">VComp</span> a v ts -&gt; compLine (acti a) (acti v) (acti ts)
+         <span class="hljs-type">VPathP</span> a u v -&gt; <span class="hljs-type">VPathP</span> (acti a) (acti u) (acti v)
+         <span class="hljs-type">VPLam</span> j v | j == i -&gt; u
+                   | j `notElem` sphi -&gt; <span class="hljs-type">VPLam</span> j (acti v)
+                   | otherwise -&gt; <span class="hljs-type">VPLam</span> k (acti (v `swap` (j,k)))
+              <span class="hljs-keyword">where</span> k = fresh (v,<span class="hljs-type">Atom</span> i,phi)
+         <span class="hljs-type">VSigma</span> a f              -&gt; <span class="hljs-type">VSigma</span> (acti a) (acti f)
+         <span class="hljs-type">VPair</span> u v               -&gt; <span class="hljs-type">VPair</span> (acti u) (acti v)
+         <span class="hljs-type">VFst</span> u                  -&gt; fstVal (acti u)
+         <span class="hljs-type">VSnd</span> u                  -&gt; sndVal (acti u)
+         <span class="hljs-type">VCon</span> c vs               -&gt; <span class="hljs-type">VCon</span> c (acti vs)
+         <span class="hljs-type">VPCon</span> c a vs phis       -&gt; pcon c (acti a) (acti vs) (acti phis)
+         <span class="hljs-type">VHComp</span> a u us           -&gt; hComp (acti a) (acti u) (acti us)
+         <span class="hljs-type">VVar</span> x v                -&gt; <span class="hljs-type">VVar</span> x (acti v)
+         <span class="hljs-type">VOpaque</span> x v             -&gt; <span class="hljs-type">VOpaque</span> x (acti v)
+         <span class="hljs-type">VAppFormula</span> u psi       -&gt; acti u @@ acti psi
+         <span class="hljs-type">VApp</span> u v                -&gt; app (acti u) (acti v)
+         <span class="hljs-type">VLam</span> x t u              -&gt; <span class="hljs-type">VLam</span> x (acti t) (acti u)
+         <span class="hljs-type">VSplit</span> u v              -&gt; app (acti u) (acti v)
+         <span class="hljs-type">VGlue</span> a ts              -&gt; glue (acti a) (acti ts)
+         <span class="hljs-type">VGlueElem</span> a ts          -&gt; glueElem (acti a) (acti ts)
+         <span class="hljs-type">VUnGlueElem</span> a ts        -&gt; unglueElem (acti a) (acti ts)
+         <span class="hljs-type">VUnGlueElemU</span> a b es     -&gt; unGlueU (acti a) (acti b) (acti es)
+         <span class="hljs-type">VCompU</span> a ts             -&gt; compUniv (acti a) (acti ts)
+         <span class="hljs-type">VIdPair</span> u us            -&gt; <span class="hljs-type">VIdPair</span> (acti u) (acti us)
+         <span class="hljs-type">VId</span> a u v               -&gt; <span class="hljs-type">VId</span> (acti a) (acti u) (acti v)
+         <span class="hljs-type">VIdJ</span> a u c d x p        -&gt;
+           idJ (acti a) (acti u) (acti c) (acti d) (acti x) (acti p)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-6">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-6">&#x00a7;</a>
+              </div>
+              <p>This increases efficiency as it won’t trigger computation.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  swap u ij@(i,j) =
+    <span class="hljs-keyword">let</span> sw :: <span class="hljs-type">Nominal</span> a =&gt; a -&gt; a
+        sw u = swap u ij
+    <span class="hljs-keyword">in</span> <span class="hljs-keyword">case</span> u <span class="hljs-keyword">of</span>
+         <span class="hljs-type">VU</span>                      -&gt; <span class="hljs-type">VU</span>
+         <span class="hljs-type">Ter</span> t e                 -&gt; <span class="hljs-type">Ter</span> t (sw e)
+         <span class="hljs-type">VPi</span> a f                 -&gt; <span class="hljs-type">VPi</span> (sw a) (sw f)
+         <span class="hljs-type">VComp</span> a v ts            -&gt; <span class="hljs-type">VComp</span> (sw a) (sw v) (sw ts)
+         <span class="hljs-type">VPathP</span> a u v            -&gt; <span class="hljs-type">VPathP</span> (sw a) (sw u) (sw v)
+         <span class="hljs-type">VPLam</span> k v               -&gt; <span class="hljs-type">VPLam</span> (swapName k ij) (sw v)
+         <span class="hljs-type">VSigma</span> a f              -&gt; <span class="hljs-type">VSigma</span> (sw a) (sw f)
+         <span class="hljs-type">VPair</span> u v               -&gt; <span class="hljs-type">VPair</span> (sw u) (sw v)
+         <span class="hljs-type">VFst</span> u                  -&gt; <span class="hljs-type">VFst</span> (sw u)
+         <span class="hljs-type">VSnd</span> u                  -&gt; <span class="hljs-type">VSnd</span> (sw u)
+         <span class="hljs-type">VCon</span> c vs               -&gt; <span class="hljs-type">VCon</span> c (sw vs)
+         <span class="hljs-type">VPCon</span> c a vs phis       -&gt; <span class="hljs-type">VPCon</span> c (sw a) (sw vs) (sw phis)
+         <span class="hljs-type">VHComp</span> a u us           -&gt; <span class="hljs-type">VHComp</span> (sw a) (sw u) (sw us)
+         <span class="hljs-type">VVar</span> x v                -&gt; <span class="hljs-type">VVar</span> x (sw v)
+         <span class="hljs-type">VOpaque</span> x v             -&gt; <span class="hljs-type">VOpaque</span> x (sw v)
+         <span class="hljs-type">VAppFormula</span> u psi       -&gt; <span class="hljs-type">VAppFormula</span> (sw u) (sw psi)
+         <span class="hljs-type">VApp</span> u v                -&gt; <span class="hljs-type">VApp</span> (sw u) (sw v)
+         <span class="hljs-type">VLam</span> x u v              -&gt; <span class="hljs-type">VLam</span> x (sw u) (sw v)
+         <span class="hljs-type">VSplit</span> u v              -&gt; <span class="hljs-type">VSplit</span> (sw u) (sw v)
+         <span class="hljs-type">VGlue</span> a ts              -&gt; <span class="hljs-type">VGlue</span> (sw a) (sw ts)
+         <span class="hljs-type">VGlueElem</span> a ts          -&gt; <span class="hljs-type">VGlueElem</span> (sw a) (sw ts)
+         <span class="hljs-type">VUnGlueElem</span> a ts        -&gt; <span class="hljs-type">VUnGlueElem</span> (sw a) (sw ts)
+         <span class="hljs-type">VUnGlueElemU</span> a b es     -&gt; <span class="hljs-type">VUnGlueElemU</span> (sw a) (sw b) (sw es)
+         <span class="hljs-type">VCompU</span> a ts             -&gt; <span class="hljs-type">VCompU</span> (sw a) (sw ts)
+         <span class="hljs-type">VIdPair</span> u us            -&gt; <span class="hljs-type">VIdPair</span> (sw u) (sw us)
+         <span class="hljs-type">VId</span> a u v               -&gt; <span class="hljs-type">VId</span> (sw a) (sw u) (sw v)
+         <span class="hljs-type">VIdJ</span> a u c d x p        -&gt;
+           <span class="hljs-type">VIdJ</span> (sw a) (sw u) (sw c) (sw d) (sw x) (sw p)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-7">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-7">&#x00a7;</a>
+              </div>
+              <hr>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-8">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-8">&#x00a7;</a>
+              </div>
+              <p>The evaluator</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>
+<span class="hljs-title">eval</span> :: <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Ter</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">eval</span> rho@(<span class="hljs-type">Env</span> (_,_,_,<span class="hljs-type">Nameless</span> os)) v = <span class="hljs-keyword">case</span> v <span class="hljs-keyword">of</span>
+  <span class="hljs-type">U</span>                   -&gt; <span class="hljs-type">VU</span>
+  <span class="hljs-type">App</span> r s             -&gt; app (eval rho r) (eval rho s)
+  <span class="hljs-type">Var</span> i
+    | i `<span class="hljs-type">Set</span>.member` os -&gt; <span class="hljs-type">VOpaque</span> i (lookType i rho)
+    | otherwise       -&gt; look i rho
+  <span class="hljs-type">Pi</span> t@(<span class="hljs-type">Lam</span> _ a _)    -&gt; <span class="hljs-type">VPi</span> (eval rho a) (eval rho t)
+  <span class="hljs-type">Sigma</span> t@(<span class="hljs-type">Lam</span> _ a _) -&gt; <span class="hljs-type">VSigma</span> (eval rho a) (eval rho t)
+  <span class="hljs-type">Pair</span> a b            -&gt; <span class="hljs-type">VPair</span> (eval rho a) (eval rho b)
+  <span class="hljs-type">Fst</span> a               -&gt; fstVal (eval rho a)
+  <span class="hljs-type">Snd</span> a               -&gt; sndVal (eval rho a)
+  <span class="hljs-type">Where</span> t decls       -&gt; eval (defWhere decls rho) t
+  <span class="hljs-type">Con</span> name ts         -&gt; <span class="hljs-type">VCon</span> name (map (eval rho) ts)
+  <span class="hljs-type">PCon</span> name a ts phis -&gt;
+    pcon name (eval rho a) (map (eval rho) ts) (map (evalFormula rho) phis)
+  <span class="hljs-type">Lam</span>{}               -&gt; <span class="hljs-type">Ter</span> v rho
+  <span class="hljs-type">Split</span>{}             -&gt; <span class="hljs-type">Ter</span> v rho
+  <span class="hljs-type">Sum</span>{}               -&gt; <span class="hljs-type">Ter</span> v rho
+  <span class="hljs-type">HSum</span>{}              -&gt; <span class="hljs-type">Ter</span> v rho
+  <span class="hljs-type">Undef</span>{}             -&gt; <span class="hljs-type">Ter</span> v rho
+  <span class="hljs-type">Hole</span>{}              -&gt; <span class="hljs-type">Ter</span> v rho
+  <span class="hljs-type">PathP</span> a e0 e1       -&gt; <span class="hljs-type">VPathP</span> (eval rho a) (eval rho e0) (eval rho e1)
+  <span class="hljs-type">PLam</span> i t            -&gt; <span class="hljs-keyword">let</span> j = fresh rho
+                         <span class="hljs-keyword">in</span> <span class="hljs-type">VPLam</span> j (eval (sub (i,<span class="hljs-type">Atom</span> j) rho) t)
+  <span class="hljs-type">AppFormula</span> e phi    -&gt; eval rho e @@ evalFormula rho phi
+  <span class="hljs-type">Comp</span> a t0 ts        -&gt;
+    compLine (eval rho a) (eval rho t0) (evalSystem rho ts)
+  <span class="hljs-type">HComp</span> a t0 ts       -&gt;
+    hComp (eval rho a) (eval rho t0) (evalSystem rho ts)
+  <span class="hljs-type">Fill</span> a t0 ts        -&gt;
+    fillLine (eval rho a) (eval rho t0) (evalSystem rho ts)
+  <span class="hljs-type">Glue</span> a ts           -&gt; glue (eval rho a) (evalSystem rho ts)
+  <span class="hljs-type">GlueElem</span> a ts       -&gt; glueElem (eval rho a) (evalSystem rho ts)
+  <span class="hljs-type">UnGlueElem</span> a ts     -&gt; unglueElem (eval rho a) (evalSystem rho ts)
+  <span class="hljs-type">Id</span> a r s            -&gt; <span class="hljs-type">VId</span> (eval rho a) (eval rho r) (eval rho s)
+  <span class="hljs-type">IdPair</span> b ts         -&gt; <span class="hljs-type">VIdPair</span> (eval rho b) (evalSystem rho ts)
+  <span class="hljs-type">IdJ</span> a t c d x p     -&gt; idJ (eval rho a) (eval rho t) (eval rho c)
+                             (eval rho d) (eval rho x) (eval rho p)
+  _                   -&gt; error $ <span class="hljs-string">&quot;Cannot evaluate &quot;</span> ++ show v
+
+<span class="hljs-title">evals</span> :: <span class="hljs-type">Env</span> -&gt; [(<span class="hljs-type">Ident</span>,<span class="hljs-type">Ter</span>)] -&gt; [(<span class="hljs-type">Ident</span>,<span class="hljs-type">Val</span>)]
+<span class="hljs-title">evals</span> env bts = [ (b,eval env t) | (b,t) &lt;- bts ]
+
+<span class="hljs-title">evalFormula</span> :: <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">Formula</span> -&gt; <span class="hljs-type">Formula</span>
+<span class="hljs-title">evalFormula</span> rho phi = <span class="hljs-keyword">case</span> phi <span class="hljs-keyword">of</span>
+  <span class="hljs-type">Atom</span> i         -&gt; lookName i rho
+  <span class="hljs-type">NegAtom</span> i      -&gt; negFormula (lookName i rho)
+  phi1 :/\: phi2 -&gt; evalFormula rho phi1 `andFormula` evalFormula rho phi2
+  phi1 :\/: phi2 -&gt; evalFormula rho phi1 `orFormula` evalFormula rho phi2
+  _              -&gt; phi
+
+<span class="hljs-title">evalSystem</span> :: <span class="hljs-type">Env</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Ter</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span>
+<span class="hljs-title">evalSystem</span> rho ts =
+  <span class="hljs-keyword">let</span> out = concat [ <span class="hljs-keyword">let</span> betas = meetss [ invFormula (lookName i rho) d
+                                        | (i,d) &lt;- assocs alpha ]
+                     <span class="hljs-keyword">in</span> [ (beta,eval (rho `face` beta) talpha) | beta &lt;- betas ]
+                   | (alpha,talpha) &lt;- assocs ts ]
+  <span class="hljs-keyword">in</span> mkSystem out
+
+<span class="hljs-title">app</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">app</span> u v = <span class="hljs-keyword">case</span> (u,v) <span class="hljs-keyword">of</span>
+  (<span class="hljs-type">Ter</span> (<span class="hljs-type">Lam</span> x _ t) e,_)               -&gt; eval (upd (x,v) e) t
+  (<span class="hljs-type">Ter</span> (<span class="hljs-type">Split</span> _ _ _ nvs) e,<span class="hljs-type">VCon</span> c vs) -&gt; <span class="hljs-keyword">case</span> lookupBranch c nvs <span class="hljs-keyword">of</span>
+    <span class="hljs-type">Just</span> (<span class="hljs-type">OBranch</span> _ xs t) -&gt; eval (upds (zip xs vs) e) t
+    _     -&gt; error $ <span class="hljs-string">&quot;app: missing case in split for &quot;</span> ++ c
+  (<span class="hljs-type">Ter</span> (<span class="hljs-type">Split</span> _ _ _ nvs) e,<span class="hljs-type">VPCon</span> c _ us phis) -&gt; <span class="hljs-keyword">case</span> lookupBranch c nvs <span class="hljs-keyword">of</span>
+    <span class="hljs-type">Just</span> (<span class="hljs-type">PBranch</span> _ xs is t) -&gt; eval (subs (zip is phis) (upds (zip xs us) e)) t
+    _ -&gt; error $ <span class="hljs-string">&quot;app: missing case in split for &quot;</span> ++ c
+  (<span class="hljs-type">Ter</span> (<span class="hljs-type">Split</span> _ _ ty hbr) e,<span class="hljs-type">VHComp</span> a w ws) -&gt; <span class="hljs-keyword">case</span> eval e ty <span class="hljs-keyword">of</span>
+    <span class="hljs-type">VPi</span> _ f -&gt; <span class="hljs-keyword">let</span> j   = fresh (e,v)
+                   wsj = <span class="hljs-type">Map</span>.map (@@ j) ws
+                   w&#x27;  = app u w
+                   ws&#x27; = mapWithKey (\alpha -&gt; app (u `face` alpha)) wsj</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-9">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-9">&#x00a7;</a>
+              </div>
+              <p>a should be constant</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>               <span class="hljs-keyword">in</span> comp j (app f (fill j a w wsj)) w&#x27; ws&#x27;
+    _ -&gt; error $ <span class="hljs-string">&quot;app: Split annotation not a Pi type &quot;</span> ++ show u
+  (<span class="hljs-type">Ter</span> <span class="hljs-type">Split</span>{} _,_) | isNeutral v         -&gt; <span class="hljs-type">VSplit</span> u v
+  (<span class="hljs-type">VComp</span> (<span class="hljs-type">VPLam</span> i (<span class="hljs-type">VPi</span> a f)) li0 ts,vi1) -&gt;
+    <span class="hljs-keyword">let</span> j       = fresh (u,vi1)
+        (aj,fj) = (a,f) `swap` (i,j)
+        tsj     = <span class="hljs-type">Map</span>.map (@@ j) ts
+        v       = transFillNeg j aj vi1
+        vi0     = transNeg j aj vi1
+    <span class="hljs-keyword">in</span> comp j (app fj v) (app li0 vi0)
+              (intersectionWith app tsj (border v tsj))
+  _ | isNeutral u       -&gt; <span class="hljs-type">VApp</span> u v
+  _                     -&gt; error $ <span class="hljs-string">&quot;app \n  &quot;</span> ++ show u ++ <span class="hljs-string">&quot;\n  &quot;</span> ++ show v
+
+<span class="hljs-title">fstVal</span>, sndVal :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">fstVal</span> (<span class="hljs-type">VPair</span> a b)     = a
+<span class="hljs-title">fstVal</span> u | isNeutral u = <span class="hljs-type">VFst</span> u
+<span class="hljs-title">fstVal</span> u               = error $ <span class="hljs-string">&quot;fstVal: &quot;</span> ++ show u ++ <span class="hljs-string">&quot; is not neutral.&quot;</span>
+<span class="hljs-title">sndVal</span> (<span class="hljs-type">VPair</span> a b)     = b
+<span class="hljs-title">sndVal</span> u | isNeutral u = <span class="hljs-type">VSnd</span> u
+<span class="hljs-title">sndVal</span> u               = error $ <span class="hljs-string">&quot;sndVal: &quot;</span> ++ show u ++ <span class="hljs-string">&quot; is not neutral.&quot;</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-10">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-10">&#x00a7;</a>
+              </div>
+              <p>infer the type of a neutral value</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">inferType</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">inferType</span> v = <span class="hljs-keyword">case</span> v <span class="hljs-keyword">of</span>
+  <span class="hljs-type">VVar</span> _ t -&gt; t
+  <span class="hljs-type">VOpaque</span> _ t -&gt; t
+  <span class="hljs-type">Ter</span> (<span class="hljs-type">Undef</span> _ t) rho -&gt; eval rho t
+  <span class="hljs-type">VFst</span> t -&gt; <span class="hljs-keyword">case</span> inferType t <span class="hljs-keyword">of</span>
+    <span class="hljs-type">VSigma</span> a _ -&gt; a
+    ty         -&gt; error $ <span class="hljs-string">&quot;inferType: expected Sigma type for &quot;</span> ++ show v
+                  ++ <span class="hljs-string">&quot;, got &quot;</span> ++ show ty
+  <span class="hljs-type">VSnd</span> t -&gt; <span class="hljs-keyword">case</span> inferType t <span class="hljs-keyword">of</span>
+    <span class="hljs-type">VSigma</span> _ f -&gt; app f (<span class="hljs-type">VFst</span> t)
+    ty         -&gt; error $ <span class="hljs-string">&quot;inferType: expected Sigma type for &quot;</span> ++ show v
+                  ++ <span class="hljs-string">&quot;, got &quot;</span> ++ show ty
+  <span class="hljs-type">VSplit</span> s@(<span class="hljs-type">Ter</span> (<span class="hljs-type">Split</span> _ _ t _) rho) v1 -&gt; <span class="hljs-keyword">case</span> eval rho t <span class="hljs-keyword">of</span>
+    <span class="hljs-type">VPi</span> _ f -&gt; app f v1
+    ty      -&gt; error $ <span class="hljs-string">&quot;inferType: Pi type expected for split annotation in &quot;</span>
+               ++ show v ++ <span class="hljs-string">&quot;, got &quot;</span> ++ show ty
+  <span class="hljs-type">VApp</span> t0 t1 -&gt; <span class="hljs-keyword">case</span> inferType t0 <span class="hljs-keyword">of</span>
+    <span class="hljs-type">VPi</span> _ f -&gt; app f t1
+    ty      -&gt; error $ <span class="hljs-string">&quot;inferType: expected Pi type for &quot;</span> ++ show v
+               ++ <span class="hljs-string">&quot;, got &quot;</span> ++ show ty
+  <span class="hljs-type">VAppFormula</span> t phi -&gt; <span class="hljs-keyword">case</span> inferType t <span class="hljs-keyword">of</span>
+    <span class="hljs-type">VPathP</span> a _ _ -&gt; a @@ phi
+    ty         -&gt; error $ <span class="hljs-string">&quot;inferType: expected PathP type for &quot;</span> ++ show v
+                  ++ <span class="hljs-string">&quot;, got &quot;</span> ++ show ty
+  <span class="hljs-type">VComp</span> a _ _ -&gt; a @@ <span class="hljs-type">One</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-11">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-11">&#x00a7;</a>
+              </div>
+              <p> VUnGlueElem _ b _  -&gt; b   – This is wrong! Store the type??</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>  <span class="hljs-type">VUnGlueElemU</span> _ b _ -&gt; b
+  <span class="hljs-type">VIdJ</span> _ _ c _ x p -&gt; app (app c x) p
+  _ -&gt; error $ <span class="hljs-string">&quot;inferType: not neutral &quot;</span> ++ show v
+
+(@@) :: <span class="hljs-type">ToFormula</span> a =&gt; <span class="hljs-type">Val</span> -&gt; a -&gt; <span class="hljs-type">Val</span>
+(<span class="hljs-type">VPLam</span> i u) @@ phi         = u `act` (i,toFormula phi)
+<span class="hljs-title">v</span>@(<span class="hljs-type">Ter</span> <span class="hljs-type">Hole</span>{} _) @@ phi    = <span class="hljs-type">VAppFormula</span> v (toFormula phi)
+<span class="hljs-title">v</span> @@ phi | isNeutral v     = <span class="hljs-keyword">case</span> (inferType v,toFormula phi) <span class="hljs-keyword">of</span>
+  (<span class="hljs-type">VPathP</span> _ a0 _,<span class="hljs-type">Dir</span> <span class="hljs-number">0</span>) -&gt; a0
+  (<span class="hljs-type">VPathP</span> _ _ a1,<span class="hljs-type">Dir</span> <span class="hljs-number">1</span>) -&gt; a1
+  _                    -&gt; <span class="hljs-type">VAppFormula</span> v (toFormula phi)
+<span class="hljs-title">v</span> @@ phi                   = error $ <span class="hljs-string">&quot;(@@): &quot;</span> ++ show v ++ <span class="hljs-string">&quot; should be neutral.&quot;</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-12">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-12">&#x00a7;</a>
+              </div>
+              <p>Applying a <em>fresh</em> name.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>(@@@) :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span>
+(<span class="hljs-type">VPLam</span> i u) @@@ j = u `swap` (i,j)
+<span class="hljs-title">v</span> @@@ j           = <span class="hljs-type">VAppFormula</span> v (toFormula j)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-13">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-13">&#x00a7;</a>
+              </div>
+              <hr>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-14">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-14">&#x00a7;</a>
+              </div>
+              <p>Composition and filling</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>
+<span class="hljs-title">comp</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">comp</span> i a u ts | eps `member` ts = (ts ! eps) `face` (i ~&gt; <span class="hljs-number">1</span>)
+<span class="hljs-title">comp</span> i a u ts = <span class="hljs-keyword">case</span> a <span class="hljs-keyword">of</span>
+  <span class="hljs-type">VPathP</span> p v0 v1 -&gt; <span class="hljs-keyword">let</span> j = fresh (<span class="hljs-type">Atom</span> i,a,u,ts)
+                    <span class="hljs-keyword">in</span> <span class="hljs-type">VPLam</span> j $ comp i (p @@ j) (u @@ j) $
+                         insertsSystem [(j ~&gt; <span class="hljs-number">0</span>,v0),(j ~&gt; <span class="hljs-number">1</span>,v1)] (<span class="hljs-type">Map</span>.map (@@ j) ts)
+  <span class="hljs-type">VId</span> b v0 v1 -&gt; <span class="hljs-keyword">case</span> u <span class="hljs-keyword">of</span>
+    <span class="hljs-type">VIdPair</span> r _ | all isIdPair (elems ts) -&gt;
+      <span class="hljs-keyword">let</span> j = fresh (<span class="hljs-type">Atom</span> i,a,u,ts)
+          <span class="hljs-type">VIdPair</span> z _ @@@ phi = z @@ phi
+          sys (<span class="hljs-type">VIdPair</span> _ ws)  = ws
+          w = <span class="hljs-type">VPLam</span> j $ comp i b (r @@ j) $
+                          insertsSystem [(j ~&gt; <span class="hljs-number">0</span>,v0),(j ~&gt; <span class="hljs-number">1</span>,v1)]
+                            (<span class="hljs-type">Map</span>.map (@@@ j) ts)
+      <span class="hljs-keyword">in</span> <span class="hljs-type">VIdPair</span> w (joinSystem (<span class="hljs-type">Map</span>.map sys (ts `face` (i ~&gt; <span class="hljs-number">1</span>))))
+    _ -&gt; <span class="hljs-type">VComp</span> (<span class="hljs-type">VPLam</span> i a) u (<span class="hljs-type">Map</span>.map (<span class="hljs-type">VPLam</span> i) ts)
+  <span class="hljs-type">VSigma</span> a f -&gt; <span class="hljs-type">VPair</span> ui1 comp_u2
+    <span class="hljs-keyword">where</span> (t1s, t2s) = (<span class="hljs-type">Map</span>.map fstVal ts, <span class="hljs-type">Map</span>.map sndVal ts)
+          (u1,  u2)  = (fstVal u, sndVal u)
+          fill_u1    = fill i a u1 t1s
+          ui1        = comp i a u1 t1s
+          comp_u2    = comp i (app f fill_u1) u2 t2s
+  <span class="hljs-type">VPi</span>{} -&gt; <span class="hljs-type">VComp</span> (<span class="hljs-type">VPLam</span> i a) u (<span class="hljs-type">Map</span>.map (<span class="hljs-type">VPLam</span> i) ts)
+  <span class="hljs-type">VU</span> -&gt; compUniv u (<span class="hljs-type">Map</span>.map (<span class="hljs-type">VPLam</span> i) ts)
+  <span class="hljs-type">VCompU</span> a es | not (isNeutralU i es u ts)  -&gt; compU i a es u ts
+  <span class="hljs-type">VGlue</span> b equivs | not (isNeutralGlue i equivs u ts) -&gt; compGlue i b equivs u ts
+  <span class="hljs-type">Ter</span> (<span class="hljs-type">Sum</span> _ _ nass) env -&gt; <span class="hljs-keyword">case</span> u <span class="hljs-keyword">of</span>
+    <span class="hljs-type">VCon</span> n us | all isCon (elems ts) -&gt; <span class="hljs-keyword">case</span> lookupLabel n nass <span class="hljs-keyword">of</span>
+      <span class="hljs-type">Just</span> <span class="hljs-keyword">as</span> -&gt; <span class="hljs-keyword">let</span> tsus = transposeSystemAndList (<span class="hljs-type">Map</span>.map unCon ts) us
+                 <span class="hljs-keyword">in</span> <span class="hljs-type">VCon</span> n $ comps i <span class="hljs-keyword">as</span> env tsus
+      <span class="hljs-type">Nothing</span> -&gt; error $ <span class="hljs-string">&quot;comp: missing constructor in labelled sum &quot;</span> ++ n
+    _ -&gt; <span class="hljs-type">VComp</span> (<span class="hljs-type">VPLam</span> i a) u (<span class="hljs-type">Map</span>.map (<span class="hljs-type">VPLam</span> i) ts)
+  <span class="hljs-type">Ter</span> (<span class="hljs-type">HSum</span> _ _ nass) env -&gt; compHIT i a u ts
+  _ -&gt; <span class="hljs-type">VComp</span> (<span class="hljs-type">VPLam</span> i a) u (<span class="hljs-type">Map</span>.map (<span class="hljs-type">VPLam</span> i) ts)
+
+<span class="hljs-title">compNeg</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">compNeg</span> i a u ts = comp i (a `sym` i) u (ts `sym` i)
+
+<span class="hljs-title">compLine</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">compLine</span> a u ts = comp i (a @@ i) u (<span class="hljs-type">Map</span>.map (@@ i) ts)
+  <span class="hljs-keyword">where</span> i = fresh (a,u,ts)
+
+<span class="hljs-title">compConstLine</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">compConstLine</span> a u ts = comp i a u (<span class="hljs-type">Map</span>.map (@@ i) ts)
+  <span class="hljs-keyword">where</span> i = fresh (a,u,ts)
+
+<span class="hljs-title">comps</span> :: <span class="hljs-type">Name</span> -&gt; [(<span class="hljs-type">Ident</span>,<span class="hljs-type">Ter</span>)] -&gt; <span class="hljs-type">Env</span> -&gt; [(<span class="hljs-type">System</span> <span class="hljs-type">Val</span>,<span class="hljs-type">Val</span>)] -&gt; [<span class="hljs-type">Val</span>]
+<span class="hljs-title">comps</span> i []         _ []         = []
+<span class="hljs-title">comps</span> i ((x,a):<span class="hljs-keyword">as</span>) e ((ts,u):tsus) =
+  <span class="hljs-keyword">let</span> v   = fill i (eval e a) u ts
+      vi1 = comp i (eval e a) u ts
+      vs  = comps i <span class="hljs-keyword">as</span> (upd (x,v) e) tsus
+  <span class="hljs-keyword">in</span> vi1 : vs
+<span class="hljs-title">comps</span> _ _ _ _ = error <span class="hljs-string">&quot;comps: different lengths of types and values&quot;</span>
+
+<span class="hljs-title">fill</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">fill</span> i a u ts =
+  comp j (a `conj` (i,j)) u (insertSystem (i ~&gt; <span class="hljs-number">0</span>) u (ts `conj` (i,j)))
+  <span class="hljs-keyword">where</span> j = fresh (<span class="hljs-type">Atom</span> i,a,u,ts)
+
+<span class="hljs-title">fillNeg</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">fillNeg</span> i a u ts = (fill i (a `sym` i) u (ts `sym` i)) `sym` i
+
+<span class="hljs-title">fillLine</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">fillLine</span> a u ts = <span class="hljs-type">VPLam</span> i $ fill i (a @@ i) u (<span class="hljs-type">Map</span>.map (@@ i) ts)
+  <span class="hljs-keyword">where</span> i = fresh (a,u,ts)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-15">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-15">&#x00a7;</a>
+              </div>
+              <p>fills :: Name -&gt; [(Ident,Ter)] -&gt; Env -&gt; [(System Val,Val)] -&gt; [Val]
+fills i []         _ []         = []
+fills i ((x,a):as) e ((ts,u):tsus) =
+  let v  = fill i (eval e a) ts u
+      vs = fills i as (Upd e (x,v)) tsus
+  in v : vs
+fills _ _ _ _ = error “fills: different lengths of types and values”</p>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-16">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-16">&#x00a7;</a>
+              </div>
+              <hr>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-17">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-17">&#x00a7;</a>
+              </div>
+              <p>Transport and squeeze (defined using comp)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>
+<span class="hljs-title">trans</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">trans</span> i v0 v1 = comp i v0 v1 empty
+
+<span class="hljs-title">transNeg</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">transNeg</span> i a u = trans i (a `sym` i) u
+
+<span class="hljs-title">transLine</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">transLine</span> u v = trans i (u @@ i) v
+  <span class="hljs-keyword">where</span> i = fresh (u,v)
+
+<span class="hljs-title">transNegLine</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">transNegLine</span> u v = transNeg i (u @@ i) v
+  <span class="hljs-keyword">where</span> i = fresh (u,v)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-18">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-18">&#x00a7;</a>
+              </div>
+              <p>TODO: define in terms of comps?</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">transps</span> :: <span class="hljs-type">Name</span> -&gt; [(<span class="hljs-type">Ident</span>,<span class="hljs-type">Ter</span>)] -&gt; <span class="hljs-type">Env</span> -&gt; [<span class="hljs-type">Val</span>] -&gt; [<span class="hljs-type">Val</span>]
+<span class="hljs-title">transps</span> i []         _ []     = []
+<span class="hljs-title">transps</span> i ((x,a):<span class="hljs-keyword">as</span>) e (u:us) =
+  <span class="hljs-keyword">let</span> v   = transFill i (eval e a) u
+      vi1 = trans i (eval e a) u
+      vs  = transps i <span class="hljs-keyword">as</span> (upd (x,v) e) us
+  <span class="hljs-keyword">in</span> vi1 : vs
+<span class="hljs-title">transps</span> _ _ _ _ = error <span class="hljs-string">&quot;transps: different lengths of types and values&quot;</span>
+
+<span class="hljs-title">transFill</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">transFill</span> i a u = fill i a u empty
+
+<span class="hljs-title">transFillNeg</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">transFillNeg</span> i a u = (transFill i (a `sym` i) u) `sym` i</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-19">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-19">&#x00a7;</a>
+              </div>
+              <p>Given u of type a “squeeze i a u” connects in the direction i
+trans i a u(i=0) to u(i=1)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">squeeze</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">squeeze</span> i a u = comp j (a `disj` (i,j)) u $ mkSystem [ (i ~&gt; <span class="hljs-number">1</span>, ui1) ]
+  <span class="hljs-keyword">where</span> j   = fresh (<span class="hljs-type">Atom</span> i,a,u)
+        ui1 = u `face` (i ~&gt; <span class="hljs-number">1</span>)
+
+<span class="hljs-title">squeezes</span> :: <span class="hljs-type">Name</span> -&gt; [(<span class="hljs-type">Ident</span>,<span class="hljs-type">Ter</span>)] -&gt; <span class="hljs-type">Env</span> -&gt; [<span class="hljs-type">Val</span>] -&gt; [<span class="hljs-type">Val</span>]
+<span class="hljs-title">squeezes</span> i xas e us = comps j xas (e `disj` (i,j)) us&#x27;
+  <span class="hljs-keyword">where</span> j   = fresh (us,e,<span class="hljs-type">Atom</span> i)
+        us&#x27; = [ (mkSystem [(i ~&gt; <span class="hljs-number">1</span>, u `face` (i ~&gt; <span class="hljs-number">1</span>))],u) | u &lt;- us ]</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-20">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-20">&#x00a7;</a>
+              </div>
+              <hr>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-21">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-21">&#x00a7;</a>
+              </div>
+              <p>| Id</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>
+<span class="hljs-title">idJ</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">idJ</span> a v c d x p = <span class="hljs-keyword">case</span> p <span class="hljs-keyword">of</span>
+  <span class="hljs-type">VIdPair</span> w ws -&gt; comp i (app (app c (w @@ i)) w&#x27;) d
+                    (border d (shape ws))
+    <span class="hljs-keyword">where</span> w&#x27; = <span class="hljs-type">VIdPair</span> (<span class="hljs-type">VPLam</span> j $ w @@ (<span class="hljs-type">Atom</span> i :/\: <span class="hljs-type">Atom</span> j))
+                  (insertSystem (i ~&gt; <span class="hljs-number">0</span>) v ws)
+          i:j:_ = freshs [a,v,c,d,x,p]
+  _ -&gt; <span class="hljs-type">VIdJ</span> a v c d x p
+
+<span class="hljs-title">isIdPair</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Bool</span>
+<span class="hljs-title">isIdPair</span> <span class="hljs-type">VIdPair</span>{} = <span class="hljs-type">True</span>
+<span class="hljs-title">isIdPair</span> _         = <span class="hljs-type">False</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-22">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-22">&#x00a7;</a>
+              </div>
+              <hr>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-23">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-23">&#x00a7;</a>
+              </div>
+              <p>| HITs</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>
+<span class="hljs-title">pcon</span> :: <span class="hljs-type">LIdent</span> -&gt; <span class="hljs-type">Val</span> -&gt; [<span class="hljs-type">Val</span>] -&gt; [<span class="hljs-type">Formula</span>] -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">pcon</span> c a@(<span class="hljs-type">Ter</span> (<span class="hljs-type">HSum</span> _ _ lbls) rho) us phis = <span class="hljs-keyword">case</span> lookupPLabel c lbls <span class="hljs-keyword">of</span>
+  <span class="hljs-type">Just</span> (tele,is,ts) | eps `member` vs -&gt; vs ! eps
+                    | otherwise       -&gt; <span class="hljs-type">VPCon</span> c a us phis
+    <span class="hljs-keyword">where</span> rho&#x27; = subs (zip is phis) (updsTele tele us rho)
+          vs   = evalSystem rho&#x27; ts
+  <span class="hljs-type">Nothing</span>           -&gt; error <span class="hljs-string">&quot;pcon&quot;</span>
+<span class="hljs-title">pcon</span> c a us phi     = <span class="hljs-type">VPCon</span> c a us phi
+
+<span class="hljs-title">compHIT</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">compHIT</span> i a u us
+  | isNeutral u || isNeutralSystem us =
+      <span class="hljs-type">VComp</span> (<span class="hljs-type">VPLam</span> i a) u (<span class="hljs-type">Map</span>.map (<span class="hljs-type">VPLam</span> i) us)
+  | otherwise =
+      hComp (a `face` (i ~&gt; <span class="hljs-number">1</span>)) (transpHIT i a u) $
+        mapWithKey (\alpha uAlpha -&gt;
+                     <span class="hljs-type">VPLam</span> i $ squeezeHIT i (a `face` alpha) uAlpha) us</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-24">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-24">&#x00a7;</a>
+              </div>
+              <p>Given u of type a(i=0), transpHIT i a u is an element of a(i=1).</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">transpHIT</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">transpHIT</span> i a@(<span class="hljs-type">Ter</span> (<span class="hljs-type">HSum</span> _ _ nass) env) u =
+ <span class="hljs-keyword">let</span> j = fresh (a,u)
+     aij = swap a (i,j)
+ <span class="hljs-keyword">in</span>
+ <span class="hljs-keyword">case</span> u <span class="hljs-keyword">of</span>
+  <span class="hljs-type">VCon</span> n us -&gt; <span class="hljs-keyword">case</span> lookupLabel n nass <span class="hljs-keyword">of</span>
+    <span class="hljs-type">Just</span> <span class="hljs-keyword">as</span> -&gt; <span class="hljs-type">VCon</span> n (transps i <span class="hljs-keyword">as</span> env us)
+    <span class="hljs-type">Nothing</span> -&gt; error $ <span class="hljs-string">&quot;transpHIT: missing constructor in labelled sum &quot;</span> ++ n
+  <span class="hljs-type">VPCon</span> c _ ws0 phis -&gt; <span class="hljs-keyword">case</span> lookupLabel c nass <span class="hljs-keyword">of</span>
+    <span class="hljs-type">Just</span> <span class="hljs-keyword">as</span> -&gt; pcon c (a `face` (i ~&gt; <span class="hljs-number">1</span>)) (transps i <span class="hljs-keyword">as</span> env ws0) phis
+    <span class="hljs-type">Nothing</span> -&gt; error $ <span class="hljs-string">&quot;transpHIT: missing path constructor &quot;</span> ++ c
+  <span class="hljs-type">VHComp</span> _ v vs -&gt;
+    hComp (a `face` (i ~&gt; <span class="hljs-number">1</span>)) (transpHIT i a v) $
+      mapWithKey (\alpha vAlpha -&gt;
+                   <span class="hljs-type">VPLam</span> j $ transpHIT j (aij `face` alpha) (vAlpha @@ j)) vs
+  _ -&gt; error $ <span class="hljs-string">&quot;transpHIT: neutral &quot;</span> ++ show u</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-25">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-25">&#x00a7;</a>
+              </div>
+              <p>given u(i) of type a(i) “squeezeHIT i a u” connects in the direction i
+transHIT i a u(i=0) to u(i=1) in a(1)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">squeezeHIT</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">squeezeHIT</span> i a@(<span class="hljs-type">Ter</span> (<span class="hljs-type">HSum</span> _ _ nass) env) u =
+ <span class="hljs-keyword">let</span> j = fresh (a,u)
+ <span class="hljs-keyword">in</span>
+ <span class="hljs-keyword">case</span> u <span class="hljs-keyword">of</span>
+  <span class="hljs-type">VCon</span> n us -&gt; <span class="hljs-keyword">case</span> lookupLabel n nass <span class="hljs-keyword">of</span>
+    <span class="hljs-type">Just</span> <span class="hljs-keyword">as</span> -&gt; <span class="hljs-type">VCon</span> n (squeezes i <span class="hljs-keyword">as</span> env us)
+    <span class="hljs-type">Nothing</span> -&gt; error $ <span class="hljs-string">&quot;squeezeHIT: missing constructor in labelled sum &quot;</span> ++ n
+  <span class="hljs-type">VPCon</span> c _ ws0 phis -&gt; <span class="hljs-keyword">case</span> lookupLabel c nass <span class="hljs-keyword">of</span>
+    <span class="hljs-type">Just</span> <span class="hljs-keyword">as</span> -&gt; pcon c (a `face` (i ~&gt; <span class="hljs-number">1</span>)) (squeezes i <span class="hljs-keyword">as</span> env ws0) phis
+    <span class="hljs-type">Nothing</span> -&gt; error $ <span class="hljs-string">&quot;squeezeHIT: missing path constructor &quot;</span> ++ c
+  <span class="hljs-type">VHComp</span> _ v vs -&gt; hComp (a `face` (i ~&gt; <span class="hljs-number">1</span>)) (squeezeHIT i a v) $
+      mapWithKey
+        (\alpha vAlpha -&gt; <span class="hljs-keyword">case</span> <span class="hljs-type">Map</span>.lookup i alpha <span class="hljs-keyword">of</span>
+          <span class="hljs-type">Nothing</span>   -&gt; <span class="hljs-type">VPLam</span> j $ squeezeHIT i (a `face` alpha) (vAlpha @@ j)
+          <span class="hljs-type">Just</span> <span class="hljs-type">Zero</span> -&gt; <span class="hljs-type">VPLam</span> j $ transpHIT i
+                         (a `face` (<span class="hljs-type">Map</span>.delete i alpha)) (vAlpha @@ j)
+          <span class="hljs-type">Just</span> <span class="hljs-type">One</span>  -&gt; vAlpha)
+        vs
+  _ -&gt; error $ <span class="hljs-string">&quot;squeezeHIT: neutral &quot;</span> ++ show u
+
+<span class="hljs-title">hComp</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">hComp</span> a u us | eps `member` us = (us ! eps) @@ <span class="hljs-type">One</span>
+             | otherwise       = <span class="hljs-type">VHComp</span> a u us</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-26">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-26">&#x00a7;</a>
+              </div>
+              <hr>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-27">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-27">&#x00a7;</a>
+              </div>
+              <p>| Glue</p>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-28">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-28">&#x00a7;</a>
+              </div>
+              <p>An equivalence for a type a is a triple (t,f,p) where
+t : U
+f : t -&gt; a
+p : (x : a) -&gt; isContr ((y:t) * Id a x (f y))
+with isContr c = (z : c) * ((z’ : C) -&gt; Id c z z’)</p>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-29">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-29">&#x00a7;</a>
+              </div>
+              <p>Extraction functions for getting a, f, s and t:</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">equivDom</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">equivDom</span> = fstVal
+
+<span class="hljs-title">equivFun</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">equivFun</span> = fstVal . sndVal
+
+<span class="hljs-title">equivContr</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">equivContr</span> =  sndVal . sndVal
+
+<span class="hljs-title">glue</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">glue</span> b ts | eps `member` ts = equivDom (ts ! eps)
+          | otherwise       = <span class="hljs-type">VGlue</span> b ts
+
+<span class="hljs-title">glueElem</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">glueElem</span> v us | eps `member` us = us ! eps
+<span class="hljs-title">glueElem</span> v us = <span class="hljs-type">VGlueElem</span> v us
+
+<span class="hljs-title">unglueElem</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">unglueElem</span> w isos | eps `member` isos = app (equivFun (isos ! eps)) w
+                  | otherwise         = <span class="hljs-keyword">case</span> w <span class="hljs-keyword">of</span>
+                                          <span class="hljs-type">VGlueElem</span> v us -&gt; v
+                                          _ -&gt; <span class="hljs-type">VUnGlueElem</span> w isos
+
+<span class="hljs-title">unGlue</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">unGlue</span> w b equivs | eps `member` equivs = app (equivFun (equivs ! eps)) w
+                  | otherwise           = <span class="hljs-keyword">case</span> w <span class="hljs-keyword">of</span>
+                                            <span class="hljs-type">VGlueElem</span> v us -&gt; v
+                                            _ -&gt; error (<span class="hljs-string">&quot;unglue: neutral&quot;</span> ++ show w)
+
+<span class="hljs-title">isNeutralGlue</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Bool</span>
+<span class="hljs-title">isNeutralGlue</span> i equivs u0 ts = (eps `notMember` equivsi0 &amp;&amp; isNeutral u0) ||
+  any (\(alpha,talpha) -&gt;
+           eps `notMember` (equivs `face` alpha) &amp;&amp; isNeutral talpha)
+    (assocs ts)
+  <span class="hljs-keyword">where</span> equivsi0 = equivs `face` (i ~&gt; <span class="hljs-number">0</span>)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-30">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-30">&#x00a7;</a>
+              </div>
+              <p>this is exactly the same as isNeutralGlue?</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">isNeutralU</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Bool</span>
+<span class="hljs-title">isNeutralU</span> i eqs u0 ts = (eps `notMember` eqsi0 &amp;&amp; isNeutral u0) ||
+  any (\(alpha,talpha) -&gt;
+           eps `notMember` (eqs `face` alpha) &amp;&amp; isNeutral talpha)
+    (assocs ts)
+  <span class="hljs-keyword">where</span> eqsi0 = eqs `face` (i ~&gt; <span class="hljs-number">0</span>)</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-31">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-31">&#x00a7;</a>
+              </div>
+              <p>Extend the system ts to a total element in b given q : isContr b</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">extend</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">extend</span> b q ts = comp i b (fstVal q) ts&#x27;
+  <span class="hljs-keyword">where</span> i = fresh (b,q,ts)
+        ts&#x27; = mapWithKey
+                (\alpha tAlpha -&gt; app ((sndVal q) `face` alpha) tAlpha @@ i) ts</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-32">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-32">&#x00a7;</a>
+              </div>
+              <p>psi/b corresponds to ws
+b0    corresponds to wi0
+a0    corresponds to vi0
+psi/a corresponds to vs
+a1’   corresponds to vi1’
+equivs’ corresponds to delta
+ti1’  corresponds to usi1’</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">compGlue</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">compGlue</span> i a equivs wi0 ws = glueElem vi1 usi1
+  <span class="hljs-keyword">where</span> ai1 = a `face` (i ~&gt; <span class="hljs-number">1</span>)
+        vs  = mapWithKey
+                (\alpha wAlpha -&gt;
+                  unGlue wAlpha (a `face` alpha) (equivs `face` alpha)) ws
+
+        vsi1 = vs `face` (i ~&gt; <span class="hljs-number">1</span>) <span class="hljs-comment">-- same as: border vi1 vs</span>
+        vi0  = unGlue wi0 (a `face` (i ~&gt; <span class="hljs-number">0</span>)) (equivs `face` (i ~&gt; <span class="hljs-number">0</span>)) <span class="hljs-comment">-- in a(i0)</span>
+
+        vi1&#x27;  = comp i a vi0 vs           <span class="hljs-comment">-- in a(i1)</span>
+
+        equivsI1 = equivs `face` (i ~&gt; <span class="hljs-number">1</span>)
+        equivs&#x27;  = filterWithKey (\alpha _ -&gt; i `notMember` alpha) equivs
+
+        us&#x27;    = mapWithKey (\gamma equivG -&gt;
+                   fill i (equivDom equivG) (wi0 `face` gamma) (ws `face` gamma))
+                 equivs&#x27;
+        usi1&#x27;  = mapWithKey (\gamma equivG -&gt;
+                   comp i (equivDom equivG) (wi0 `face` gamma) (ws `face` gamma))
+                 equivs&#x27;</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-33">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-33">&#x00a7;</a>
+              </div>
+              <p>path in ai1 between vi1 and f(i1) usi1’ on equivs’</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        ls&#x27;    = mapWithKey (\gamma equivG -&gt;
+                   pathComp i (a `face` gamma) (vi0 `face` gamma)
+                     (equivFun equivG `app` (us&#x27; ! gamma)) (vs `face` gamma))
+                 equivs&#x27;
+
+        fibersys = intersectionWith <span class="hljs-type">VPair</span> usi1&#x27; ls&#x27; <span class="hljs-comment">-- on equivs&#x27;</span>
+
+        wsi1 = ws `face` (i ~&gt; <span class="hljs-number">1</span>)
+        fibersys&#x27; = mapWithKey
+          (\gamma equivG -&gt;
+            <span class="hljs-keyword">let</span> fibsgamma = intersectionWith (\ x y -&gt; <span class="hljs-type">VPair</span> x (constPath y))
+                              (wsi1 `face` gamma) (vsi1 `face` gamma)
+            <span class="hljs-keyword">in</span> extend (mkFiberType (ai1 `face` gamma) (vi1&#x27; `face` gamma) equivG)
+                 (app (equivContr equivG) (vi1&#x27; `face` gamma))
+                 (fibsgamma `unionSystem` (fibersys `face` gamma))) equivsI1
+
+        vi1 = compConstLine ai1 vi1&#x27;
+                (<span class="hljs-type">Map</span>.map sndVal fibersys&#x27; `unionSystem` <span class="hljs-type">Map</span>.map constPath vsi1)
+
+        usi1 = <span class="hljs-type">Map</span>.map fstVal fibersys&#x27;
+
+<span class="hljs-title">mkFiberType</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">mkFiberType</span> a x equiv = eval rho $
+  <span class="hljs-type">Sigma</span> $ <span class="hljs-type">Lam</span> <span class="hljs-string">&quot;y&quot;</span> tt (<span class="hljs-type">PathP</span> (<span class="hljs-type">PLam</span> (<span class="hljs-type">Name</span> <span class="hljs-string">&quot;_&quot;</span>) ta) tx (<span class="hljs-type">App</span> tf ty))
+  <span class="hljs-keyword">where</span> [ta,tx,ty,tf,tt] = map <span class="hljs-type">Var</span> [<span class="hljs-string">&quot;a&quot;</span>,<span class="hljs-string">&quot;x&quot;</span>,<span class="hljs-string">&quot;y&quot;</span>,<span class="hljs-string">&quot;f&quot;</span>,<span class="hljs-string">&quot;t&quot;</span>]
+        rho = upds [(<span class="hljs-string">&quot;a&quot;</span>,a),(<span class="hljs-string">&quot;x&quot;</span>,x),(<span class="hljs-string">&quot;f&quot;</span>,equivFun equiv)
+                   ,(<span class="hljs-string">&quot;t&quot;</span>,equivDom equiv)] emptyEnv</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-34">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-34">&#x00a7;</a>
+              </div>
+              <p>Assumes u’ : A is a solution of us + (i0 -&gt; u0)
+The output is an L-path in A(i1) between comp i u0 us and u’(i1)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">pathComp</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">pathComp</span> i a u0 u&#x27; us = <span class="hljs-type">VPLam</span> j $ comp i a u0 us&#x27;
+  <span class="hljs-keyword">where</span> j   = fresh (<span class="hljs-type">Atom</span> i,a,us,u0,u&#x27;)
+        us&#x27; = insertsSystem [(j ~&gt; <span class="hljs-number">1</span>, u&#x27;)] us</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-35">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-35">&#x00a7;</a>
+              </div>
+              <hr>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-36">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-36">&#x00a7;</a>
+              </div>
+              <p>| Composition in the Universe</p>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-37">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-37">&#x00a7;</a>
+              </div>
+              <p>any path between types define an equivalence</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-title">eqFun</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">eqFun</span> = transNegLine
+
+<span class="hljs-title">unGlueU</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">unGlueU</span> w b es | eps `<span class="hljs-type">Map</span>.member` es = eqFun (es ! eps) w
+               | otherwise           = <span class="hljs-keyword">case</span> w <span class="hljs-keyword">of</span>
+                                        <span class="hljs-type">VGlueElem</span> v us   -&gt; v
+                                        _ -&gt; <span class="hljs-type">VUnGlueElemU</span> w b es
+
+<span class="hljs-title">compUniv</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">compUniv</span> b es | eps `<span class="hljs-type">Map</span>.member` es = (es ! eps) @@ <span class="hljs-type">One</span>
+              | otherwise           = <span class="hljs-type">VCompU</span> b es
+
+<span class="hljs-title">compU</span> :: <span class="hljs-type">Name</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span>
+<span class="hljs-title">compU</span> i a eqs wi0 ws = glueElem vi1 usi1
+  <span class="hljs-keyword">where</span> ai1 = a `face` (i ~&gt; <span class="hljs-number">1</span>)
+        vs  = mapWithKey
+                (\alpha wAlpha -&gt;
+                  unGlueU wAlpha (a `face` alpha) (eqs `face` alpha)) ws
+
+        vsi1 = vs `face` (i ~&gt; <span class="hljs-number">1</span>) <span class="hljs-comment">-- same as: border vi1 vs</span>
+        vi0  = unGlueU wi0 (a `face` (i ~&gt; <span class="hljs-number">0</span>)) (eqs `face` (i ~&gt; <span class="hljs-number">0</span>)) <span class="hljs-comment">-- in a(i0)</span>
+
+        vi1&#x27;  = comp i a vi0 vs           <span class="hljs-comment">-- in a(i1)</span>
+
+        eqsI1 = eqs `face` (i ~&gt; <span class="hljs-number">1</span>)
+        eqs&#x27;  = filterWithKey (\alpha _ -&gt; i `notMember` alpha) eqs
+
+        us&#x27;    = mapWithKey (\gamma eqG -&gt;
+                   fill i (eqG @@ <span class="hljs-type">One</span>) (wi0 `face` gamma) (ws `face` gamma))
+                 eqs&#x27;
+        usi1&#x27;  = mapWithKey (\gamma eqG -&gt;
+                   comp i (eqG @@ <span class="hljs-type">One</span>) (wi0 `face` gamma) (ws `face` gamma))
+                 eqs&#x27;</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-38">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-38">&#x00a7;</a>
+              </div>
+              <p>path in ai1 between vi1 and f(i1) usi1’ on eqs’</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        ls&#x27;    = mapWithKey (\gamma eqG -&gt;
+                   pathComp i (a `face` gamma) (vi0 `face` gamma)
+                     (eqFun eqG (us&#x27; ! gamma)) (vs `face` gamma))
+                 eqs&#x27;
+
+        fibersys = intersectionWith (\ x y -&gt; (x,y)) usi1&#x27; ls&#x27; <span class="hljs-comment">-- on eqs&#x27;</span>
+
+        wsi1 = ws `face` (i ~&gt; <span class="hljs-number">1</span>)
+        fibersys&#x27; = mapWithKey
+          (\gamma eqG -&gt;
+            <span class="hljs-keyword">let</span> fibsgamma = intersectionWith (\ x y -&gt; (x,constPath y))
+                              (wsi1 `face` gamma) (vsi1 `face` gamma)
+            <span class="hljs-keyword">in</span> lemEq eqG (vi1&#x27; `face` gamma)
+                     (fibsgamma `unionSystem` (fibersys `face` gamma))) eqsI1
+
+        vi1 = compConstLine ai1 vi1&#x27;
+                (<span class="hljs-type">Map</span>.map snd fibersys&#x27; `unionSystem` <span class="hljs-type">Map</span>.map constPath vsi1)
+
+        usi1 = <span class="hljs-type">Map</span>.map fst fibersys&#x27;
+
+<span class="hljs-title">lemEq</span> :: <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">Val</span> -&gt; <span class="hljs-type">System</span> (<span class="hljs-type">Val</span>,<span class="hljs-type">Val</span>) -&gt; (<span class="hljs-type">Val</span>,<span class="hljs-type">Val</span>)
+<span class="hljs-title">lemEq</span> eq b aps = (a,<span class="hljs-type">VPLam</span> i (compNeg j (eq @@ j) p1 thetas&#x27;))
+ <span class="hljs-keyword">where</span>
+   i:j:_ = freshs (eq,b,aps)
+   ta = eq @@ <span class="hljs-type">One</span>
+   p1s = mapWithKey (\alpha (aa,pa) -&gt;
+              <span class="hljs-keyword">let</span> eqaj = (eq `face` alpha) @@ j
+                  ba = b `face` alpha
+              <span class="hljs-keyword">in</span> comp j eqaj (pa @@ i)
+                   (mkSystem [ (i~&gt;<span class="hljs-number">0</span>,transFill j eqaj ba)
+                             , (i~&gt;<span class="hljs-number">1</span>,transFillNeg j eqaj aa)])) aps
+   thetas = mapWithKey (\alpha (aa,pa) -&gt;
+              <span class="hljs-keyword">let</span> eqaj = (eq `face` alpha) @@ j
+                  ba = b `face` alpha
+              <span class="hljs-keyword">in</span> fill j eqaj (pa @@ i)
+                   (mkSystem [ (i~&gt;<span class="hljs-number">0</span>,transFill j eqaj ba)
+                             , (i~&gt;<span class="hljs-number">1</span>,transFillNeg j eqaj aa)])) aps
+
+   a  = comp i ta (trans i (eq @@ i) b) p1s
+   p1 = fill i ta (trans i (eq @@ i) b) p1s
+
+   thetas&#x27; = insertsSystem [ (i ~&gt; <span class="hljs-number">0</span>,transFill j (eq @@ j) b)
+                           , (i ~&gt; <span class="hljs-number">1</span>,transFillNeg j (eq @@ j) a)] thetas</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-39">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-39">&#x00a7;</a>
+              </div>
+              <p>Old version:
+This version triggers the following error when checking the normal form of corrUniv:
+Parsed “examples/nunivalence2.ctt” successfully!
+Resolver failed: Cannot resolve name !3 at position (7,30062) in module nunivalence2
+compU :: Name -&gt; Val -&gt; System Val -&gt; Val -&gt; System Val -&gt; Val
+compU i b es wi0 ws = glueElem vi1’’ usi1’’
+  where bi1 = b <code>face</code> (i ~&gt; 1)
+        vs   = mapWithKey (\alpha wAlpha -&gt;
+                 unGlueU wAlpha (b <code>face</code> alpha) (es <code>face</code> alpha)) ws
+        vsi1 = vs <code>face</code> (i ~&gt; 1) – same as: border vi1 vs
+        vi0  = unGlueU wi0 (b <code>face</code> (i ~&gt; 0)) (es <code>face</code> (i ~&gt; 0)) – in b(i0)</p>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-40">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-40">&#x00a7;</a>
+              </div>
+              <pre><code>    v    = fill i b vi0 vs           <span class="hljs-comment">-- in b</span>
+    vi1  = comp i b vi0 vs           <span class="hljs-comment">-- is v `face` (i ~&gt; 1) in b(i1)</span>
+</code></pre>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-41">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-41">&#x00a7;</a>
+              </div>
+              <pre><code>    esI1 = es `face` (i ~&gt; <span class="hljs-number">1</span>)
+    es&#x27;  = filterWithKey (\alpha _ -&gt; i `<span class="hljs-type">Map</span>.notMember` alpha) es
+    es&#x27;&#x27; = filterWithKey (\alpha _ -&gt; alpha `<span class="hljs-type">Map</span>.notMember` es) esI1
+</code></pre>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-42">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-42">&#x00a7;</a>
+              </div>
+              <pre><code>    us&#x27;    = mapWithKey (\gamma eGamma -&gt;
+               fill i (eGamma @@ <span class="hljs-type">One</span>) (wi0 `face` gamma) (ws `face` gamma))
+             es&#x27;
+    usi1&#x27;  = mapWithKey (\gamma eGamma -&gt;
+               comp i (eGamma @@ <span class="hljs-type">One</span>) (wi0 `face` gamma) (ws `face` gamma))
+             es&#x27;
+</code></pre>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-43">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-43">&#x00a7;</a>
+              </div>
+              <pre><code>    ls&#x27;    = mapWithKey (\gamma eGamma -&gt;
+                 pathComp i (b `face` gamma) (v `face` gamma)
+                   (transNegLine eGamma (us&#x27; ! gamma)) (vs `face` gamma))
+               es&#x27;
+</code></pre>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-44">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-44">&#x00a7;</a>
+              </div>
+              <pre><code>    vi1&#x27; = compLine (constPath bi1) vi1
+             (ls&#x27; `unionSystem` <span class="hljs-type">Map</span>.map constPath vsi1)
+</code></pre>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-45">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-45">&#x00a7;</a>
+              </div>
+              <pre><code>    wsi1 = ws `face` (i ~&gt; <span class="hljs-number">1</span>)
+</code></pre>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-46">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-46">&#x00a7;</a>
+              </div>
+              <pre><code>    <span class="hljs-comment">-- for gamma in es&#x27;&#x27;, (i1) gamma is in es, so wsi1 gamma</span>
+    <span class="hljs-comment">-- is in the domain of isoGamma</span>
+    uls&#x27;&#x27; = mapWithKey (\gamma eGamma -&gt;
+              isoToEquivU (bi1 `face` gamma) eGamma
+                ((usi1&#x27; `face` gamma) `unionSystem` (wsi1 `face` gamma))
+                (vi1&#x27; `face` gamma))
+              es&#x27;&#x27;
+</code></pre>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-47">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-47">&#x00a7;</a>
+              </div>
+              <pre><code>    vsi1&#x27; = <span class="hljs-type">Map</span>.map constPath $ border vi1&#x27; es&#x27; `unionSystem` vsi1
+</code></pre>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-48">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-48">&#x00a7;</a>
+              </div>
+              <pre><code>    vi1&#x27;&#x27; = compLine (constPath bi1) vi1&#x27;
+              (<span class="hljs-type">Map</span>.map snd uls&#x27;&#x27; `unionSystem` vsi1&#x27;)
+</code></pre>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-49">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-49">&#x00a7;</a>
+              </div>
+              <pre><code>    usi1&#x27;&#x27; = <span class="hljs-type">Map</span>.mapWithKey (\gamma _ -&gt;
+                 <span class="hljs-keyword">if</span> gamma `<span class="hljs-type">Map</span>.member` usi1&#x27; <span class="hljs-keyword">then</span> usi1&#x27; ! gamma
+                 <span class="hljs-keyword">else</span> fst (uls&#x27;&#x27; ! gamma))
+              esI1
+</code></pre>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-50">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-50">&#x00a7;</a>
+              </div>
+              <p>IsoToEquiv, takes a line eq in U, a system us and a value v, s.t. f us =
+border v. Outputs (u,p) s.t. border u = us and a path p between v
+and f u, where f is transNegLine eq
+isoToEquivU :: Val -&gt; Val -&gt; System Val -&gt; Val -&gt; (Val, Val)
+isoToEquivU b eq us v = (u, VPLam i theta)
+  where i:j:_   = freshs (b,eq,us,v)
+        ej      = eq @@ j
+        a       = eq @@ One
+        ws      = mapWithKey (\alpha uAlpha -&gt;
+                                   transFillNeg j (ej <code>face</code> alpha) uAlpha) us
+        u       = comp j ej v ws
+        w       = fill j ej v ws
+        xs      = insertSystem (i ~&gt; 0) w $
+                  insertSystem (i ~&gt; 1) (transFillNeg j ej u) $ ws
+        theta   = compNeg j ej u xs</p>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-51">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-51">&#x00a7;</a>
+              </div>
+              <p>Old version:
+isoToEquivU :: Val -&gt; Val -&gt; System Val -&gt; Val -&gt; (Val, Val)
+isoToEquivU b eq us v = (u, VPLam i theta’’)
+  where i:j:_   = freshs (b,eq,us,v)
+        a       = eq @@ One
+        g       = transLine
+        f       = transNegLine
+        s e y   = VPLam j $ compNeg i (e @@ i) (trans i (e @@ i) y)
+                    (mkSystem [(j ~&gt; 0, transFill j (e @@ j) y)
+                              ,(j ~&gt; 1, transFillNeg j (e @@ j)
+                                          (trans j (e @@ j) y))])
+        t e x   = VPLam j $ comp i (e @@ i) (transNeg i (e @@ i) x)
+                    (mkSystem [(j ~&gt; 0, transFill j (e @@ j)
+                                          (transNeg j (e @@ j) x))
+                              ,(j ~&gt; 1, transFillNeg j (e @@ j) x)])
+        gv      = g eq v
+        us’     = mapWithKey (\alpha uAlpha -&gt;
+                                   t (eq <code>face</code> alpha) uAlpha @@ i) us
+        theta   = fill i a gv us’
+        u       = comp i a gv us’  – Same as “theta <code>face</code> (i ~&gt; 1)”
+        ws      = insertSystem (i ~&gt; 0) gv $
+                  insertSystem (i ~&gt; 1) (t eq u @@ j) $
+                  mapWithKey
+                    (\alpha uAlpha -&gt;
+                      t (eq <code>face</code> alpha) uAlpha @@ (Atom i :/: Atom j)) us
+        theta’  = compNeg j a theta ws
+        xs      = insertSystem (i ~&gt; 0) (s eq v @@ j) $
+                  insertSystem (i ~&gt; 1) (s eq (f eq u) @@ j) $
+                  mapWithKey
+                    (\alpha uAlpha -&gt;
+                       s (eq <code>face</code> alpha) (f (eq <code>face</code> alpha) uAlpha) @@ j) us
+        theta’’ = comp j b (f eq theta’) xs</p>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-52">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-52">&#x00a7;</a>
+              </div>
+              <hr>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-53">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-53">&#x00a7;</a>
+              </div>
+              <p>| Conversion</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-class">
+<span class="hljs-keyword">class</span> <span class="hljs-type">Convertible</span> a <span class="hljs-keyword">where</span></span>
+  conv :: [<span class="hljs-type">String</span>] -&gt; a -&gt; a -&gt; <span class="hljs-type">Bool</span>
+
+<span class="hljs-title">isCompSystem</span> :: (<span class="hljs-type">Nominal</span> a, <span class="hljs-type">Convertible</span> a) =&gt; [<span class="hljs-type">String</span>] -&gt; <span class="hljs-type">System</span> a -&gt; <span class="hljs-type">Bool</span>
+<span class="hljs-title">isCompSystem</span> ns ts = and [ conv ns (getFace alpha beta) (getFace beta alpha)
+                         | (alpha,beta) &lt;- allCompatible (keys ts) ]
+    <span class="hljs-keyword">where</span> getFace a b = face (ts ! a) (b `minus` a)
+<span class="hljs-class">
+<span class="hljs-keyword">instance</span> <span class="hljs-type">Convertible</span> <span class="hljs-type">Env</span> <span class="hljs-keyword">where</span></span>
+  conv ns (<span class="hljs-type">Env</span> (rho1,vs1,fs1,os1)) (<span class="hljs-type">Env</span> (rho2,vs2,fs2,os2)) =
+      conv ns (rho1,vs1,fs1,os1) (rho2,vs2,fs2,os2)
+<span class="hljs-class">
+<span class="hljs-keyword">instance</span> <span class="hljs-type">Convertible</span> <span class="hljs-type">Val</span> <span class="hljs-keyword">where</span></span>
+  conv ns u v | u == v    = <span class="hljs-type">True</span>
+              | otherwise =
+    <span class="hljs-keyword">let</span> j = fresh (u,v)
+    <span class="hljs-keyword">in</span> <span class="hljs-keyword">case</span> (u,v) <span class="hljs-keyword">of</span>
+      (<span class="hljs-type">Ter</span> (<span class="hljs-type">Lam</span> x a u) e,<span class="hljs-type">Ter</span> (<span class="hljs-type">Lam</span> x&#x27; a&#x27; u&#x27;) e&#x27;) -&gt;
+        <span class="hljs-keyword">let</span> v@(<span class="hljs-type">VVar</span> n _) = mkVarNice ns x (eval e a)
+        <span class="hljs-keyword">in</span> conv (n:ns) (eval (upd (x,v) e) u) (eval (upd (x&#x27;,v) e&#x27;) u&#x27;)
+      (<span class="hljs-type">Ter</span> (<span class="hljs-type">Lam</span> x a u) e,u&#x27;) -&gt;
+        <span class="hljs-keyword">let</span> v@(<span class="hljs-type">VVar</span> n _) = mkVarNice ns x (eval e a)
+        <span class="hljs-keyword">in</span> conv (n:ns) (eval (upd (x,v) e) u) (app u&#x27; v)
+      (u&#x27;,<span class="hljs-type">Ter</span> (<span class="hljs-type">Lam</span> x a u) e) -&gt;
+        <span class="hljs-keyword">let</span> v@(<span class="hljs-type">VVar</span> n _) = mkVarNice ns x (eval e a)
+        <span class="hljs-keyword">in</span> conv (n:ns) (app u&#x27; v) (eval (upd (x,v) e) u)
+      (<span class="hljs-type">Ter</span> (<span class="hljs-type">Split</span> _ p _ _) e,<span class="hljs-type">Ter</span> (<span class="hljs-type">Split</span> _ p&#x27; _ _) e&#x27;) -&gt; (p == p&#x27;) &amp;&amp; conv ns e e&#x27;
+      (<span class="hljs-type">Ter</span> (<span class="hljs-type">Sum</span> p _ _) e,<span class="hljs-type">Ter</span> (<span class="hljs-type">Sum</span> p&#x27; _ _) e&#x27;)         -&gt; (p == p&#x27;) &amp;&amp; conv ns e e&#x27;
+      (<span class="hljs-type">Ter</span> (<span class="hljs-type">HSum</span> p _ _) e,<span class="hljs-type">Ter</span> (<span class="hljs-type">HSum</span> p&#x27; _ _) e&#x27;)       -&gt; (p == p&#x27;) &amp;&amp; conv ns e e&#x27;
+      (<span class="hljs-type">Ter</span> (<span class="hljs-type">Undef</span> p _) e,<span class="hljs-type">Ter</span> (<span class="hljs-type">Undef</span> p&#x27; _) e&#x27;) -&gt; p == p&#x27; &amp;&amp; conv ns e e&#x27;
+      (<span class="hljs-type">Ter</span> (<span class="hljs-type">Hole</span> p) e,<span class="hljs-type">Ter</span> (<span class="hljs-type">Hole</span> p&#x27;) e&#x27;) -&gt; p == p&#x27; &amp;&amp; conv ns e e&#x27;</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-54">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-54">&#x00a7;</a>
+              </div>
+              <p>(Ter Hole{} e,<em>) -&gt; True
+(</em>,Ter Hole{} e’) -&gt; True</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>      (<span class="hljs-type">VPi</span> u v,<span class="hljs-type">VPi</span> u&#x27; v&#x27;) -&gt;
+        <span class="hljs-keyword">let</span> w@(<span class="hljs-type">VVar</span> n _) = mkVarNice ns <span class="hljs-string">&quot;X&quot;</span> u
+        <span class="hljs-keyword">in</span> conv ns u u&#x27; &amp;&amp; conv (n:ns) (app v w) (app v&#x27; w)
+      (<span class="hljs-type">VSigma</span> u v,<span class="hljs-type">VSigma</span> u&#x27; v&#x27;) -&gt;
+        <span class="hljs-keyword">let</span> w@(<span class="hljs-type">VVar</span> n _) = mkVarNice ns <span class="hljs-string">&quot;X&quot;</span> u
+        <span class="hljs-keyword">in</span> conv ns u u&#x27; &amp;&amp; conv (n:ns) (app v w) (app v&#x27; w)
+      (<span class="hljs-type">VCon</span> c us,<span class="hljs-type">VCon</span> c&#x27; us&#x27;)   -&gt; (c == c&#x27;) &amp;&amp; conv ns us us&#x27;
+      (<span class="hljs-type">VPCon</span> c v us phis,<span class="hljs-type">VPCon</span> c&#x27; v&#x27; us&#x27; phis&#x27;) -&gt;
+        (c == c&#x27;) &amp;&amp; conv ns (v,us,phis) (v&#x27;,us&#x27;,phis&#x27;)
+      (<span class="hljs-type">VPair</span> u v,<span class="hljs-type">VPair</span> u&#x27; v&#x27;)    -&gt; conv ns u u&#x27; &amp;&amp; conv ns v v&#x27;
+      (<span class="hljs-type">VPair</span> u v,w)              -&gt; conv ns u (fstVal w) &amp;&amp; conv ns v (sndVal w)
+      (w,<span class="hljs-type">VPair</span> u v)              -&gt; conv ns (fstVal w) u &amp;&amp; conv ns (sndVal w) v
+      (<span class="hljs-type">VFst</span> u,<span class="hljs-type">VFst</span> u&#x27;)           -&gt; conv ns u u&#x27;
+      (<span class="hljs-type">VSnd</span> u,<span class="hljs-type">VSnd</span> u&#x27;)           -&gt; conv ns u u&#x27;
+      (<span class="hljs-type">VApp</span> u v,<span class="hljs-type">VApp</span> u&#x27; v&#x27;)      -&gt; conv ns u u&#x27; &amp;&amp; conv ns v v&#x27;
+      (<span class="hljs-type">VSplit</span> u v,<span class="hljs-type">VSplit</span> u&#x27; v&#x27;)  -&gt; conv ns u u&#x27; &amp;&amp; conv ns v v&#x27;
+      (<span class="hljs-type">VOpaque</span> x _, <span class="hljs-type">VOpaque</span> x&#x27; _) -&gt; x == x&#x27;
+      (<span class="hljs-type">VVar</span> x _, <span class="hljs-type">VVar</span> x&#x27; _)       -&gt; x == x&#x27;
+      (<span class="hljs-type">VPathP</span> a b c,<span class="hljs-type">VPathP</span> a&#x27; b&#x27; c&#x27;) -&gt; conv ns a a&#x27; &amp;&amp; conv ns b b&#x27; &amp;&amp; conv ns c c&#x27;
+      (<span class="hljs-type">VPLam</span> i a,<span class="hljs-type">VPLam</span> i&#x27; a&#x27;)    -&gt; conv ns (a `swap` (i,j)) (a&#x27; `swap` (i&#x27;,j))
+      (<span class="hljs-type">VPLam</span> i a,p&#x27;)             -&gt; conv ns (a `swap` (i,j)) (p&#x27; @@ j)
+      (p,<span class="hljs-type">VPLam</span> i&#x27; a&#x27;)            -&gt; conv ns (p @@ j) (a&#x27; `swap` (i&#x27;,j))
+      (<span class="hljs-type">VAppFormula</span> u x,<span class="hljs-type">VAppFormula</span> u&#x27; x&#x27;) -&gt; conv ns (u,x) (u&#x27;,x&#x27;)
+      (<span class="hljs-type">VComp</span> a u ts,<span class="hljs-type">VComp</span> a&#x27; u&#x27; ts&#x27;)      -&gt; conv ns (a,u,ts) (a&#x27;,u&#x27;,ts&#x27;)
+      (<span class="hljs-type">VHComp</span> a u ts,<span class="hljs-type">VHComp</span> a&#x27; u&#x27; ts&#x27;)    -&gt; conv ns (a,u,ts) (a&#x27;,u&#x27;,ts&#x27;)
+      (<span class="hljs-type">VGlue</span> v equivs,<span class="hljs-type">VGlue</span> v&#x27; equivs&#x27;)   -&gt; conv ns (v,equivs) (v&#x27;,equivs&#x27;)
+      (<span class="hljs-type">VGlueElem</span> (<span class="hljs-type">VUnGlueElem</span> b equivs) ts,g) -&gt; conv ns (border b equivs,b) (ts,g)
+      (g,<span class="hljs-type">VGlueElem</span> (<span class="hljs-type">VUnGlueElem</span> b equivs) ts) -&gt; conv ns (border b equivs,b) (ts,g)
+      (<span class="hljs-type">VGlueElem</span> (<span class="hljs-type">VUnGlueElemU</span> b _ equivs) ts,g) -&gt; conv ns (border b equivs,b) (ts,g)
+      (g,<span class="hljs-type">VGlueElem</span> (<span class="hljs-type">VUnGlueElemU</span> b _ equivs) ts) -&gt; conv ns (border b equivs,b) (ts,g)
+      (<span class="hljs-type">VGlueElem</span> u us,<span class="hljs-type">VGlueElem</span> u&#x27; us&#x27;)   -&gt; conv ns (u,us) (u&#x27;,us&#x27;)
+      (<span class="hljs-type">VUnGlueElemU</span> u _ _,<span class="hljs-type">VUnGlueElemU</span> u&#x27; _ _) -&gt; conv ns u u&#x27;
+      (<span class="hljs-type">VUnGlueElem</span> u _,<span class="hljs-type">VUnGlueElem</span> u&#x27; _) -&gt; conv ns u u&#x27;
+      (<span class="hljs-type">VCompU</span> u es,<span class="hljs-type">VCompU</span> u&#x27; es&#x27;)              -&gt; conv ns (u,es) (u&#x27;,es&#x27;)
+      (<span class="hljs-type">VIdPair</span> v vs,<span class="hljs-type">VIdPair</span> v&#x27; vs&#x27;)          -&gt; conv ns (v,vs) (v&#x27;,vs&#x27;)
+      (<span class="hljs-type">VId</span> a u v,<span class="hljs-type">VId</span> a&#x27; u&#x27; v&#x27;)               -&gt; conv ns (a,u,v) (a&#x27;,u&#x27;,v&#x27;)
+      (<span class="hljs-type">VIdJ</span> a u c d x p,<span class="hljs-type">VIdJ</span> a&#x27; u&#x27; c&#x27; d&#x27; x&#x27; p&#x27;) -&gt;
+        conv ns [a,u,c,d,x,p] [a&#x27;,u&#x27;,c&#x27;,d&#x27;,x&#x27;,p&#x27;]
+      _                                      -&gt; <span class="hljs-type">False</span>
+<span class="hljs-class">
+<span class="hljs-keyword">instance</span> <span class="hljs-type">Convertible</span> <span class="hljs-type">Ctxt</span> <span class="hljs-keyword">where</span></span>
+  conv _ _ _ = <span class="hljs-type">True</span>
+<span class="hljs-class">
+<span class="hljs-keyword">instance</span> <span class="hljs-type">Convertible</span> () <span class="hljs-keyword">where</span></span>
+  conv _ _ _ = <span class="hljs-type">True</span>
+<span class="hljs-class">
+<span class="hljs-keyword">instance</span> (<span class="hljs-type">Convertible</span> <span class="hljs-title">a</span>, <span class="hljs-type">Convertible</span> <span class="hljs-title">b</span>) =&gt; <span class="hljs-type">Convertible</span> (<span class="hljs-title">a</span>, <span class="hljs-title">b</span>) <span class="hljs-keyword">where</span></span>
+  conv ns (u, v) (u&#x27;, v&#x27;) = conv ns u u&#x27; &amp;&amp; conv ns v v&#x27;
+<span class="hljs-class">
+<span class="hljs-keyword">instance</span> (<span class="hljs-type">Convertible</span> <span class="hljs-title">a</span>, <span class="hljs-type">Convertible</span> <span class="hljs-title">b</span>, <span class="hljs-type">Convertible</span> <span class="hljs-title">c</span>)
+      =&gt; <span class="hljs-type">Convertible</span> (<span class="hljs-title">a</span>, <span class="hljs-title">b</span>, <span class="hljs-title">c</span>) <span class="hljs-keyword">where</span></span>
+  conv ns (u, v, w) (u&#x27;, v&#x27;, w&#x27;) = conv ns (u,(v,w)) (u&#x27;,(v&#x27;,w&#x27;))
+<span class="hljs-class">
+<span class="hljs-keyword">instance</span> (<span class="hljs-type">Convertible</span> <span class="hljs-title">a</span>,<span class="hljs-type">Convertible</span> <span class="hljs-title">b</span>,<span class="hljs-type">Convertible</span> <span class="hljs-title">c</span>,<span class="hljs-type">Convertible</span> <span class="hljs-title">d</span>)
+      =&gt; <span class="hljs-type">Convertible</span> (<span class="hljs-title">a</span>,<span class="hljs-title">b</span>,<span class="hljs-title">c</span>,<span class="hljs-title">d</span>) <span class="hljs-keyword">where</span></span>
+  conv ns (u,v,w,x) (u&#x27;,v&#x27;,w&#x27;,x&#x27;) = conv ns (u,v,(w,x)) (u&#x27;,v&#x27;,(w&#x27;,x&#x27;))
+<span class="hljs-class">
+<span class="hljs-keyword">instance</span> <span class="hljs-type">Convertible</span> a =&gt; <span class="hljs-type">Convertible</span> [a] <span class="hljs-keyword">where</span></span>
+  conv ns us us&#x27; = length us == length us&#x27; &amp;&amp;
+                  and [conv ns u u&#x27; | (u,u&#x27;) &lt;- zip us us&#x27;]
+<span class="hljs-class">
+<span class="hljs-keyword">instance</span> <span class="hljs-type">Convertible</span> a =&gt; <span class="hljs-type">Convertible</span> (<span class="hljs-type">System</span> <span class="hljs-title">a</span>) <span class="hljs-keyword">where</span></span>
+  conv ns ts ts&#x27; = keys ts == keys ts&#x27; &amp;&amp;
+                   and (elems (intersectionWith (conv ns) ts ts&#x27;))
+<span class="hljs-class">
+<span class="hljs-keyword">instance</span> <span class="hljs-type">Convertible</span> <span class="hljs-type">Formula</span> <span class="hljs-keyword">where</span></span>
+  conv _ phi psi = dnf phi == dnf psi
+<span class="hljs-class">
+<span class="hljs-keyword">instance</span> <span class="hljs-type">Convertible</span> (<span class="hljs-type">Nameless</span> <span class="hljs-title">a</span>) <span class="hljs-keyword">where</span></span>
+  conv _ _ _ = <span class="hljs-type">True</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-55">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-55">&#x00a7;</a>
+              </div>
+              <hr>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-56">
+            <div class="annotation">
+              
+              <div class="sswrap ">
+                <a class="ss" href="#section-56">&#x00a7;</a>
+              </div>
+              <p>| Normalization</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="hljs-class">
+<span class="hljs-keyword">class</span> <span class="hljs-type">Normal</span> a <span class="hljs-keyword">where</span></span>
+  normal :: [<span class="hljs-type">String</span>] -&gt; a -&gt; a
+<span class="hljs-class">
+<span class="hljs-keyword">instance</span> <span class="hljs-type">Normal</span> <span class="hljs-type">Env</span> <span class="hljs-keyword">where</span></span>
+  normal ns (<span class="hljs-type">Env</span> (rho,vs,fs,os)) = <span class="hljs-type">Env</span> (normal ns (rho,vs,fs,os))
+<span class="hljs-class">
+<span class="hljs-keyword">instance</span> <span class="hljs-type">Normal</span> <span class="hljs-type">Val</span> <span class="hljs-keyword">where</span></span>
+  normal ns v = <span class="hljs-keyword">case</span> v <span class="hljs-keyword">of</span>
+    <span class="hljs-type">VU</span>                  -&gt; <span class="hljs-type">VU</span>
+    <span class="hljs-type">Ter</span> (<span class="hljs-type">Lam</span> x t u) e   -&gt;
+      <span class="hljs-keyword">let</span> w = eval e t
+          v@(<span class="hljs-type">VVar</span> n _) = mkVarNice ns x w
+      <span class="hljs-keyword">in</span> <span class="hljs-type">VLam</span> n (normal ns w) $ normal (n:ns) (eval (upd (x,v) e) u)
+    <span class="hljs-type">Ter</span> t e             -&gt; <span class="hljs-type">Ter</span> t (normal ns e)
+    <span class="hljs-type">VPi</span> u v             -&gt; <span class="hljs-type">VPi</span> (normal ns u) (normal ns v)
+    <span class="hljs-type">VSigma</span> u v          -&gt; <span class="hljs-type">VSigma</span> (normal ns u) (normal ns v)
+    <span class="hljs-type">VPair</span> u v           -&gt; <span class="hljs-type">VPair</span> (normal ns u) (normal ns v)
+    <span class="hljs-type">VCon</span> n us           -&gt; <span class="hljs-type">VCon</span> n (normal ns us)
+    <span class="hljs-type">VPCon</span> n u us phis   -&gt; <span class="hljs-type">VPCon</span> n (normal ns u) (normal ns us) phis
+    <span class="hljs-type">VPathP</span> a u0 u1      -&gt; <span class="hljs-type">VPathP</span> (normal ns a) (normal ns u0) (normal ns u1)
+    <span class="hljs-type">VPLam</span> i u           -&gt; <span class="hljs-type">VPLam</span> i (normal ns u)
+    <span class="hljs-type">VComp</span> u v vs        -&gt; <span class="hljs-type">VComp</span> (normal ns u) (normal ns v) (normal ns vs)
+    <span class="hljs-type">VHComp</span> u v vs       -&gt; <span class="hljs-type">VHComp</span> (normal ns u) (normal ns v) (normal ns vs)
+    <span class="hljs-type">VGlue</span> u equivs      -&gt; <span class="hljs-type">VGlue</span> (normal ns u) (normal ns equivs)
+    <span class="hljs-type">VGlueElem</span> u us      -&gt; <span class="hljs-type">VGlueElem</span> (normal ns u) (normal ns us)
+    <span class="hljs-type">VUnGlueElem</span> u us    -&gt; <span class="hljs-type">VUnGlueElem</span> (normal ns u) (normal ns us)
+    <span class="hljs-type">VUnGlueElemU</span> e u us -&gt; <span class="hljs-type">VUnGlueElemU</span> (normal ns e) (normal ns u) (normal ns us)
+    <span class="hljs-type">VCompU</span> a ts         -&gt; <span class="hljs-type">VCompU</span> (normal ns a) (normal ns ts)
+    <span class="hljs-type">VVar</span> x t            -&gt; <span class="hljs-type">VVar</span> x (normal ns t)
+    <span class="hljs-type">VFst</span> t              -&gt; <span class="hljs-type">VFst</span> (normal ns t)
+    <span class="hljs-type">VSnd</span> t              -&gt; <span class="hljs-type">VSnd</span> (normal ns t)
+    <span class="hljs-type">VSplit</span> u t          -&gt; <span class="hljs-type">VSplit</span> (normal ns u) (normal ns t)
+    <span class="hljs-type">VApp</span> u v            -&gt; <span class="hljs-type">VApp</span> (normal ns u) (normal ns v)
+    <span class="hljs-type">VAppFormula</span> u phi   -&gt; <span class="hljs-type">VAppFormula</span> (normal ns u) (normal ns phi)
+    <span class="hljs-type">VId</span> a u v           -&gt; <span class="hljs-type">VId</span> (normal ns a) (normal ns u) (normal ns v)
+    <span class="hljs-type">VIdPair</span> u us        -&gt; <span class="hljs-type">VIdPair</span> (normal ns u) (normal ns us)
+    <span class="hljs-type">VIdJ</span> a u c d x p    -&gt; <span class="hljs-type">VIdJ</span> (normal ns a) (normal ns u) (normal ns c)
+                                (normal ns d) (normal ns x) (normal ns p)
+    _                   -&gt; v
+<span class="hljs-class">
+<span class="hljs-keyword">instance</span> <span class="hljs-type">Normal</span> (<span class="hljs-type">Nameless</span> <span class="hljs-title">a</span>) <span class="hljs-keyword">where</span></span>
+  normal _ = id
+<span class="hljs-class">
+<span class="hljs-keyword">instance</span> <span class="hljs-type">Normal</span> <span class="hljs-type">Ctxt</span> <span class="hljs-keyword">where</span></span>
+  normal _ = id
+<span class="hljs-class">
+<span class="hljs-keyword">instance</span> <span class="hljs-type">Normal</span> <span class="hljs-type">Formula</span> <span class="hljs-keyword">where</span></span>
+  normal _ = fromDNF . dnf
+<span class="hljs-class">
+<span class="hljs-keyword">instance</span> <span class="hljs-type">Normal</span> a =&gt; <span class="hljs-type">Normal</span> (<span class="hljs-type">Map</span> <span class="hljs-title">k</span> <span class="hljs-title">a</span>) <span class="hljs-keyword">where</span></span>
+  normal ns = <span class="hljs-type">Map</span>.map (normal ns)
+<span class="hljs-class">
+<span class="hljs-keyword">instance</span> (<span class="hljs-type">Normal</span> <span class="hljs-title">a</span>,<span class="hljs-type">Normal</span> <span class="hljs-title">b</span>) =&gt; <span class="hljs-type">Normal</span> (<span class="hljs-title">a</span>,<span class="hljs-title">b</span>) <span class="hljs-keyword">where</span></span>
+  normal ns (u,v) = (normal ns u,normal ns v)
+<span class="hljs-class">
+<span class="hljs-keyword">instance</span> (<span class="hljs-type">Normal</span> <span class="hljs-title">a</span>,<span class="hljs-type">Normal</span> <span class="hljs-title">b</span>,<span class="hljs-type">Normal</span> <span class="hljs-title">c</span>) =&gt; <span class="hljs-type">Normal</span> (<span class="hljs-title">a</span>,<span class="hljs-title">b</span>,<span class="hljs-title">c</span>) <span class="hljs-keyword">where</span></span>
+  normal ns (u,v,w) = (normal ns u,normal ns v,normal ns w)
+<span class="hljs-class">
+<span class="hljs-keyword">instance</span> (<span class="hljs-type">Normal</span> <span class="hljs-title">a</span>,<span class="hljs-type">Normal</span> <span class="hljs-title">b</span>,<span class="hljs-type">Normal</span> <span class="hljs-title">c</span>,<span class="hljs-type">Normal</span> <span class="hljs-title">d</span>) =&gt; <span class="hljs-type">Normal</span> (<span class="hljs-title">a</span>,<span class="hljs-title">b</span>,<span class="hljs-title">c</span>,<span class="hljs-title">d</span>) <span class="hljs-keyword">where</span></span>
+  normal ns (u,v,w,x) =
+    (normal ns u,normal ns v,normal ns w, normal ns x)
+<span class="hljs-class">
+<span class="hljs-keyword">instance</span> <span class="hljs-type">Normal</span> a =&gt; <span class="hljs-type">Normal</span> [a] <span class="hljs-keyword">where</span></span>
+  normal ns = map (normal ns)</pre></div></div>
+            
+        </li>
+        
+    </ul>
+  </div>
+</body>
+</html>

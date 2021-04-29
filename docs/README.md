@@ -12,6 +12,12 @@ Code walkthrough:
 
 Grammar generated with [BNF converter](./../Exp.cf)
 
+
+```
+# -t for timing.
+$ stack build && stack exec cubical -- examples/circle.ctt -t
+```
+
 Experimental implementation of [Cubical Type
 Theory](http://www.cse.chalmers.se/~coquand/cubicaltt.pdf) in which
 the user can directly manipulate n-dimensional cubes. The language

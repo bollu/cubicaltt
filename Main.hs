@@ -19,9 +19,13 @@ import Exp.Abs hiding (NoArg)
 import Exp.Layout
 import Exp.ErrM
 
+-- | CubicalTT syntax
 import CTT
+-- | Resolver for symbol resolution.
 import Resolver
+-- | Type checker
 import qualified TypeChecker as TC
+-- | Evaluator
 import qualified Eval as E
 
 type Interpreter a = InputT IO a
@@ -96,20 +100,22 @@ loop flags f names tenv = do
           Left  err  -> do outputStrLn ("Resolver failed: " ++ err)
                            loop flags f names tenv
           Right body -> do
+            -- | KEY STEP: type check the expression
             x <- liftIO $ TC.runInfer tenv body
             case x of
               Left err -> do outputStrLn ("Could not type-check: " ++ err)
                              loop flags f names tenv
               Right _  -> do
                 start <- liftIO getCurrentTime
+                -- | KEY STEP: evaluate the expression.
                 let e = mod $ E.eval (TC.env tenv) body
-                -- Let's not crash if the evaluation raises an error:
+                -- |  Let's not crash if the evaluation raises an error:
                 liftIO $ catch (putStrLn (msg ++ shrink (show e)))
                                -- (writeFile "examples/nunivalence3.ctt" (show e))
                                (\e -> putStrLn ("Exception: " ++
                                                 show (e :: SomeException)))
                 stop <- liftIO getCurrentTime
-                -- Compute time and print nicely
+                -- | Compute time and print nicely if `-t` is used.
                 let time = diffUTCTime stop start
                     secs = read (takeWhile (/='.') (init (show time)))
                     rest = read ('0':dropWhile (/='.') (init (show time)))

@@ -1,5 +1,10 @@
 {-# LANGUAGE TupleSections #-}
-module TypeChecker where
+module TypeChecker(
+  runInfer
+  , verboseEnv
+  , runDeclss
+  , env
+  , TEnv) where
 
 import Control.Applicative hiding (empty)
 import Control.Monad
@@ -15,10 +20,10 @@ import Connections
 import CTT
 import Eval
 
--- Type checking monad
+-- | Type checking monad
 type Typing a = ReaderT TEnv (ExceptT String IO) a
 
--- Environment for type checker
+-- | Environment for type checker
 data TEnv =
   TEnv { names   :: [String] -- generated names
        , indent  :: Int
@@ -438,7 +443,7 @@ checks ((x,a):xas,nu) (e:es) = do
 checks _              _      =
   throwError "checks: incorrect number of arguments"
 
--- infer the type of e
+-- | infer the type of e
 infer :: Ter -> Typing Val
 infer e = case e of
   U           -> return VU  -- U : U

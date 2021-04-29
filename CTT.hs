@@ -14,24 +14,37 @@ import Prelude hiding ((<>))
 import Connections
 
 --------------------------------------------------------------------------------
--- | Terms
+-- | Terms, with type |Ter|.
+-- | General conventions: O for object, P for path.
 
+
+-- | File locations
 data Loc = Loc { locFile :: String
                , locPos  :: (Int,Int) }
   deriving Eq
 
 type Ident  = String
+-- | TODO: Identifier of Telescopes. Are of two types, Object and path based.
 type LIdent = String
 
 -- Telescope (x1 : A1) .. (xn : An)
 type Tele   = [(Ident,Ter)]
 
+-- | from Exp.cf:
+-- |   System.     System ::= "[" [Side] "]" ;|
+-- |   Side.   Side ::= [Face] "->" Exp ;
+-- |   separator Side "," ;
+-- |   Face.     Face ::= "(" AIdent "=" Dir ")" ;
+-- |   separator Face "" ;
+-- | System comes from Connections.hs. 
+-- | System Ter is a map from Face to Term, 
+--      where the faces are incomparable.
 data Label = OLabel LIdent Tele -- Object label
            | PLabel LIdent Tele [Name] (System Ter) -- Path label
   deriving (Eq,Show)
 
--- OBranch of the form: c x1 .. xn -> e
--- PBranch of the form: c x1 .. xn i1 .. im -> e
+-- | OBranch of the form: c x1 .. xn -> e
+-- | PBranch of the form: c x1 .. xn i1 .. im -> e
 data Branch = OBranch LIdent [Ident] Ter
             | PBranch LIdent [Ident] [Name] Ter
   deriving (Eq,Show)
@@ -52,6 +65,7 @@ declIdents decls = [ x | (x,_) <- decls ]
 declTers :: [Decl] -> [Ter]
 declTers decls = [ d | (_,(_,d)) <- decls ]
 
+-- | convert a sequence of declarations into a sequence of (ident: type)
 declTele :: [Decl] -> Tele
 declTele decls = [ (x,t) | (x,(t,_)) <- decls ]
 
@@ -86,18 +100,19 @@ lookupBranch x (b:brs) = case b of
   PBranch c _ _ _ | x == c    -> Just b
                   | otherwise -> lookupBranch x brs
 
+-- TODO: Term v/s Value?
 -- Terms
-data Ter = Pi Ter
-         | App Ter Ter
-         | Lam Ident Ter Ter
-         | Where Ter Decls
-         | Var Ident
-         | U
+data Ter = Pi Ter -- TODO: ?
+         | App Ter Ter -- f x
+         | Lam Ident Ter Ter -- \x: T. e
+         | Where Ter Decls -- TODO: ?
+         | Var Ident -- x
+         | U -- Unit
            -- Sigma types:
-         | Sigma Ter
-         | Pair Ter Ter
-         | Fst Ter
-         | Snd Ter
+         | Sigma Ter -- TODO: ?
+         | Pair Ter Ter -- (a, b)
+         | Fst Ter -- fst t
+         | Snd Ter -- snd t
            -- constructor c Ms
          | Con LIdent [Ter]
          | PCon LIdent Ter [Ter] [Formula] -- c A ts phis (A is the data type)
@@ -173,6 +188,7 @@ data Val = VU
          | VId Val Val Val
          | VIdPair Val (System Val)
 
+           -- TODO: Neutral => normalization by evaluation?
            -- Neutral values:
          | VVar Ident Val
          | VOpaque Ident Val
@@ -253,6 +269,7 @@ instance Eq Ctxt where
 -- lists. This is more efficient because acting on an environment now
 -- only need to affect the lists and not the whole context.
 -- The last list is the list of opaque names
+-- | Nameless comes from Connections.hs
 newtype Env = Env (Ctxt,[Val],[Formula],Nameless (Set Ident))
   deriving (Eq)
 
@@ -306,7 +323,7 @@ domainEnv (Env (rho,_,_,_)) = domCtxt rho
           Def _ ts e -> domCtxt e
           Sub i e    -> i : domCtxt e
 
--- Extract the context from the environment, used when printing holes
+-- | Extract the context from the environment, used when printing holes
 contextOfEnv :: Env -> [String]
 contextOfEnv rho = case rho of
   Env (Empty,_,_,_)               -> []

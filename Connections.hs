@@ -1,3 +1,4 @@
+-- | Models the lattice of formulas.
 {-# LANGUAGE TypeSynonymInstances, FlexibleInstances,
              GeneralizedNewtypeDeriving, TupleSections #-}
 module Connections where
@@ -89,9 +90,11 @@ meet = unionWith f
 meetMaybe :: Face -> Face -> Maybe Face
 meetMaybe x y = if compatible x y then Just $ meet x y else Nothing
 
+-- | Quick check test that meet is commutative
 meetCom :: Face -> Face -> Property
 meetCom xs ys = compatible xs ys ==> xs `meet` ys == ys `meet` xs
 
+-- | Quick check test that meet is associative
 meetAssoc :: Face -> Face -> Face -> Property
 meetAssoc xs ys zs = compatibles [xs,ys,zs] ==>
                      xs `meet` (ys `meet` zs) == (xs `meet` ys) `meet` zs
@@ -99,18 +102,21 @@ meetAssoc xs ys zs = compatibles [xs,ys,zs] ==>
 meetId :: Face -> Bool
 meetId xs = xs `meet` xs == xs
 
+-- | all meets of all compatible elements.
 meets :: [Face] -> [Face] -> [Face]
 meets xs ys = nub [ meet x y | x <- xs, y <- ys, compatible x y ]
 
 meetss :: [[Face]] -> [Face]
 meetss = foldr meets [eps]
 
+-- | a <= b iff a /\ b = a. Recall that meet is partial.
 leq :: Face -> Face -> Bool
 alpha `leq` beta = meetMaybe alpha beta == Just alpha
 
 comparable :: Face -> Face -> Bool
 comparable alpha beta = alpha `leq` beta || beta `leq` alpha
 
+-- | TODO: seems sensitive to ordering?
 incomparables :: [Face] -> Bool
 incomparables []     = True
 incomparables (x:xs) = all (not . (x `comparable`)) xs && incomparables xs
@@ -128,7 +134,7 @@ minus alpha beta = alpha Map.\\ beta
 -- leqW :: Face -> Face -> Face
 -- leqW = undefined
 
--- | Formulas
+-- | Logical Formulas over this algebra.
 data Formula = Dir Dir
              | Atom Name
              | NegAtom Name
@@ -176,9 +182,10 @@ instance ToFormula Dir where
   toFormula = Dir
 
 negFormula :: Formula -> Formula
-negFormula (Dir b)        = Dir (- b)
+negFormula (Dir b)        = Dir (- b) -- exploit Num instance of Dir.
 negFormula (Atom i)       = NegAtom i
 negFormula (NegAtom i)    = Atom i
+-- | use smart constructors orFormula, andFormula for constant folding.
 negFormula (phi :/\: psi) = orFormula (negFormula phi) (negFormula psi)
 negFormula (phi :\/: psi) = andFormula (negFormula phi) (negFormula psi)
 
@@ -196,6 +203,7 @@ orFormula (Dir Zero) phi = phi
 orFormula phi (Dir Zero) = phi
 orFormula phi psi        = phi :\/: psi
 
+-- | formula to sets of solutions (?)
 dnf :: Formula -> Set (Set (Name,Dir))
 dnf (Dir One)      = Set.singleton Set.empty
 dnf (Dir Zero)     = Set.empty
@@ -233,6 +241,7 @@ merge a b =
 -- evalFormula (phi :\/: psi) alpha =
 --   orFormula (evalFormula phi alpha) (evalFormula psi alpha)
 
+-- TODO: think about what the hell this means.
 -- find a better name?
 -- phi b = max {alpha : Face | phi alpha = b}
 invFormula :: Formula -> Dir -> [Face]
@@ -263,6 +272,7 @@ propInvFormulaIncomp phi b = incomparables (invFormula phi b)
 -- gensymNice i@(Name s) xs = head (ys \\ xs)
 --   where ys = i:map (\n -> Name (s ++ show n)) [0..]
 
+-- | Assumes names are named `!x`.
 gensym :: [Name] -> Name
 gensym xs = Name ('!' : show max)
   where max = maximum' [ read x | Name ('!':x) <- xs ]
@@ -273,8 +283,12 @@ gensyms :: [Name] -> [Name]
 gensyms d = let x = gensym d in x : gensyms (x : d)
 
 class Nominal a where
+  -- | return all names in play. aka support of the
+  -- partial function [name -> value]
   support :: a -> [Name]
+  -- | a[Name/Formula]. Substitute Name := Formula into a.
   act     :: a -> (Name,Formula) -> a
+  -- | swap a (x, y) will swap occurences `x <-> y`.
   swap    :: a -> (Name,Name) -> a
 
 fresh :: Nominal a => a -> Name
@@ -375,7 +389,7 @@ instance Nominal Formula where
 face :: Nominal a => a -> Face -> a
 face = foldrWithKey (\i d a -> act a (i,Dir d))
 
--- the faces should be incomparable
+-- | the faces should be incomparable
 type System a = Map Face a
 
 showListSystem :: Show a => [(Face,a)] -> String
@@ -387,6 +401,11 @@ showListSystem ts =
 showSystem :: Show a => System a -> String
 showSystem = showListSystem . toList
 
+-- | If face is <= any key, don't insert.
+-- | Otherwise, insert face and remove all those faces which are <= this face.
+-- | ie, can only "inflate" the system by adding larger keys, which then
+-- | enforce their compatibility condition.
+-- TODO: what about >= ?
 insertSystem :: Face -> a -> System a -> System a
 insertSystem alpha v ts
   | any (leq alpha) (keys ts) = ts
@@ -403,6 +422,7 @@ unionSystem :: System a -> System a -> System a
 unionSystem us vs = insertsSystem (assocs us) vs
 
 
+-- | Monad?! WTF.
 joinSystem :: System (System a) -> System a
 joinSystem tss = mkSystem $
   [ (alpha `meet` beta,t) | (alpha,ts) <- assocs tss, (beta,t) <- assocs ts ]
@@ -436,7 +456,8 @@ instance Nominal a => Nominal (System a) where
 
   swap s ij = mapKeys (`swapFace` ij) (Map.map (`swap` ij) s)
 
--- carve a using the same shape as the system b
+-- | TODO bollu: is border . border = 0? :)
+-- | carve a using the same shape as the system b
 border :: Nominal a => a -> System b -> System a
 border v = mapWithKey (const . face v)
 

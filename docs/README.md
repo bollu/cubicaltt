@@ -24,6 +24,8 @@ $ stack build && stack exec cubical -- examples/circle.ctt -t
 - [HoTT lectures](https://scs.hosted.panopto.com/Panopto/Pages/Viewer.aspx?id=0945cc7f-48b7-4803-81af-e7193a3f461d)
 - [Higher dimensional type theory 2020: video lectures](https://www.youtube.com/watch?v=LWQqE2JcDSQ&list=PL0OBHndHAAZrGQEkOZGyJu7S7KudAJ8M9)
 - [Higher dimensional type theory 2020: CubicalTT](https://favonia.org/courses/hdtt2020/)
+- [HDTT2020 lecture notes](https://github.com/favonia/hdtt2020-notes/)
+
 
 - Modules are made more explicit, so type checker imports eval as `E`, everyone
   imports `Connection` (the cubical data structure as `C`, and so on.

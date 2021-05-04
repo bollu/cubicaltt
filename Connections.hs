@@ -389,7 +389,8 @@ instance Nominal Formula where
 face :: Nominal a => a -> Face -> a
 face = foldrWithKey (\i d a -> act a (i,Dir d))
 
--- | the faces should be incomparable
+-- | the faces should be incomparable.
+-- | "partial components" of a n-cube.
 type System a = Map Face a
 
 showListSystem :: Show a => [(Face,a)] -> String

@@ -25,7 +25,13 @@ if the system has been installed using cabal, or
 
 $ ./cubical lectures/lecture1.ctt
 
-if the system has been compiled using make. This will start an
+
+if the system has been compiled using make, or
+
+
+$ stack build && stack exec cubical -- lecture1.ctt
+
+if the system has been setup using stack. This will start an
 interactive cubical process where one can query the system and see
 error messages, this will be referred to as the REPL
 (read-eval-print-loop) in what follows. To see a list of available

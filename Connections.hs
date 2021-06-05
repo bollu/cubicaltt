@@ -122,7 +122,7 @@ incomparables []     = True
 incomparables (x:xs) = all (not . (x `comparable`)) xs && incomparables xs
 
 (~>) :: Name -> Dir -> Face
-i ~> d = singleton i d
+i ~> d = Data.Map.singleton i d
 
 eps :: Face
 eps = Map.empty
@@ -246,8 +246,8 @@ merge a b =
 -- phi b = max {alpha : Face | phi alpha = b}
 invFormula :: Formula -> Dir -> [Face]
 invFormula (Dir b') b          = [ eps | b == b' ]
-invFormula (Atom i) b          = [ singleton i b ]
-invFormula (NegAtom i) b       = [ singleton i (- b) ]
+invFormula (Atom i) b          = [ Data.Map.singleton i b ]
+invFormula (NegAtom i) b       = [ Data.Map.singleton i (- b) ]
 invFormula (phi :/\: psi) Zero = invFormula phi 0 `union` invFormula psi 0
 invFormula (phi :/\: psi) One  = meets (invFormula phi 1) (invFormula psi 1)
 invFormula (phi :\/: psi) b    = invFormula (negFormula phi :/\: negFormula psi) (- b)

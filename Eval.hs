@@ -9,164 +9,165 @@ import Data.Map (Map,(!),mapWithKey,assocs,filterWithKey
 import qualified Data.Map as Map
 import qualified Data.Set as Set
 
-import qualified Connections as C
+-- import qualified Connections as C
 import CTT
 
 -----------------------------------------------------------------------
 -- Lookup functions
 
 look :: String -> Env -> Val
-look x (Env (Upd y rho,v:vs,fs,os)) | x == y = v
-                                    | otherwise = look x (Env (rho,vs,fs,os))
-look x r@(Env (Def _ decls rho,vs,fs,C.Nameless os)) = case lookup x decls of
+look x (Env (Upd y rho,v:vs)) | x == y = v
+                                    | otherwise = look x (Env (rho,vs))
+look x r@(Env (Def _ decls rho,vs)) = case lookup x decls of
   Just (_,t) -> eval r t
-  Nothing    -> look x (Env (rho,vs,fs,C.Nameless os))
-look x (Env (Sub _ rho,vs,_:fs,os)) = look x (Env (rho,vs,fs,os))
-look x (Env (Empty,_,_,_)) = error $ "look: not found " ++ show x
+  Nothing    -> look x (Env (rho,vs))
+-- look x (Env (Sub _ rho,vs)) = look x (Env (rho,vs))
+look x (Env (Empty,_)) = error $ "look: not found " ++ show x
 
 lookType :: String -> Env -> Val
-lookType x (Env (Upd y rho,v:vs,fs,os))
-  | x /= y        = lookType x (Env (rho,vs,fs,os))
+lookType x (Env (Upd y rho,v:vs))
+  | x /= y        = lookType x (Env (rho,vs))
   | VVar _ a <- v = a
   | otherwise     = error ""
-lookType x r@(Env (Def _ decls rho,vs,fs,os)) = case lookup x decls of
+lookType x r@(Env (Def _ decls rho,vs)) = case lookup x decls of
   Just (a,_) -> eval r a
-  Nothing -> lookType x (Env (rho,vs,fs,os))
-lookType x (Env (Sub _ rho,vs,_:fs,os)) = lookType x (Env (rho,vs,fs,os))
-lookType x (Env (Empty,_,_,_))          = error $ "lookType: not found " ++ show x
+  Nothing -> lookType x (Env (rho,vs))
+-- lookType x (Env (Sub _ rho,vs,_:fs,os)) = lookType x (Env (rho,vs,fs,os))
+lookType x (Env (Empty,_))          = error $ "lookType: not found " ++ show x
 
-lookName :: C.Name -> Env -> C.Formula
-lookName i (Env (Upd _ rho,v:vs,fs,os)) = lookName i (Env (rho,vs,fs,os))
-lookName i (Env (Def _ _ rho,vs,fs,os)) = lookName i (Env (rho,vs,fs,os))
-lookName i (Env (Sub j rho,vs,phi:fs,os)) | i == j    = phi
-                                          | otherwise = lookName i (Env (rho,vs,fs,os))
+-- lookName :: C.Name -> Env -> C.Formula
+-- lookName i (Env (Upd _ rho,v:vs,fs,os)) = lookName i (Env (rho,vs,fs,os))
+-- lookName i (Env (Def _ _ rho,vs,fs,os)) = lookName i (Env (rho,vs,fs,os))
+-- lookName i (Env (Sub j rho,vs,phi:fs,os)) | i == j    = phi
+--                                        | otherwise = lookName i (Env (rho,vs,fs,os))
 lookName i _ = error $ "lookName: not found " ++ show i
 
 
   -----------------------------------------------------------------------
 -- Nominal instances
 
-instance C.Nominal Ctxt where
-  support _ = []
-  act e _   = e
-  swap e _  = e
-
-instance C.Nominal Env where
-  support (Env (rho,vs,fs,os)) = C.support (rho,vs,fs,os)
-  act (Env (rho,vs,fs,os)) iphi = Env $ C.act (rho,vs,fs,os) iphi
-  swap (Env (rho,vs,fs,os)) ij = Env $ C.swap (rho,vs,fs,os) ij
-
-instance C.Nominal Val where
-  support v = case v of
-    VU                      -> []
-    Ter _ e                 -> C.support e
-    VPi u v                 -> C.support [u,v]
-    --VComp a u ts            -> C.support (a,u,ts)
-    -- VPathP a v0 v1          -> C.support [a,v0,v1]
-    -- VPLam i v               -> i `delete` C.support v
-    VSigma u v              -> C.support (u,v)
-    VPair u v               -> C.support (u,v)
-    VFst u                  -> C.support u
-    VSnd u                  -> C.support u
-    VCon _ vs               -> C.support vs
-    VPCon _ a vs phis       -> C.support (a,vs,phis)
-    -- VHComp a u ts           -> C.support (a,u,ts)
-    VVar _ v                -> C.support v
-    VOpaque _ v             -> C.support v
-    VApp u v                -> C.support (u,v)
-    VLam _ u v              -> C.support (u,v)
-    -- VAppFormula u phi       -> C.support (u,phi)
-    VSplit u v              -> C.support (u,v)
-    -- VGlue a ts              -> C.support (a,ts)
-    -- VGlueElem a ts          -> C.support (a,ts)
-    -- VUnGlueElem a ts        -> C.support (a,ts)
-    -- VCompU a ts             -> C.support (a,ts)
-    -- VUnGlueElemU a b es     -> C.support (a,b,es)
-    -- VIdPair u us            -> C.support (u,us)
-    VId a u v               -> C.support (a,u,v)
-    VIdJ a u c d x p        -> C.support [a,u,c,d,x,p]
-
-  act u (i, phi) | i `notElem` C.support u = u
-                 | otherwise =
-    let acti :: C.Nominal a => a -> a
-        acti u = C.act u (i, phi)
-        sphi = C.support phi
-    in case u of
-         VU           -> VU
-         Ter t e      -> Ter t (acti e)
-         VPi a f      -> VPi (acti a) (acti f)
-         -- VComp a v ts -> compLine (acti a) (acti v) (acti ts)
-         -- VPathP a u v -> VPathP (acti a) (acti u) (acti v)
-         -- VPLam j v | j == i -> u
-         --           | j `notElem` sphi -> VPLam j (acti v)
-         --           | otherwise -> VPLam k (acti (v `C.swap` (j,k)))
-         --      where k = C.fresh (v,C.Atom i,phi)
-         VSigma a f              -> VSigma (acti a) (acti f)
-         VPair u v               -> VPair (acti u) (acti v)
-         VFst u                  -> fstVal (acti u)
-         VSnd u                  -> sndVal (acti u)
-         VCon c vs               -> VCon c (acti vs)
-         -- VPCon c a vs phis       -> pcon c (acti a) (acti vs) (acti phis)
-         -- VHComp a u us           -> hComp (acti a) (acti u) (acti us)
-         VVar x v                -> VVar x (acti v)
-         VOpaque x v             -> VOpaque x (acti v)
-         -- VAppFormula u psi       -> acti u @@ acti psi
-         VApp u v                -> app (acti u) (acti v)
-         VLam x t u              -> VLam x (acti t) (acti u)
-         VSplit u v              -> app (acti u) (acti v)
-         -- VGlue a ts              -> glue (acti a) (acti ts)
-         -- VGlueElem a ts          -> glueElem (acti a) (acti ts)
-         -- VUnGlueElem a ts        -> unglueElem (acti a) (acti ts)
-         -- VUnGlueElemU a b es     -> unGlueU (acti a) (acti b) (acti es)
-         -- VCompU a ts             -> compUniv (acti a) (acti ts)
-         -- VIdPair u us            -> VIdPair (acti u) (acti us)
-         VId a u v               -> VId (acti a) (acti u) (acti v)
-         -- VIdJ a u c d x p        ->
-         --   idJ (acti a) (acti u) (acti c) (acti d) (acti x) (acti p)
-
-  -- This increases efficiency as it won't trigger computation.
-  swap u ij@(i,j) =
-    let sw :: C.Nominal a => a -> a
-        sw u = C.swap u ij
-    in case u of
-         VU                      -> VU
-         Ter t e                 -> Ter t (sw e)
-         VPi a f                 -> VPi (sw a) (sw f)
-         -- VComp a v ts            -> VComp (sw a) (sw v) (sw ts)
-         -- VPathP a u v            -> VPathP (sw a) (sw u) (sw v)
-         -- VPLam k v               -> VPLam (C.swapName k ij) (sw v)
-         VSigma a f              -> VSigma (sw a) (sw f)
-         VPair u v               -> VPair (sw u) (sw v)
-         VFst u                  -> VFst (sw u)
-         VSnd u                  -> VSnd (sw u)
-         VCon c vs               -> VCon c (sw vs)
-         VPCon c a vs phis       -> VPCon c (sw a) (sw vs) (sw phis)
-         -- VHComp a u us           -> VHComp (sw a) (sw u) (sw us)
-         VVar x v                -> VVar x (sw v)
-         VOpaque x v             -> VOpaque x (sw v)
-         -- VAppFormula u psi       -> VAppFormula (sw u) (sw psi)
-         VApp u v                -> VApp (sw u) (sw v)
-         VLam x u v              -> VLam x (sw u) (sw v)
-         VSplit u v              -> VSplit (sw u) (sw v)
-         -- VGlue a ts              -> VGlue (sw a) (sw ts)
-         -- VGlueElem a ts          -> VGlueElem (sw a) (sw ts)
-         -- VUnGlueElem a ts        -> VUnGlueElem (sw a) (sw ts)
-         -- VUnGlueElemU a b es     -> VUnGlueElemU (sw a) (sw b) (sw es)
-         -- VCompU a ts             -> VCompU (sw a) (sw ts)
-         -- VIdPair u us            -> VIdPair (sw u) (sw us)
-         VId a u v               -> VId (sw a) (sw u) (sw v)
-         VIdJ a u c d x p        ->
-           VIdJ (sw a) (sw u) (sw c) (sw d) (sw x) (sw p)
-
+-- instance C.Nominal Ctxt where
+--   support _ = []
+--   act e _   = e
+--   swap e _  = e
+-- 
+-- instance C.Nominal Env where
+--   support (Env (rho,vs,fs,os)) = C.support (rho,vs,fs,os)
+--   act (Env (rho,vs,fs,os)) iphi = Env $ C.act (rho,vs,fs,os) iphi
+--   swap (Env (rho,vs,fs,os)) ij = Env $ C.swap (rho,vs,fs,os) ij
+-- 
+-- instance C.Nominal Val where
+--   support v = case v of
+--     VU                      -> []
+--     Ter _ e                 -> C.support e
+--     VPi u v                 -> C.support [u,v]
+--     --VComp a u ts            -> C.support (a,u,ts)
+--     -- VPathP a v0 v1          -> C.support [a,v0,v1]
+--     -- VPLam i v               -> i `delete` C.support v
+--     VSigma u v              -> C.support (u,v)
+--     VPair u v               -> C.support (u,v)
+--     VFst u                  -> C.support u
+--     VSnd u                  -> C.support u
+--     VCon _ vs               -> C.support vs
+--     VPCon _ a vs phis       -> C.support (a,vs,phis)
+--     -- VHComp a u ts           -> C.support (a,u,ts)
+--     VVar _ v                -> C.support v
+--     VOpaque _ v             -> C.support v
+--     VApp u v                -> C.support (u,v)
+--     VLam _ u v              -> C.support (u,v)
+--     -- VAppFormula u phi       -> C.support (u,phi)
+--     VSplit u v              -> C.support (u,v)
+--     -- VGlue a ts              -> C.support (a,ts)
+--     -- VGlueElem a ts          -> C.support (a,ts)
+--     -- VUnGlueElem a ts        -> C.support (a,ts)
+--     -- VCompU a ts             -> C.support (a,ts)
+--     -- VUnGlueElemU a b es     -> C.support (a,b,es)
+--     -- VIdPair u us            -> C.support (u,us)
+--     VId a u v               -> C.support (a,u,v)
+--     VIdJ a u c d x p        -> C.support [a,u,c,d,x,p]
+-- 
+--   act u (i, phi) | i `notElem` C.support u = u
+--                  | otherwise =
+--     let acti :: C.Nominal a => a -> a
+--         acti u = C.act u (i, phi)
+--         sphi = C.support phi
+--     in case u of
+--          VU           -> VU
+--          Ter t e      -> Ter t (acti e)
+--          VPi a f      -> VPi (acti a) (acti f)
+--          -- VComp a v ts -> compLine (acti a) (acti v) (acti ts)
+--          -- VPathP a u v -> VPathP (acti a) (acti u) (acti v)
+--          -- VPLam j v | j == i -> u
+--          --           | j `notElem` sphi -> VPLam j (acti v)
+--          --           | otherwise -> VPLam k (acti (v `C.swap` (j,k)))
+--          --      where k = C.fresh (v,C.Atom i,phi)
+--          VSigma a f              -> VSigma (acti a) (acti f)
+--          VPair u v               -> VPair (acti u) (acti v)
+--          VFst u                  -> fstVal (acti u)
+--          VSnd u                  -> sndVal (acti u)
+--          VCon c vs               -> VCon c (acti vs)
+--          -- VPCon c a vs phis       -> pcon c (acti a) (acti vs) (acti phis)
+--          -- VHComp a u us           -> hComp (acti a) (acti u) (acti us)
+--          VVar x v                -> VVar x (acti v)
+--          VOpaque x v             -> VOpaque x (acti v)
+--          -- VAppFormula u psi       -> acti u @@ acti psi
+--          VApp u v                -> app (acti u) (acti v)
+--          VLam x t u              -> VLam x (acti t) (acti u)
+--          VSplit u v              -> app (acti u) (acti v)
+--          -- VGlue a ts              -> glue (acti a) (acti ts)
+--          -- VGlueElem a ts          -> glueElem (acti a) (acti ts)
+--          -- VUnGlueElem a ts        -> unglueElem (acti a) (acti ts)
+--          -- VUnGlueElemU a b es     -> unGlueU (acti a) (acti b) (acti es)
+--          -- VCompU a ts             -> compUniv (acti a) (acti ts)
+--          -- VIdPair u us            -> VIdPair (acti u) (acti us)
+--          VId a u v               -> VId (acti a) (acti u) (acti v)
+--          -- VIdJ a u c d x p        ->
+--          --   idJ (acti a) (acti u) (acti c) (acti d) (acti x) (acti p)
+-- 
+--   -- This increases efficiency as it won't trigger computation.
+--   swap u ij@(i,j) =
+--     let sw :: C.Nominal a => a -> a
+--         sw u = C.swap u ij
+--     in case u of
+--          VU                      -> VU
+--          Ter t e                 -> Ter t (sw e)
+--          VPi a f                 -> VPi (sw a) (sw f)
+--          -- VComp a v ts            -> VComp (sw a) (sw v) (sw ts)
+--          -- VPathP a u v            -> VPathP (sw a) (sw u) (sw v)
+--          -- VPLam k v               -> VPLam (C.swapName k ij) (sw v)
+--          VSigma a f              -> VSigma (sw a) (sw f)
+--          VPair u v               -> VPair (sw u) (sw v)
+--          VFst u                  -> VFst (sw u)
+--          VSnd u                  -> VSnd (sw u)
+--          VCon c vs               -> VCon c (sw vs)
+--          -- VPCon c a vs phis       -> VPCon c (sw a) (sw vs) (sw phis)
+--          -- VHComp a u us           -> VHComp (sw a) (sw u) (sw us)
+--          VVar x v                -> VVar x (sw v)
+--          VOpaque x v             -> VOpaque x (sw v)
+--          -- VAppFormula u psi       -> VAppFormula (sw u) (sw psi)
+--          VApp u v                -> VApp (sw u) (sw v)
+--          VLam x u v              -> VLam x (sw u) (sw v)
+--          VSplit u v              -> VSplit (sw u) (sw v)
+--          -- VGlue a ts              -> VGlue (sw a) (sw ts)
+--          -- VGlueElem a ts          -> VGlueElem (sw a) (sw ts)
+--          -- VUnGlueElem a ts        -> VUnGlueElem (sw a) (sw ts)
+--          -- VUnGlueElemU a b es     -> VUnGlueElemU (sw a) (sw b) (sw es)
+--          -- VCompU a ts             -> VCompU (sw a) (sw ts)
+--          -- VIdPair u us            -> VIdPair (sw u) (sw us)
+--          VId a u v               -> VId (sw a) (sw u) (sw v)
+--          VIdJ a u c d x p        ->
+--            VIdJ (sw a) (sw u) (sw c) (sw d) (sw x) (sw p)
+-- 
 -----------------------------------------------------------------------
 -- The evaluator
 
 eval :: Env -> Ter -> Val
-eval rho@(Env (_,_,_,C.Nameless os)) v = case v of
+eval rho@(Env (_,_)) v = case v of
   U                   -> VU
   App r s             -> app (eval rho r) (eval rho s)
   Var i
-    | i `Set.member` os -> VOpaque i (lookType i rho)
+    -- | TODO: do we need VOpaque anymore?
+    -- | i `Set.member` os -> VOpaque i (lookType i rho)
     | otherwise       -> look i rho
   Pi t@(Lam _ a _)    -> VPi (eval rho a) (eval rho t)
   Sigma t@(Lam _ a _) -> VSigma (eval rho a) (eval rho t)
@@ -205,21 +206,21 @@ eval rho@(Env (_,_,_,C.Nameless os)) v = case v of
 evals :: Env -> [(Ident,Ter)] -> [(Ident,Val)]
 evals env bts = [ (b,eval env t) | (b,t) <- bts ]
 
-evalFormula :: Env -> C.Formula -> C.Formula
-evalFormula rho phi = case phi of
-  C.Atom i         -> lookName i rho
-  C.NegAtom i      -> C.negFormula (lookName i rho)
-  phi1 C.:/\: phi2 -> evalFormula rho phi1 `C.andFormula` evalFormula rho phi2
-  phi1 C.:\/: phi2 -> evalFormula rho phi1 `C.orFormula` evalFormula rho phi2
-  _              -> phi
+-- evalFormula :: Env -> C.Formula -> C.Formula
+-- evalFormula rho phi = case phi of
+--   C.Atom i         -> lookName i rho
+--   C.NegAtom i      -> C.negFormula (lookName i rho)
+--   phi1 C.:/\: phi2 -> evalFormula rho phi1 `C.andFormula` evalFormula rho phi2
+--   phi1 C.:\/: phi2 -> evalFormula rho phi1 `C.orFormula` evalFormula rho phi2
+--   _              -> phi
 
-evalSystem :: Env -> C.System Ter -> C.System Val
-evalSystem rho ts =
-  let out = concat [ let betas = C.meetss [ C.invFormula (lookName i rho) d
-                                        | (i,d) <- assocs alpha ]
-                     in [ (beta,eval (rho `C.face` beta) talpha) | beta <- betas ]
-                   | (alpha,talpha) <- assocs ts ]
-  in C.mkSystem out
+-- evalSystem :: Env -> C.System Ter -> C.System Val
+-- evalSystem rho ts =
+--   let out = concat [ let betas = C.meetss [ C.invFormula (lookName i rho) d
+--                                         | (i,d) <- assocs alpha ]
+--                      in [ (beta,eval (rho `C.face` beta) talpha) | beta <- betas ]
+--                    | (alpha,talpha) <- assocs ts ]
+--   in C.mkSystem out
 
 app :: Val -> Val -> Val
 app u v = case (u,v) of
@@ -553,20 +554,20 @@ equivContr =  sndVal . sndVal
 --                                             VGlueElem v us -> v
 --                                             _ -> error ("unglue: neutral" ++ show w)
 
-isNeutralGlue :: C.Name -> C.System Val -> Val -> C.System Val -> Bool
-isNeutralGlue i equivs u0 ts = (C.eps `notMember` equivsi0 && isNeutral u0) ||
-  any (\(alpha,talpha) ->
-           C.eps `notMember` (equivs `C.face` alpha) && isNeutral talpha)
-    (assocs ts)
-  where equivsi0 = equivs `C.face` (i C.~> 0)
+-- isNeutralGlue :: C.Name -> C.System Val -> Val -> C.System Val -> Bool
+-- isNeutralGlue i equivs u0 ts = (C.eps `notMember` equivsi0 && isNeutral u0) ||
+--   any (\(alpha,talpha) ->
+--            C.eps `notMember` (equivs `C.face` alpha) && isNeutral talpha)
+--     (assocs ts)
+--   where equivsi0 = equivs `C.face` (i C.~> 0)
 
 -- this is exactly the same as isNeutralGlue?
-isNeutralU :: C.Name -> C.System Val -> Val -> C.System Val -> Bool
-isNeutralU i eqs u0 ts = (C.eps `notMember` eqsi0 && isNeutral u0) ||
-  any (\(alpha,talpha) ->
-           C.eps `notMember` (eqs `C.face` alpha) && isNeutral talpha)
-    (assocs ts)
-  where eqsi0 = eqs `C.face` (i C.~> 0)
+-- isNeutralU :: C.Name -> C.System Val -> Val -> C.System Val -> Bool
+-- isNeutralU i eqs u0 ts = (C.eps `notMember` eqsi0 && isNeutral u0) ||
+--   any (\(alpha,talpha) ->
+--            C.eps `notMember` (eqs `C.face` alpha) && isNeutral talpha)
+--     (assocs ts)
+--   where eqsi0 = eqs `C.face` (i C.~> 0)
 
 -- -- Extend the system ts to a total element in b given q : isContr b
 -- extend :: Val -> Val -> C.System Val -> Val
@@ -834,19 +835,20 @@ isNeutralU i eqs u0 ts = (C.eps `notMember` eqsi0 && isNeutral u0) ||
 class Convertible a where
   conv :: [String] -> a -> a -> Bool
 
-isCompSystem :: (C.Nominal a, Convertible a) => [String] -> C.System a -> Bool
-isCompSystem ns ts = and [ conv ns (getFace alpha beta) (getFace beta alpha)
-                         | (alpha,beta) <- C.allCompatible (keys ts) ]
-    where getFace a b = C.face (ts ! a) (b `C.minus` a)
+-- isCompSystem :: (C.Nominal a, Convertible a) => [String] -> C.System a -> Bool
+-- isCompSystem ns ts = and [ conv ns (getFace alpha beta) (getFace beta alpha)
+--                          | (alpha,beta) <- C.allCompatible (keys ts) ]
+--     where getFace a b = C.face (ts ! a) (b `C.minus` a)
 
 instance Convertible Env where
-  conv ns (Env (rho1,vs1,fs1,os1)) (Env (rho2,vs2,fs2,os2)) =
-      conv ns (rho1,vs1,fs1,os1) (rho2,vs2,fs2,os2)
+  conv ns (Env (rho1,vs1)) (Env (rho2,vs2)) =
+      conv ns (rho1,vs1) (rho2,vs2)
 
 instance Convertible Val where
   conv ns u v | u == v    = True
               | otherwise =
-    let j = C.fresh (u,v)
+    -- let j = C.fresh (u,v)
+    let xx = error "xx" -- j = C.fresh (u,v)
     in case (u,v) of
       (Ter (Lam x a u) e,Ter (Lam x' a' u') e') ->
         let v@(VVar n _) = mkVarNice ns x (eval e a)
@@ -871,8 +873,8 @@ instance Convertible Val where
         let w@(VVar n _) = mkVarNice ns "X" u
         in conv ns u u' && conv (n:ns) (app v w) (app v' w)
       (VCon c us,VCon c' us')   -> (c == c') && conv ns us us'
-      (VPCon c v us phis,VPCon c' v' us' phis') ->
-        (c == c') && conv ns (v,us,phis) (v',us',phis')
+      -- (VPCon c v us phis,VPCon c' v' us' phis') ->
+      --   (c == c') && conv ns (v,us,phis) (v',us',phis')
       (VPair u v,VPair u' v')    -> conv ns u u' && conv ns v v'
       (VPair u v,w)              -> conv ns u (fstVal w) && conv ns v (sndVal w)
       (w,VPair u v)              -> conv ns (fstVal w) u && conv ns (sndVal w) v
@@ -925,15 +927,15 @@ instance Convertible a => Convertible [a] where
   conv ns us us' = length us == length us' &&
                   and [conv ns u u' | (u,u') <- zip us us']
 
-instance Convertible a => Convertible (C.System a) where
-  conv ns ts ts' = keys ts == keys ts' &&
-                   and (elems (intersectionWith (conv ns) ts ts'))
+-- instance Convertible a => Convertible (C.System a) where
+--   conv ns ts ts' = keys ts == keys ts' &&
+--                    and (elems (intersectionWith (conv ns) ts ts'))
 
-instance Convertible C.Formula where
-  conv _ phi psi = C.dnf phi == C.dnf psi
+-- instance Convertible C.Formula where
+--   conv _ phi psi = C.dnf phi == C.dnf psi
 
-instance Convertible (C.Nameless a) where
-  conv _ _ _ = True
+-- instance Convertible (C.Nameless a) where
+--   conv _ _ _ = True
 
 -------------------------------------------------------------------------------
 -- | Normalization
@@ -942,7 +944,7 @@ class Normal a where
   normal :: [String] -> a -> a
 
 instance Normal Env where
-  normal ns (Env (rho,vs,fs,os)) = Env (normal ns (rho,vs,fs,os))
+  normal ns (Env (rho,vs)) = Env (normal ns (rho,vs))
 
 instance Normal Val where
   normal ns v = case v of
@@ -956,7 +958,7 @@ instance Normal Val where
     VSigma u v          -> VSigma (normal ns u) (normal ns v)
     VPair u v           -> VPair (normal ns u) (normal ns v)
     VCon n us           -> VCon n (normal ns us)
-    VPCon n u us phis   -> VPCon n (normal ns u) (normal ns us) phis
+    -- VPCon n u us phis   -> VPCon n (normal ns u) (normal ns us) phis
     -- VPathP a u0 u1      -> VPathP (normal ns a) (normal ns u0) (normal ns u1)
     -- VPLam i u           -> VPLam i (normal ns u)
     -- VComp u v vs        -> VComp (normal ns u) (normal ns v) (normal ns vs)
@@ -978,24 +980,24 @@ instance Normal Val where
     --                             (normal ns d) (normal ns x) (normal ns p)
     _                   -> v
 
-instance Normal (C.Nameless a) where
-  normal _ = id
-
+-- instance Normal (C.Nameless a) where
+--   normal _ = id
+-- 
 instance Normal Ctxt where
   normal _ = id
-
-instance Normal C.Formula where
-  normal _ = C.fromDNF . C.dnf
-
+-- 
+-- instance Normal C.Formula where
+--   normal _ = C.fromDNF . C.dnf
+-- 
 instance Normal a => Normal (Map k a) where
   normal ns = Map.map (normal ns)
 
 instance (Normal a,Normal b) => Normal (a,b) where
   normal ns (u,v) = (normal ns u,normal ns v)
-
+-- 
 instance (Normal a,Normal b,Normal c) => Normal (a,b,c) where
   normal ns (u,v,w) = (normal ns u,normal ns v,normal ns w)
-
+-- 
 instance (Normal a,Normal b,Normal c,Normal d) => Normal (a,b,c,d) where
   normal ns (u,v,w,x) =
     (normal ns u,normal ns v,normal ns w, normal ns x)

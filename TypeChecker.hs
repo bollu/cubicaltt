@@ -17,7 +17,7 @@ import qualified Data.Map as Map
 import qualified Data.Traversable as T
 
 import CTT
-import qualified Connections as C
+-- import qualified Connections as C
 import qualified Eval as E
 
 -- | Type checking monad
@@ -71,11 +71,11 @@ addTypeVal (x,a) (TEnv ns ind rho v) =
   let w@(VVar n _) = mkVarNice ns x a
   in TEnv (n:ns) ind (upd (x,w) rho) v
 
-addSub :: (C.Name,C.Formula) -> TEnv -> TEnv
-addSub iphi (TEnv ns ind rho v) = TEnv ns ind (sub iphi rho) v
-
-addSubs :: [(C.Name,C.Formula)] -> TEnv -> TEnv
-addSubs = flip $ foldr addSub
+-- addSub :: (C.Name,C.Formula) -> TEnv -> TEnv
+-- addSub iphi (TEnv ns ind rho v) = TEnv ns ind (sub iphi rho) v
+-- 
+-- addSubs :: [(C.Name,C.Formula)] -> TEnv -> TEnv
+-- addSubs = flip $ foldr addSub
 
 addType :: (Ident,Ter) -> TEnv -> TEnv
 addType (x,a) tenv@(TEnv _ _ rho _) = addTypeVal (x,E.eval rho a) tenv
@@ -90,8 +90,8 @@ addDecls d (TEnv ns ind rho v) = TEnv ns ind (def d rho) v
 addTele :: Tele -> TEnv -> TEnv
 addTele xas lenv = foldl (flip addType) lenv xas
 
-faceEnv :: C.Face -> TEnv -> TEnv
-faceEnv alpha tenv = tenv{env=env tenv `C.face` alpha}
+-- faceEnv :: C.Face -> TEnv -> TEnv
+-- faceEnv alpha tenv = tenv{env=env tenv `C.face` alpha}
 
 -------------------------------------------------------------------------------
 -- | Various useful functions
@@ -145,8 +145,8 @@ check a t = case (a,t) of
   (VU,Sigma f)    -> checkFam f
   (VU,Sum _ _ bs) -> forM_ bs $ \lbl -> case lbl of
     OLabel _ tele -> checkTele tele
-    PLabel _ tele is ts ->
-      throwError $ "check: no path constructor allowed in " ++ show t
+    -- PLabel _ tele is ts ->
+    --   throwError $ "check: no path constructor allowed in " ++ show t
   -- (VU,HSum _ _ bs) -> forM_ bs $ \lbl -> case lbl of
   --   OLabel _ tele -> checkTele tele
   --   PLabel _ tele is ts -> do
@@ -370,36 +370,36 @@ checkBranch (OLabel _ tele,nu) f (OBranch c ns e) _ _ = do
   ns' <- asks names
   let us = map snd $ mkVars ns' tele nu
   local (addBranch (zip ns us) nu) $ check (E.app f (VCon c us)) e
-checkBranch (PLabel _ tele is ts,nu) f (PBranch c ns js e) g va = do
-  ns' <- asks names
-  -- mapM_ checkFresh js
-  let us   = mkVars ns' tele nu
-      vus  = map snd us
-      js'  = map C.Atom js
-      vts  = E.evalSystem (subs (zip is js') (upds us nu)) ts
-      vgts = intersectionWith E.app (C.border g vts) vts
-  local (addSubs (zip js js') . addBranch (zip ns vus) nu) $ do
-    check (E.app f (VPCon c va vus js')) e
-    ve  <- evalTyping e -- TODO: combine with next two lines?
-    let veborder = C.border ve vts
-    unlessM (veborder === vgts) $
-      throwError $ "Faces in branch for " ++ show c ++ " don't match:"
-                   ++ "\ngot\n" ++ C.showSystem veborder ++ "\nbut expected\n"
-                   ++ C.showSystem vgts
+-- checkBranch (PLabel _ tele is ts,nu) f (PBranch c ns js e) g va = do
+--   ns' <- asks names
+--   -- mapM_ checkFresh js
+--   let us   = mkVars ns' tele nu
+--       vus  = map snd us
+--       js'  = map C.Atom js
+--       vts  = E.evalSystem (subs (zip is js') (upds us nu)) ts
+--       vgts = intersectionWith E.app (C.border g vts) vts
+--   local (addSubs (zip js js') . addBranch (zip ns vus) nu) $ do
+--     check (E.app f (VPCon c va vus js')) e
+--     ve  <- evalTyping e -- TODO: combine with next two lines?
+--     -- let veborder = C.border ve vts
+--     -- unlessM (veborder === vgts) $
+--     --   throwError $ "Faces in branch for " ++ show c ++ " don't match:"
+--     --                ++ "\ngot\n" ++ C.showSystem veborder ++ "\nbut expected\n"
+--     --                ++ C.showSystem vgts
 
-checkFormula :: C.Formula -> Typing ()
-checkFormula phi = do
-  rho <- asks env
-  let dom = domainEnv rho
-  unless (all (`elem` dom) (C.support phi)) $
-    throwError $ "checkFormula: " ++ show phi
-
-checkFresh :: C.Name -> Typing ()
-checkFresh i = do
-  rho <- asks env
-  when (i `elem` C.support rho)
-    (throwError $ show i ++ " is already declared")
-
+-- checkFormula :: C.Formula -> Typing ()
+-- checkFormula phi = do
+--   rho <- asks env
+--   let dom = domainEnv rho
+--   unless (all (`elem` dom) (C.support phi)) $
+--     throwError $ "checkFormula: " ++ show phi
+-- 
+-- checkFresh :: C.Name -> Typing ()
+-- checkFresh i = do
+--   rho <- asks env
+--   when (i `elem` C.support rho)
+--     (throwError $ show i ++ " is already declared")
+-- 
 -- Check that a term is a PLam and output the source and target
 -- checkPLam :: Val -> Ter -> Typing (Val,Val)
 -- checkPLam v (PLam i a) = do

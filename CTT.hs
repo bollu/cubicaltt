@@ -11,7 +11,7 @@ import Data.Set (Set)
 import qualified Data.Set as Set
 import Prelude hiding ((<>))
 
-import qualified Connections as C
+-- import qualified Connections as C
 
 --------------------------------------------------------------------------------
 -- | Terms, with type |Ter|.
@@ -40,13 +40,13 @@ type Tele   = [(Ident,Ter)]
 -- | C.System Ter is a map from Face to Term, 
 --      where the faces are incomparable.
 data Label = OLabel LIdent Tele -- Object label
-           | PLabel LIdent Tele [C.Name] (C.System Ter) -- Path label
+           -- | PLabel LIdent Tele [C.Name] (C.System Ter) -- Path label
   deriving (Eq,Show)
 
 -- | OBranch of the form: c x1 .. xn -> e
 -- | PBranch of the form: c x1 .. xn i1 .. im -> e
 data Branch = OBranch LIdent [Ident] Ter
-            | PBranch LIdent [Ident] [C.Name] Ter
+            -- | PBranch LIdent [Ident] [C.Name] Ter
   deriving (Eq,Show)
 
 -- Declarations: x : A = e
@@ -74,7 +74,7 @@ declDefs decls = [ (x,d) | (x,(_,d)) <- decls ]
 
 labelTele :: Label -> (LIdent,Tele)
 labelTele (OLabel c ts) = (c,ts)
-labelTele (PLabel c ts _ _) = (c,ts)
+-- labelTele (PLabel c ts _ _) = (c,ts)
 
 labelName :: Label -> LIdent
 labelName = fst . labelTele
@@ -85,20 +85,20 @@ labelTeles = map labelTele
 lookupLabel :: LIdent -> [Label] -> Maybe Tele
 lookupLabel x xs = lookup x (labelTeles xs)
 
-lookupPLabel :: LIdent -> [Label] -> Maybe (Tele,[C.Name],C.System Ter)
-lookupPLabel x xs = listToMaybe [ (ts,is,es) | PLabel y ts is es <- xs, x == y ]
+-- lookupPLabel :: LIdent -> [Label] -> Maybe (Tele,[C.Name],C.System Ter)
+-- lookupPLabel x xs = listToMaybe [ (ts,is,es) | PLabel y ts is es <- xs, x == y ]
 
 branchName :: Branch -> LIdent
 branchName (OBranch c _ _) = c
-branchName (PBranch c _ _ _) = c
+-- branchName (PBranch c _ _ _) = c
 
 lookupBranch :: LIdent -> [Branch] -> Maybe Branch
 lookupBranch _ []      = Nothing
 lookupBranch x (b:brs) = case b of
   OBranch c _ _   | x == c    -> Just b
                   | otherwise -> lookupBranch x brs
-  PBranch c _ _ _ | x == c    -> Just b
-                  | otherwise -> lookupBranch x brs
+  -- PBranch c _ _ _ | x == c    -> Just b
+  --                 | otherwise -> lookupBranch x brs
 
 -- TODO: Term v/s Value?
 -- Terms
@@ -166,8 +166,7 @@ data Val = VU
          | VSigma Val Val
          | VPair Val Val
          | VCon LIdent [Val]
-         | VPCon LIdent Val [Val] [C.Formula]
-
+         -- | VPCon LIdent Val [Val] [C.Formula]
            -- Path values
          -- | VPathP Val Val Val
          -- | VPLam C.Name Val
@@ -219,8 +218,8 @@ isNeutral v = case v of
   VIdJ{}         -> True
   _              -> False
 
-isNeutralSystem :: C.System Val -> Bool
-isNeutralSystem = any isNeutral . elems
+-- isNeutralSystem :: C.System Val -> Bool
+-- isNeutralSystem = any isNeutral . elems
 
 -- isNeutralPath :: Val -> Bool
 -- isNeutralPath (VPath _ v) = isNeutral v
@@ -251,7 +250,7 @@ isCon _      = False
 
 data Ctxt = Empty
           | Upd Ident Ctxt
-          | Sub C.Name Ctxt
+          -- | Sub C.Name Ctxt
           | Def Loc [Decl] Ctxt
   deriving (Show)
 
@@ -259,7 +258,7 @@ instance Eq Ctxt where
     c == d = case (c, d) of
         (Empty, Empty)              -> True
         (Upd x c', Upd y d')        -> x == y && c' == d'
-        (Sub i c', Sub j d')        -> i == j && c' == d'
+        -- (Sub i c', Sub j d')        -> i == j && c' == d'
         (Def m xs c', Def n ys d')  -> (m == n || xs == ys) && c' == d'
             -- Invariant: if two declaration groups come from the same
             -- location, they are equal and their contents are not compared.
@@ -270,29 +269,26 @@ instance Eq Ctxt where
 -- only need to affect the lists and not the whole context.
 -- The last list is the list of opaque names
 -- | C.Nameless comes from Connections.hs
-newtype Env = Env (Ctxt,[Val],[C.Formula],C.Nameless (Set Ident))
+newtype Env = Env (Ctxt,[Val])
   deriving (Eq)
 
 emptyEnv :: Env
-emptyEnv = Env (Empty,[],[],C.Nameless Set.empty)
+emptyEnv = Env (Empty,[])
 
 def :: Decls -> Env -> Env
-def (MutualDecls m ds) (Env (rho,vs,fs,C.Nameless os)) = Env (Def m ds rho,vs,fs,C.Nameless (os Set.\\ Set.fromList (declIdents ds)))
-def (OpaqueDecl n) (Env (rho,vs,fs,C.Nameless os)) = Env (rho,vs,fs,C.Nameless (Set.insert n os))
-def (TransparentDecl n) (Env (rho,vs,fs,C.Nameless os)) = Env (rho,vs,fs,C.Nameless (Set.delete n os))
-def TransparentAllDecl (Env (rho,vs,fs,C.Nameless os)) = Env (rho,vs,fs,C.Nameless Set.empty)
+def (MutualDecls m ds) (Env (rho,vs)) = Env (Def m ds rho,vs)
+def (OpaqueDecl n) (Env (rho,vs)) = Env (rho,vs)
+def (TransparentDecl n) (Env (rho,vs)) = Env (rho,vs)
+def TransparentAllDecl (Env (rho,vs)) = Env (rho,vs)
 
 defWhere :: Decls -> Env -> Env
-defWhere (MutualDecls m ds) (Env (rho,vs,fs,C.Nameless os)) = Env (Def m ds rho,vs,fs,C.Nameless (os Set.\\ Set.fromList (declIdents ds)))
+defWhere (MutualDecls m ds) (Env (rho,vs)) = Env (Def m ds rho, vs)
 defWhere (OpaqueDecl _) rho = rho
 defWhere (TransparentDecl _) rho = rho
 defWhere TransparentAllDecl rho = rho
 
-sub :: (C.Name,C.Formula) -> Env -> Env
-sub (i,phi) (Env (rho,vs,fs,os)) = Env (Sub i rho,vs,phi:fs,os)
-
 upd :: (Ident,Val) -> Env -> Env
-upd (x,v) (Env (rho,vs,fs,C.Nameless os)) = Env (Upd x rho,v:vs,fs,C.Nameless (Set.delete x os))
+upd (x,v) (Env (rho,vs)) = Env (Upd x rho,v:vs)
 
 upds :: [(Ident,Val)] -> Env -> Env
 upds xus rho = foldl (flip upd) rho xus
@@ -300,37 +296,24 @@ upds xus rho = foldl (flip upd) rho xus
 updsTele :: Tele -> [Val] -> Env -> Env
 updsTele tele vs = upds (zip (map fst tele) vs)
 
-subs :: [(C.Name,C.Formula)] -> Env -> Env
-subs iphis rho = foldl (flip sub) rho iphis
+-- subs :: [(C.Name,C.Formula)] -> Env -> Env
+-- subs iphis rho = foldl (flip sub) rho iphis
 
-mapEnv :: (Val -> Val) -> (C.Formula -> C.Formula) -> Env -> Env
-mapEnv f g (Env (rho,vs,fs,os)) = Env (rho,map f vs,map g fs,os)
-
-valAndFormulaOfEnv :: Env -> ([Val],[C.Formula])
-valAndFormulaOfEnv (Env (_,vs,fs,_)) = (vs,fs)
+mapEnv :: (Val -> Val) -> Env -> Env
+mapEnv f (Env (rho,vs)) = Env (rho,map f vs)
 
 valOfEnv :: Env -> [Val]
-valOfEnv = fst . valAndFormulaOfEnv
+valOfEnv (Env (_,vs)) = vs
 
-formulaOfEnv :: Env -> [C.Formula]
-formulaOfEnv = snd . valAndFormulaOfEnv
-
-domainEnv :: Env -> [C.Name]
-domainEnv (Env (rho,_,_,_)) = domCtxt rho
-  where domCtxt rho = case rho of
-          Empty      -> []
-          Upd _ e    -> domCtxt e
-          Def _ ts e -> domCtxt e
-          Sub i e    -> i : domCtxt e
 
 -- | Extract the context from the environment, used when printing holes
 contextOfEnv :: Env -> [String]
 contextOfEnv rho = case rho of
-  Env (Empty,_,_,_)               -> []
-  Env (Upd x e,VVar n t:vs,fs,os) -> (n ++ " : " ++ show t) : contextOfEnv (Env (e,vs,fs,os))
-  Env (Upd x e,v:vs,fs,os)        -> (x ++ " = " ++ show v) : contextOfEnv (Env (e,vs,fs,os))
-  Env (Def _ _ e,vs,fs,os)        -> contextOfEnv (Env (e,vs,fs,os))
-  Env (Sub i e,vs,phi:fs,os)      -> (show i ++ " = " ++ show phi) : contextOfEnv (Env (e,vs,fs,os))
+  Env (Empty,_)               -> []
+  Env (Upd x e,VVar n t:vs) -> (n ++ " : " ++ show t) : contextOfEnv (Env (e,vs))
+  Env (Upd x e,v:vs)        -> (x ++ " = " ++ show v) : contextOfEnv (Env (e,vs))
+  Env (Def _ _ e,vs)        -> contextOfEnv (Env (e,vs))
+  -- Env (Sub i e,vs,phi:fs,os)      -> (show i ++ " = " ++ show phi) : contextOfEnv (Env (e,vs,fs,os))
 
 --------------------------------------------------------------------------------
 -- | Pretty printing
@@ -345,19 +328,19 @@ showEnv b e =
       par   x = if b then parens x else x
       com     = if b then comma else PP.empty
       showEnv1 e = case e of
-        Env (Upd x env,u:us,fs,os)   ->
-          showEnv1 (Env (env,us,fs,os)) <+> names x <+> showVal1 u <> com
-        Env (Sub i env,us,phi:fs,os) ->
-          showEnv1 (Env (env,us,fs,os)) <+> names (show i) <+> text (show phi) <> com
-        Env (Def _ _ env,vs,fs,os)   -> showEnv1 (Env (env,vs,fs,os))
+        Env (Upd x env,u:us)   ->
+          showEnv1 (Env (env,us)) <+> names x <+> showVal1 u <> com
+        -- Env (Sub i env,us,phi:fs,os) ->
+        --   showEnv1 (Env (env,us,fs,os)) <+> names (show i) <+> text (show phi) <> com
+        Env (Def _ _ env,vs)   -> showEnv1 (Env (env,vs))
         _                            -> showEnv b e
   in case e of
-    Env (Empty,_,_,_)            -> PP.empty
-    Env (Def _ _ env,vs,fs,os)   -> showEnv b (Env (env,vs,fs,os))
-    Env (Upd x env,u:us,fs,os)   ->
-      par $ showEnv1 (Env (env,us,fs,os)) <+> names x <+> showVal1 u
-    Env (Sub i env,us,phi:fs,os) ->
-      par $ showEnv1 (Env (env,us,fs,os)) <+> names (show i) <+> text (show phi)
+    Env (Empty,_)            -> PP.empty
+    Env (Def _ _ env,vs)   -> showEnv b (Env (env,vs))
+    Env (Upd x env,u:us)   ->
+      par $ showEnv1 (Env (env,us)) <+> names x <+> showVal1 u
+    -- Env (Sub i env,us,phi:fs,os) ->
+    --   par $ showEnv1 (Env (env,us,fs,os)) <+> names (show i) <+> text (show phi)
 
 instance Show Loc where
   show = render . showLoc
@@ -365,11 +348,6 @@ instance Show Loc where
 showLoc :: Loc -> Doc
 showLoc (Loc name (i,j)) = text (show (i,j) ++ " in " ++ name)
 
-showFormula :: C.Formula -> Doc
-showFormula phi = case phi of
-  _ C.:\/: _ -> parens (text (show phi))
-  _ C.:/\: _ -> parens (text (show phi))
-  _ -> text $ show phi
 
 instance Show Ter where
   show = render . showTer
@@ -444,8 +422,8 @@ showVal v = case v of
   Ter t@Split{} rho -> showTer t <+> showEnv False rho
   Ter t rho         -> showTer1 t <+> showEnv True rho
   VCon c us         -> text c <+> showVals us
-  VPCon c a us phis -> text c <+> braces (showVal a) <+> showVals us
-                       <+> hsep (map ((char '@' <+>) . showFormula) phis)
+  -- VPCon c a us phis -> text c <+> braces (showVal a) <+> showVals us
+  --                   <+> hsep (map ((char '@' <+>) . showFormula) phis)
   -- VHComp v0 v1 vs   -> text "hComp" <+> showVals [v0,v1] <+> text (C.showSystem vs)
   VPi a l@(VLam x t b)
     | "_" `isPrefixOf` x -> showVal1 a <+> text "->" <+> showVal1 b

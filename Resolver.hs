@@ -23,8 +23,8 @@ import qualified Data.Map as Map
 import Exp.Abs
 import CTT (Ter,Ident,Loc(..),mkApps,mkWheres)
 import qualified CTT
-import Connections (negFormula,andFormula,orFormula)
-import qualified Connections as C
+-- import Connections (negFormula,andFormula,orFormula)
+-- import qualified Connections as C
 
 -- | Useful auxiliary functions
 
@@ -128,14 +128,14 @@ getLoc l = Loc <$> asks envModule <*> pure l
 unAIdent :: AIdent -> Ident
 unAIdent (AIdent (_,x)) = x
 
-resolveName :: AIdent -> Resolver C.Name
-resolveName (AIdent (l,x)) = do
-  modName <- asks envModule
-  vars <- asks variables
-  case lookup x vars of
-    Just Name -> return $ C.Name x
-    _ -> throwError $ "Cannot resolve name " ++ x ++ " at position " ++
-                      show l ++ " in module " ++ modName
+-- resolveName :: AIdent -> Resolver C.Name
+-- resolveName (AIdent (l,x)) = do
+--   modName <- asks envModule
+--   vars <- asks variables
+--   case lookup x vars of
+--     Just Name -> return $ C.Name x
+--     _ -> throwError $ "Cannot resolve name " ++ x ++ " at position " ++
+--                       show l ++ " in module " ++ modName
 
 resolveVar :: AIdent -> Resolver Ter
 resolveVar (AIdent (l,x)) = do

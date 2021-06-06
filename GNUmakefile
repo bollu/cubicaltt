@@ -9,7 +9,7 @@ HAPPY ?= happy
 BNFC ?= bnfc
 # or:
 # GHC = cabal exec ghc --
-INPUT = CTT.hs Connections.hs Eval.hs Main.hs Resolver.hs TypeChecker.hs
+INPUT = CTT.hs Eval.hs Main.hs Resolver.hs TypeChecker.hs
 GRAMMAR = Exp.cf
 GRAMMAR_X_FILES = Exp/Lex.x
 GRAMMAR_Y_FILES = Exp/Par.y
@@ -36,8 +36,6 @@ cubical: $(INPUT:.hs=.o) $(GRAMMAR_OBJECT_FILES)
 
 build-Makefile: $(INPUT) $(GRAMMAR_HS_FILES)
 	$(GHC) -M -dep-suffix "" $^
-
-include Makefile
 
 %.hi %.o: %.hs
 	$(GHC) $(GHCOPTIONS) $<

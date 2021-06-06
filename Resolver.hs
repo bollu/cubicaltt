@@ -55,10 +55,10 @@ appsToIdents = mapM unVar . uncurry (:) . flip unApps []
 
 -- Transform a sequence of applications
 -- (((u v1) .. vn) phi1) .. phim into (u,[v1,..,vn],[phi1,..,phim])
-unAppsFormulas :: Exp -> [Formula]-> (Exp,[Exp],[Formula])
-unAppsFormulas (AppFormula u phi) phis = unAppsFormulas u (phi:phis)
-unAppsFormulas u phis = (x,xs,phis)
-  where (x,xs) = unApps u []
+-- unAppsFormulas :: Exp -> [Formula]-> (Exp,[Exp],[Formula])
+-- unAppsFormulas (AppFormula u phi) phis = unAppsFormulas u (phi:phis)
+-- unAppsFormulas u phis = (x,xs,phis)
+--   where (x,xs) = unApps u []
 
 -- Flatten a tele
 flattenTele :: [Tele] -> [(Ident,Exp)]
@@ -204,7 +204,7 @@ resolveExp e = case e of
     brs' <- mapM resolveBranch brs
     l@(Loc n (i,j)) <- getLoc (case brs of
                                   OBranch (AIdent (l,_)) _ _:_ -> l
-                                  PBranch (AIdent (l,_)) _ _ _:_ -> l
+                                  -- PBranch (AIdent (l,_)) _ _ _:_ -> l
                                   _ -> (0,0))
     return $ CTT.Split (n ++ "_L" ++ show i ++ "_C" ++ show j) l t' brs'
   Let decls e   -> do
@@ -212,23 +212,23 @@ resolveExp e = case e of
     mkWheres rdecls <$> local (insertIdents names) (resolveExp e)
   PLam is e     -> plams is (resolveExp e)
   Hole (HoleIdent (l,_)) -> CTT.Hole <$> getLoc l
-  AppFormula t phi ->
-    let (x,xs,phis) = unAppsFormulas e []
-    in case x of
-      PCon n a ->
-        CTT.PCon (unAIdent n) <$> resolveExp a <*> mapM resolveExp xs
-                              <*> mapM resolveFormula phis
-      _ -> CTT.AppFormula <$> resolveExp t <*> resolveFormula phi
-  PathP a u v   -> CTT.PathP <$> resolveExp a <*> resolveExp u <*> resolveExp v
-  Comp u v ts   -> CTT.Comp <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
-  HComp u v ts  -> CTT.HComp <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
-  Fill u v ts   -> CTT.Fill <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
-  Trans u v     -> CTT.Comp <$> resolveExp u <*> resolveExp v <*> pure Map.empty
-  Glue u ts     -> CTT.Glue <$> resolveExp u <*> resolveSystem ts
-  GlueElem u ts -> CTT.GlueElem <$> resolveExp u <*> resolveSystem ts
-  UnGlueElem u ts -> CTT.UnGlueElem <$> resolveExp u <*> resolveSystem ts
+  -- AppFormula t phi ->
+  --   let (x,xs,phis) = unAppsFormulas e []
+  --   in case x of
+  --     PCon n a ->
+  --       CTT.PCon (unAIdent n) <$> resolveExp a <*> mapM resolveExp xs
+  --                             <*> mapM resolveFormula phis
+  --     _ -> CTT.AppFormula <$> resolveExp t <*> resolveFormula phi
+  -- PathP a u v   -> CTT.PathP <$> resolveExp a <*> resolveExp u <*> resolveExp v
+  -- Comp u v ts   -> CTT.Comp <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
+  -- HComp u v ts  -> CTT.HComp <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
+  -- Fill u v ts   -> CTT.Fill <$> resolveExp u <*> resolveExp v <*> resolveSystem ts
+  -- Trans u v     -> CTT.Comp <$> resolveExp u <*> resolveExp v <*> pure Map.empty
+  -- Glue u ts     -> CTT.Glue <$> resolveExp u <*> resolveSystem ts
+  -- GlueElem u ts -> CTT.GlueElem <$> resolveExp u <*> resolveSystem ts
+  -- UnGlueElem u ts -> CTT.UnGlueElem <$> resolveExp u <*> resolveSystem ts
   Id a u v      -> CTT.Id <$> resolveExp a <*> resolveExp u <*> resolveExp v
-  IdPair u ts   -> CTT.IdPair <$> resolveExp u <*> resolveSystem ts
+  -- IdPair u ts   -> CTT.IdPair <$> resolveExp u <*> resolveSystem ts
   IdJ a t c d x p -> CTT.IdJ <$> resolveExp a <*> resolveExp t <*> resolveExp c
                              <*> resolveExp d <*> resolveExp x <*> resolveExp p
   _ -> do
@@ -238,43 +238,43 @@ resolveExp e = case e of
 resolveWhere :: ExpWhere -> Resolver Ter
 resolveWhere = resolveExp . unWhere
 
-resolveSystem :: System -> Resolver (C.System Ter)
-resolveSystem (System ts) = do
-  ts' <- sequence [ (,) <$> resolveFace alpha <*> resolveExp u
-                  | Side alpha u <- ts ]
-  let alphas = map fst ts'
-  unless (nub alphas == alphas) $
-    throwError $ "system contains same face multiple times: " ++
-                 C.showListSystem ts'
-  -- Note: the symbols in alpha are in scope in u, but they mean 0 or 1
-  return $ Map.fromList ts'
+-- resolveSystem :: System -> Resolver (C.System Ter)
+-- resolveSystem (System ts) = do
+--   ts' <- sequence [ (,) <$> resolveFace alpha <*> resolveExp u
+--                   | Side alpha u <- ts ]
+--   let alphas = map fst ts'
+--   unless (nub alphas == alphas) $
+--     throwError $ "system contains same face multiple times: " ++
+--                  C.showListSystem ts'
+--   -- Note: the symbols in alpha are in scope in u, but they mean 0 or 1
+--   return $ Map.fromList ts'
 
-resolveFace :: [Face] -> Resolver C.Face
-resolveFace alpha =
-  Map.fromList <$> sequence [ (,) <$> resolveName i <*> resolveDir d
-                            | Face i d <- alpha ]
+-- resolveFace :: [Face] -> Resolver C.Face
+-- resolveFace alpha =
+--   Map.fromList <$> sequence [ (,) <$> resolveName i <*> resolveDir d
+--                            | Face i d <- alpha ]
 
-resolveDir :: Dir -> Resolver C.Dir
-resolveDir Dir0 = return 0
-resolveDir Dir1 = return 1
-
-resolveFormula :: Formula -> Resolver C.Formula
-resolveFormula (Dir d)          = C.Dir <$> resolveDir d
-resolveFormula (Atom i)         = C.Atom <$> resolveName i
-resolveFormula (Neg phi)        = negFormula <$> resolveFormula phi
-resolveFormula (Conj phi _ psi) =
-    andFormula <$> resolveFormula phi <*> resolveFormula psi
-resolveFormula (Disj phi psi)   =
-    orFormula <$> resolveFormula phi <*> resolveFormula psi
+-- resolveDir :: Dir -> Resolver C.Dir
+-- resolveDir Dir0 = return 0
+-- resolveDir Dir1 = return 1
+-- 
+-- resolveFormula :: Formula -> Resolver C.Formula
+-- resolveFormula (Dir d)          = C.Dir <$> resolveDir d
+-- resolveFormula (Atom i)         = C.Atom <$> resolveName i
+-- resolveFormula (Neg phi)        = negFormula <$> resolveFormula phi
+-- resolveFormula (Conj phi _ psi) =
+--     andFormula <$> resolveFormula phi <*> resolveFormula psi
+-- resolveFormula (Disj phi psi)   =
+--     orFormula <$> resolveFormula phi <*> resolveFormula psi
 
 resolveBranch :: Branch -> Resolver CTT.Branch
 resolveBranch (OBranch (AIdent (_,lbl)) args e) = do
   re <- local (insertAIdents args) $ resolveWhere e
   return $ CTT.OBranch lbl (map unAIdent args) re
-resolveBranch (PBranch (AIdent (_,lbl)) args is e) = do
-  re <- local (insertNames is . insertAIdents args) $ resolveWhere e
-  let names = map (C.Name . unAIdent) is
-  return $ CTT.PBranch lbl (map unAIdent args) names re
+-- resolveBranch (PBranch (AIdent (_,lbl)) args is e) = do
+--   re <- local (insertNames is . insertAIdents args) $ resolveWhere e
+--   let names = map (C.Name . unAIdent) is
+--   return $ CTT.PBranch lbl (map unAIdent args) names re
 
 resolveTele :: [(Ident,Exp)] -> Resolver CTT.Tele
 resolveTele []        = return []
@@ -284,16 +284,16 @@ resolveTele ((i,d):t) =
 resolveLabel :: [(Ident,SymKind)] -> Label -> Resolver CTT.Label
 resolveLabel _ (OLabel n vdecl) =
   CTT.OLabel (unAIdent n) <$> resolveTele (flattenTele vdecl)
-resolveLabel cs (PLabel n vdecl is sys) = do
-  let tele' = flattenTele vdecl
-      ts    = map fst tele'
-      names = map (C.Name . unAIdent) is
-      n'    = unAIdent n
-      cs'   = delete (n',PConstructor) cs
-  CTT.PLabel n' <$> resolveTele tele' <*> pure names
-                <*> local (insertNames is . insertIdents cs' . insertVars ts)
-                      (resolveSystem sys)
-
+-- resolveLabel cs (PLabel n vdecl is sys) = do
+--   let tele' = flattenTele vdecl
+--       ts    = map fst tele'
+--       names = map (C.Name . unAIdent) is
+--       n'    = unAIdent n
+--       cs'   = delete (n',PConstructor) cs
+--   CTT.PLabel n' <$> resolveTele tele' <*> pure names
+--                 <*> local (insertNames is . insertIdents cs' . insertVars ts)
+--                       (resolveSystem sys)
+-- 
 -- Resolve a non-mutual declaration; returns resolver for type and
 -- body separately
 resolveNonMutualDecl :: Decl -> (Ident,Resolver CTT.Ter
@@ -331,12 +331,15 @@ resolveDeclData (AIdent (l,f)) tele sums p =
   let tele' = flattenTele tele
       a     = binds CTT.Pi tele' (return CTT.U)
       cs    = [ (unAIdent lbl,Constructor) | OLabel lbl _ <- sums ]
-      pcs   = [ (unAIdent lbl,PConstructor) | PLabel lbl _ _ _ <- sums ]
-      sum   = if p pcs then CTT.Sum else CTT.HSum
+      -- pcs   = [ (unAIdent lbl,PConstructor) | PLabel lbl _ _ _ <- sums ]
+      -- sum   = if p pcs then CTT.Sum else CTT.HSum
+      sum = CTT.Sum -- TODO: what is HSum?
       d = lams tele' $ local (insertVar f) $
             sum <$> getLoc l <*> pure f
-                <*> mapM (resolveLabel (cs ++ pcs)) sums
-  in (f,a,d,(f,Variable):cs ++ pcs)
+                -- <*> mapM (resolveLabel (cs ++ pcs)) sums
+                <*> mapM (resolveLabel (cs)) sums
+  -- in (f,a,d,(f,Variable):cs ++ pcs)
+  in (f,a,d,(f,Variable):cs)
 
 resolveRTele :: [Ident] -> [Resolver CTT.Ter] -> Resolver CTT.Tele
 resolveRTele [] _ = return []

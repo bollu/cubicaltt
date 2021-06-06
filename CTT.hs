@@ -115,30 +115,30 @@ data Ter = Pi Ter -- TODO: ?
          | Snd Ter -- snd t
            -- constructor c Ms
          | Con LIdent [Ter]
-         | PCon LIdent Ter [Ter] [C.Formula] -- c A ts phis (A is the data type)
+         -- | PCon LIdent Ter [Ter] [C.Formula] -- c A ts phis (A is the data type)
            -- branches c1 xs1  -> M1,..., cn xsn -> Mn
          | Split Ident Loc Ter [Branch]
            -- labelled sum c1 A1s,..., cn Ans (assumes terms are constructors)
          | Sum Loc Ident [Label] -- TODO: should only contain OLabels
-         | HSum Loc Ident [Label]
+         -- | HSum Loc Ident [Label]
            -- undefined and holes
          | Undef Loc Ter -- Location and type
          | Hole Loc
            -- Path types
-         | PathP Ter Ter Ter
-         | PLam C.Name Ter
-         | AppFormula Ter C.Formula
-           -- Kan composition and filling
-         | Comp Ter Ter (C.System Ter)
-         | Fill Ter Ter (C.System Ter)
-         | HComp Ter Ter (C.System Ter)
-         -- Glue
-         | Glue Ter (C.System Ter)
-         | GlueElem Ter (C.System Ter)
-         | UnGlueElem Ter (C.System Ter)
-           -- Id
+         -- | PathP Ter Ter Ter
+         -- | PLam C.Name Ter
+         -- | AppFormula Ter C.Formula
+         --   -- Kan composition and filling
+         -- | Comp Ter Ter (C.System Ter)
+         -- | Fill Ter Ter (C.System Ter)
+         -- | HComp Ter Ter (C.System Ter)
+         -- -- Glue
+         -- | Glue Ter (C.System Ter)
+         -- | GlueElem Ter (C.System Ter)
+         -- | UnGlueElem Ter (C.System Ter)
+         --   -- Id
          | Id Ter Ter Ter
-         | IdPair Ter (C.System Ter)
+         -- | IdPair Ter (C.System Ter)
          | IdJ Ter Ter Ter Ter Ter Ter
   deriving Eq
 
@@ -169,24 +169,24 @@ data Val = VU
          | VPCon LIdent Val [Val] [C.Formula]
 
            -- Path values
-         | VPathP Val Val Val
-         | VPLam C.Name Val
-         | VComp Val Val (C.System Val)
+         -- | VPathP Val Val Val
+         -- | VPLam C.Name Val
+         -- | VComp Val Val (C.System Val)
 
-           -- Glue values
-         | VGlue Val (C.System Val)
-         | VGlueElem Val (C.System Val)
-         | VUnGlueElem Val (C.System Val)
+         --   -- Glue values
+         -- | VGlue Val (C.System Val)
+         -- | VGlueElem Val (C.System Val)
+         -- | VUnGlueElem Val (C.System Val)
 
-           -- Composition in the universe
-         | VCompU Val (C.System Val)
+         --   -- Composition in the universe
+         -- | VCompU Val (C.System Val)
 
            -- Composition for HITs; the type is constant
-         | VHComp Val Val (C.System Val)
+         -- | VHComp Val Val (C.System Val)
 
            -- Id
          | VId Val Val Val
-         | VIdPair Val (C.System Val)
+         -- | VIdPair Val (C.System Val)
 
            -- TODO: Neutral => normalization by evaluation?
            -- Neutral values:
@@ -196,9 +196,9 @@ data Val = VU
          | VSnd Val
          | VSplit Val Val
          | VApp Val Val
-         | VAppFormula Val C.Formula
+         -- | VAppFormula Val C.Formula
          | VLam Ident Val Val
-         | VUnGlueElemU Val Val (C.System Val)
+         -- | VUnGlueElemU Val Val (C.System Val)
          | VIdJ Val Val Val Val Val Val
   deriving Eq
 
@@ -208,14 +208,14 @@ isNeutral v = case v of
   Ter Hole{} _   -> True
   VVar{}         -> True
   VOpaque{}      -> True
-  VComp{}        -> True
+  -- VComp{}        -> True
   VFst{}         -> True
   VSnd{}         -> True
   VSplit{}       -> True
   VApp{}         -> True
-  VAppFormula{}  -> True
-  VUnGlueElemU{} -> True
-  VUnGlueElem{}  -> True
+  -- VAppFormula{}  -> True
+  -- VUnGlueElemU{} -> True
+  -- VUnGlueElem{}  -> True
   VIdJ{}         -> True
   _              -> False
 
@@ -242,8 +242,8 @@ isCon VCon{} = True
 isCon _      = False
 
 -- Constant path: <_> v
-constPath :: Val -> Val
-constPath = VPLam (C.Name "_")
+-- constPath :: Val -> Val
+-- constPath = VPLam (C.Name "_")
 
 
 --------------------------------------------------------------------------------
@@ -388,24 +388,24 @@ showTer v = case v of
   Where e d          -> showTer e <+> text "where" <+> showDecls d
   Var x              -> text x
   Con c es           -> text c <+> showTers es
-  PCon c a es phis   -> text c <+> braces (showTer a) <+> showTers es
-                        <+> hsep (map ((char '@' <+>) . showFormula) phis)
+  -- PCon c a es phis   -> text c <+> braces (showTer a) <+> showTers es
+  --                       <+> hsep (map ((char '@' <+>) . showFormula) phis)
   Split f _ _ _      -> text f
   Sum _ n _          -> text n
-  HSum _ n _         -> text n
+  -- HSum _ n _         -> text n
   Undef{}            -> text "undefined"
   Hole{}             -> text "?"
-  PathP e0 e1 e2     -> text "PathP" <+> showTers [e0,e1,e2]
-  PLam i e           -> char '<' <> text (show i) <> char '>' <+> showTer e
-  AppFormula e phi   -> showTer1 e <+> char '@' <+> showFormula phi
-  Comp e t ts        -> text "comp" <+> showTers [e,t] <+> text (C.showSystem ts)
-  HComp e t ts       -> text "hComp" <+> showTers [e,t] <+> text (C.showSystem ts) 
-  Fill e t ts        -> text "fill" <+> showTers [e,t] <+> text (C.showSystem ts)
-  Glue a ts          -> text "Glue" <+> showTer1 a <+> text (C.showSystem ts)
-  GlueElem a ts      -> text "glue" <+> showTer1 a <+> text (C.showSystem ts)
-  UnGlueElem a ts    -> text "unglue" <+> showTer1 a <+> text (C.showSystem ts)
+  -- PathP e0 e1 e2     -> text "PathP" <+> showTers [e0,e1,e2]
+  -- PLam i e           -> char '<' <> text (show i) <> char '>' <+> showTer e
+  -- AppFormula e phi   -> showTer1 e <+> char '@' <+> showFormula phi
+  -- Comp e t ts        -> text "comp" <+> showTers [e,t] <+> text (C.showSystem ts)
+  -- HComp e t ts       -> text "hComp" <+> showTers [e,t] <+> text (C.showSystem ts) 
+  -- Fill e t ts        -> text "fill" <+> showTers [e,t] <+> text (C.showSystem ts)
+  -- Glue a ts          -> text "Glue" <+> showTer1 a <+> text (C.showSystem ts)
+  -- GlueElem a ts      -> text "glue" <+> showTer1 a <+> text (C.showSystem ts)
+  -- UnGlueElem a ts    -> text "unglue" <+> showTer1 a <+> text (C.showSystem ts)
   Id a u v           -> text "Id" <+> showTers [a,u,v]
-  IdPair b ts        -> text "idC" <+> showTer1 b <+> text (C.showSystem ts)
+  -- IdPair b ts        -> text "idC" <+> showTer1 b <+> text (C.showSystem ts)
   IdJ a t c d x p    -> text "idJ" <+> showTers [a,t,c,d,x,p]
 
 showTers :: [Ter] -> Doc
@@ -420,7 +420,7 @@ showTer1 t = case t of
   Hole{}   -> showTer t
   Split{}  -> showTer t
   Sum{}    -> showTer t
-  HSum{}   -> showTer t
+  -- HSum{}   -> showTer t
   Fst{}    -> showTer t
   Snd{}    -> showTer t
   _        -> parens (showTer t)
@@ -440,13 +440,13 @@ showVal :: Val -> Doc
 showVal v = case v of
   VU                -> char 'U'
   Ter t@Sum{} rho   -> showTer t <+> showEnv False rho
-  Ter t@HSum{} rho  -> showTer t <+> showEnv False rho
+  -- Ter t@HSum{} rho  -> showTer t <+> showEnv False rho
   Ter t@Split{} rho -> showTer t <+> showEnv False rho
   Ter t rho         -> showTer1 t <+> showEnv True rho
   VCon c us         -> text c <+> showVals us
   VPCon c a us phis -> text c <+> braces (showVal a) <+> showVals us
                        <+> hsep (map ((char '@' <+>) . showFormula) phis)
-  VHComp v0 v1 vs   -> text "hComp" <+> showVals [v0,v1] <+> text (C.showSystem vs)
+  -- VHComp v0 v1 vs   -> text "hComp" <+> showVals [v0,v1] <+> text (C.showSystem vs)
   VPi a l@(VLam x t b)
     | "_" `isPrefixOf` x -> showVal1 a <+> text "->" <+> showVal1 b
     | otherwise          -> char '(' <> showLam v
@@ -455,31 +455,31 @@ showVal v = case v of
   VSigma u v        -> text "Sigma" <+> showVals [u,v]
   VApp u v          -> showVal u <+> showVal1 v
   VLam{}            -> text "\\(" <> showLam v
-  VPLam{}           -> char '<' <> showPLam v
+  -- VPLam{}           -> char '<' <> showPLam v
   VSplit u v        -> showVal u <+> showVal1 v
   VVar x _          -> text x
   VOpaque x _       -> text ('#':x)
   VFst u            -> showVal1 u <> text ".1"
   VSnd u            -> showVal1 u <> text ".2"
-  VPathP v0 v1 v2   -> text "PathP" <+> showVals [v0,v1,v2]
-  VAppFormula v phi -> showVal v <+> char '@' <+> showFormula phi
-  VComp v0 v1 vs    ->
-    text "comp" <+> showVals [v0,v1] <+> text (C.showSystem vs)
-  VGlue a ts        -> text "Glue" <+> showVal1 a <+> text (C.showSystem ts)
-  VGlueElem a ts    -> text "glue" <+> showVal1 a <+> text (C.showSystem ts)
-  VUnGlueElem a ts  -> text "unglue" <+> showVal1 a <+> text (C.showSystem ts)
-  VUnGlueElemU v b es -> text "unglue U" <+> showVals [v,b]
-                         <+> text (C.showSystem es)
-  VCompU a ts       -> text "comp (<_> U)" <+> showVal1 a <+> text (C.showSystem ts)
+  -- VPathP v0 v1 v2   -> text "PathP" <+> showVals [v0,v1,v2]
+  -- VAppFormula v phi -> showVal v <+> char '@' <+> showFormula phi
+ --  VComp v0 v1 vs    ->
+ --    text "comp" <+> showVals [v0,v1] <+> text (C.showSystem vs)
+  -- VGlue a ts        -> text "Glue" <+> showVal1 a <+> text (C.showSystem ts)
+  -- VGlueElem a ts    -> text "glue" <+> showVal1 a <+> text (C.showSystem ts)
+  -- VUnGlueElem a ts  -> text "unglue" <+> showVal1 a <+> text (C.showSystem ts)
+  -- VUnGlueElemU v b es -> text "unglue U" <+> showVals [v,b]
+  --                     <+> text (C.showSystem es)
+  -- VCompU a ts       -> text "comp (<_> U)" <+> showVal1 a <+> text (C.showSystem ts)
   VId a u v           -> text "Id" <+> showVals [a,u,v]
-  VIdPair b ts        -> text "idC" <+> showVal1 b <+> text (C.showSystem ts)
-  VIdJ a t c d x p    -> text "idJ" <+> showVals [a,t,c,d,x,p]
+  -- VIdPair b ts        -> text "idC" <+> showVal1 b <+> text (C.showSystem ts)
+  -- VIdJ a t c d x p    -> text "idJ" <+> showVals [a,t,c,d,x,p]
 
-showPLam :: Val -> Doc
-showPLam e = case e of
-  VPLam i a@VPLam{} -> text (show i) <+> showPLam a
-  VPLam i a         -> text (show i) <> char '>' <+> showVal a
-  _                 -> showVal e
+-- showPLam :: Val -> Doc
+-- showPLam e = case e of
+--   VPLam i a@VPLam{} -> text (show i) <+> showPLam a
+--   VPLam i a         -> text (show i) <> char '>' <+> showVal a
+--   _                 -> showVal e
 
 -- Merge lambdas of the same type
 showLam :: Val -> Doc

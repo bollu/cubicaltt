@@ -161,12 +161,12 @@ lam (a,t) e = CTT.Lam a <$> resolveExp t <*> local (insertVar a) e
 lams :: [(Ident,Exp)] -> Resolver Ter -> Resolver Ter
 lams = flip $ foldr lam
 
-plam :: AIdent -> Resolver Ter -> Resolver Ter
-plam i e = CTT.PLam (C.Name (unAIdent i)) <$> local (insertName i) e
+-- plam :: AIdent -> Resolver Ter -> Resolver Ter
+-- plam i e = CTT.PLam (C.Name (unAIdent i)) <$> local (insertName i) e
 
-plams :: [AIdent] -> Resolver Ter -> Resolver Ter
-plams [] _ = throwError "Empty plam abstraction"
-plams xs e = foldr plam e xs
+-- plams :: [AIdent] -> Resolver Ter -> Resolver Ter
+-- plams [] _ = throwError "Empty plam abstraction"
+-- plams xs e = foldr plam e xs
 
 bind :: (Ter -> Ter) -> (Ident,Exp) -> Resolver Ter -> Resolver Ter
 bind f (x,t) e = f <$> lam (x,t) e
@@ -210,7 +210,7 @@ resolveExp e = case e of
   Let decls e   -> do
     (rdecls,names) <- resolveDecls decls
     mkWheres rdecls <$> local (insertIdents names) (resolveExp e)
-  PLam is e     -> plams is (resolveExp e)
+  -- PLam is e     -> plams is (resolveExp e)
   Hole (HoleIdent (l,_)) -> CTT.Hole <$> getLoc l
   -- AppFormula t phi ->
   --   let (x,xs,phis) = unAppsFormulas e []

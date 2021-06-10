@@ -199,10 +199,15 @@ nat depends on (like prelude.ctt).
 
 
 -- The identity function can be written like this:
+-- idfun is a function from (A : U), (a : A) to A
+-- A is of type UNIV, a is of type A
+-- PI type: dependent function type
 idfun : (A : U) (a : A) -> A = \(A : U) (a : A) -> a
 
 -- Or even better like this:
-idfun (A : U) (a : A) : A = a
+-- idfun2 is a value of type A, where idfun2 is parameterized
+-- by (A : U), and (a : A).
+idfun2 (A : U) (a : A) : A = a
 
 -- The syntax for Pi types is like in Agda, so (x : A) -> B
 -- corresponds to Pi (x : A). B or forall (x : A), B.
@@ -246,6 +251,12 @@ not : bool -> bool = split
   true -> false
   false -> true
 
+-- not2 (b : bool) : bool = b
+-- not : bool -> bool = split
+--  true -> true
+--  false -> false
+
+
 -- Note that the order of the cases matter and have to be the same as
 -- in the datatype declaration. The list of cases must be exhaustive
 -- and there is no way to make a "default" case (like _ in Haskell).
@@ -255,10 +266,9 @@ not : bool -> bool = split
 -- splits can be done but then one needs to annotate them with the
 -- type using the syntax in the false branch below:
 or : bool -> bool -> bool = split
-  true -> let constTrue (_ : bool) : bool = b
-                where
-                b : bool = true
-          in constTrue
+  true -> \(_: bool) -> true
+               --  where
+               -- b : bool = true
   false -> split@(bool -> bool) with
     true -> true
     false -> false
@@ -275,6 +285,7 @@ or : bool -> bool -> bool = split
 --              in output
 
 -- Sigma types are built-in and written as (x : A) * B:
+-- DEPENDENT TYPE.
 Sigma (A : U) (B : A -> U) : U = (x : A) * B x
 
 -- First and second projections are given by .1 and .2:
@@ -283,6 +294,8 @@ snd (A : U) (B : A -> U) (p : Sigma A B) : B (fst A B p) = p.2
 
 -- Pairing is written (a,b):
 pair (A : U) (B : A -> U) (a : A) (b : B a) : Sigma A B = (a,b)
+
+
 
 -- The reason Sigma types are built-in and not defined as a datatype
 -- is that we want surjective pairing. So if we have p : Sigma A B
@@ -298,13 +311,58 @@ pair (A : U) (B : A -> U) (a : A) (b : B a) : Sigma A B = (a,b)
 data nat = zero
          | suc (n : nat)
 
+
+data fat = zero | one | two
+
+bool2ty : bool -> U = split
+ true -> bool
+ false -> fat
+
+
+constbool : bool -> U = \(_: bool) -> bool
+
+constT (S: U) (T: U): S -> U = \(_: S) -> T
+
+-- |constbool true| + |constbool false|
+-- |bool| + |bool| = 4
+-- sum_{x in X} |Y| = |X| * |Y|
+beta : (x : bool) * constbool x = (false, false)
+beta : (x : bool) * constbool x = (false, true)
+beta : (x : bool) * constbool x = (true, false)
+beta : (x : bool) * constbool x = (true, true)
+
+
+gamma : (x : bool) * constT bool fat x = (true, zero)
+gamma : (x : bool) * constT bool fat x = (true, one)
+gamma : (x : bool) * constT bool fat x = (true, two)
+gamma : (x : bool) * constT bool fat x = (false, zero)
+gamma : (x : bool) * constT bool fat x = (false, one)
+gamma : (x : bool) * constT bool fat x = (false, two)
+
+-- SIGMA type: sigma_(x : bool) bool2ty x
+-- |SIGMA(x:bool) bool2ty x| =  |bool2ty false| + |bool2ty true|
+-- 
+alpha : (x : bool) * bool2ty x = (false, zero)
+alpha : (x : bool) * bool2ty x = (false, one)
+alpha : (x : bool) * bool2ty x = (false, two)
+-- alpha : (x : bool) * bool2ty x = (true, zero)
+alpha : (x : bool) * bool2ty x = (true, true)
+alpha : (x : bool) * bool2ty x = (true, false)
+
+
 -- and definitions can be recursive:
 add (m : nat) : nat -> nat = split
   zero -> m
   suc n -> suc (add m n)
 
+-- | I prove anything!
+bot (T: U): T = bot T
+
+
 -- As there is no termination checker one can incidentally write a
--- loop (and use this to prove False). So one has to be a bit careful!
+-- loop (and use this to prove False).
+-- So one has to be a bit careful!
+
 
 -- Definitions can also be mutual:
 mutual
@@ -396,7 +454,8 @@ isn't a type we cannot write that as a lambda abstraction and we need
 a special syntax for it)
 
 -}
-refl (A : U) (a : A) : Path A a a = <i> a
+refl (A : U) (a : A) : Path A a a = -- \(i: I) -> a
+    <i> a
 
 -- A more concrete path:
 truePath : Path bool true true = <i> true
@@ -405,13 +464,17 @@ truePath : Path bool true true = <i> true
 -- The interval II has two end-points 0 and 1. By applying a path to 0
 -- or 1 we obtain the end-points of the path:
 face0 (A : U) (a b : A) (p : Path A a b) : A = p @ 0
+face1 (A : U) (a b : A) (p : Path A a b) : A = p @ 1
 
 -- We can now prove: (b : bool) -> Path bool (not (not b)) b.
 -- The proof is done by case analysis on b and in both cases it is
 -- proved by reflexivity.
 notK : (b : bool) -> Path bool (not (not b)) b = split
-  true -> <i> true
-  false -> <i> false
+  true -> <i> true -- Path bool (not (not true)) true ->
+                   -- Path bool true true
+  false ->  <i> false -- Path bool (not (not false)) false  ->
+                     -- Path bool false false 
+
 
 {-
 
@@ -434,8 +497,9 @@ this would be very appreciated :-)
 -}
 
 -- Using Path types we get a simple proof of cong:
-cong (A B : U) (f : A -> B) (a b : A) (p : Path A a b) :
-     Path B (f a) (f b) = <i> f (p @ i)
+-- a1 = a2   =>    f(a1) = f(a2)
+cong (A B : U) (f : A -> B) (a1 a2 : A) (p : Path A a1 a2) :
+     Path B (f a1) (f a2) = <i> f (p @ i) -- f . p
 
 -- To see why this makes sense compute this at i=0 and i=1.
 
@@ -454,6 +518,8 @@ congbin (A B C : U) (f : A -> B -> C) (a a' : A) (b b' : B)
 -- when trying to prove complicated things.
 
 -- We get a short proof of function extensionality using Path types:
+-- f: Z -> Z = 0 / g: Z -> Z = x - x
+-- (forall x. f x = g x) => f = g
 funExt (A B : U) (f g : A -> B)
        (p : (x : A) -> Path B (f x) (g x)) :
        Path (A -> B) f g = <i> \(a : A) -> (p a) @ i
@@ -492,7 +558,7 @@ notK' : Path (bool -> bool) (compf not not) (idfun bool) =
   <i> \(b : bool) -> notK b @ i
 
 -- Exercise: even n = odd (suc n)
-evenodd : (n : nat) -> Path bool (even n) (odd (suc n)) = undefined
+evenodd : (n : nat) -> Path bool(even n) (odd (suc n)) = undefined
 
 
 {-

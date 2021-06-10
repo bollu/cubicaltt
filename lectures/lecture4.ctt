@@ -22,6 +22,9 @@ import lecture3
 fiber (A B : U) (f : A -> B) (y : B) : U =
   (x : A) * Path B y (f x)
 
+-- | bollu note: this means that each fiber contains one and only one element.
+-- cause contractible means that you have an `(x: A)` and for all other `(y : A)`
+-- you have a proof that `y = x`. So upto homotopy each fiber has a single point.
 -- A map is an equivalence if its fibers are contractible
 isEquiv (A B : U) (f : A -> B) : U =
   (y : B) -> isContr (fiber A B f y)
@@ -39,6 +42,7 @@ idIsEquiv (A : U) : isEquiv A A (idfun A) =
 
 idEquiv (A : U) : equiv A A = (idfun A,idIsEquiv A)
 
+-- | bollu: ... wow, WHAT? this is crazy!
 -- We can compute the inverse of an equivalence
 invEquiv (A B : U) (e : equiv A B) (y : B) : A = (e.2 y).1.1
 
@@ -54,6 +58,8 @@ isPropIsContr (A : U) : isProp (isContr A) = undefined
 -- propositions in HoTT are different from Prop in Coq as we cannot
 -- erase them. If we erase the proof that a map is an equivalence we
 -- cannot invert it!
+-- bollu: ^ that is the key insight, Prop has computational content!
+-- What can be erased in cubical?
 
 isPropIsEquiv (A B : U) (f : A -> B) : isProp (isEquiv A B f) =
   \(u0 u1 : isEquiv A B f) ->

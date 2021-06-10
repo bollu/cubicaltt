@@ -151,11 +151,22 @@ Exercise: draw the squares for
 -- The ability to construct these squares makes it easy to prove some
 -- basic results about Path-types. For instance we can prove
 -- "contractibility of singletons":
+-- | bollu: shouldn't this be (x : A) -> Path A a x ?
+-- | bollu: No. What this says is that inhabitants of `singl A a`
+-- are all values  `x` such that `x = a`. It is
+-- something like `singla A a =defn= { (x, a=x) | x:A such that a=x }`
 singl (A : U) (a : A) : U = (x : A) * Path A a x
 
+-- Thm: 
+--   the singleton: (a, <i> a) = (b, p) for all (b: A, p: b=a)
+--    p@0-----------p@1   a--------b
+--    |              |    |        |
+--    |   p@(i/\j)   | =  |        |
+--    |              |    |        |
+--    p@0-----------p@0   a--------a
 contrSingl (A : U) (a b : A) (p : Path A a b) :
            Path (singl A a) (a,<i> a) (b,p) =
-           <i> (p @ i,<j> p @ i /\ j)
+	   <i> (p @ i, <j> p @ i /\ j)
 
 -- The first component of the above pair has to be a path from a to b,
 -- this is exactly what p @ i gives us (note that we are to the right
@@ -273,13 +284,34 @@ compPath (A : U) (a b c : A) (p : Path A a b) (q : Path A b c) : Path A a c =
 -- explicitly.
 
 
+-- j=1
+--  a -  compinv - -  -  b
+--  |                    |
+-- <j> a        [<j> -> p @ -j]
+--  |                    |
+--  a----[<i> -> p@i]----b
+--  i=j=0          i=1
+--
 -- Another example of a simple composition: compose p with its inverse
 compinv (A : U) (a b : A) (p : Path A a b) : Path A a a =
  <i> comp (<_> A) (p @ i) [ (i = 0) -> <j> a, (i = 1) -> <j> p @ -j ]
 
+
+-- 
+-- 
+--
+-- 
 -- Exercise (hard): is "compinv A a b p" Path equal to <j> a?
 ex (A : U) (a b : A) (p : Path A a b) :
-  Path (Path A a a) (compinv A a b p) (<j> a) = undefined
+  Path (Path A a a) (compinv A a b p) (<j> a) =
+    <k> comp (<_> Path A a a)
+       -- I need to give a term of value
+       -- (compinv A a b p) at k=0,
+       -- (<j> a) at k=1
+       (<j> p @ j /\ -k)
+         [(k = 0) -> p,
+	  (k = 1) -> <i> a]
+       
 
 -- Hint: draw a cube with a square with these as sides as its missing
 -- top and compute it as a composition (the exercise about which

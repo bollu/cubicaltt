@@ -117,6 +117,8 @@ This is like a cast operation (compare with castmx of MathComp).
 
 -}
 
+--  * ----p-----> *
+--  
 -- We do this by a comp with an empty list of sides:
 trans (A B : U) (p : Path U A B) (a : A) : B = comp p a []
 
